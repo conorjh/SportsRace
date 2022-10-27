@@ -67,7 +67,6 @@ void Game::Render::BaseRenderer::LoadImageFile(std::string File, SDL_Texture*& T
 void Game::Render::BaseRenderer::LoadFontFile(std::string File, unsigned int Size, TTF_Font* Font)
 {
 	Font = TTF_OpenFont(File.c_str(), Size);
-	//Tex = SDL_CreateTextureFromSurface(Data->RenderData.MainRenderer, Surf);
 }
 
 void Game::Render::BaseRenderer::RenderTextSingleLine(TTF_Font* Font, std::string Text, int x, int y, SDL_Color Color)
@@ -141,7 +140,7 @@ void Game::App::Renderer::MainMenuRenderer::DrawLeague()
 {
 	SDL_Color White = { 255, 255, 255 };
 	SDL_Rect RenderQuad2 = { 500 , 100 , 378 , 359 };
-	DrawImage(RendererData->ScreenT, NULL, &RenderQuad2);
+	RenderImage(RendererData->ScreenT, NULL, &RenderQuad2);
 
 	unsigned int OtherStandings = 4;
 
@@ -252,7 +251,7 @@ Game::App::Renderer::InRaceRenderer::InRaceRenderer(AppData* _Data, States::InRa
 }
 
 
-void Game::Render::BaseRenderer::DrawImage(SDL_Texture* Texture, SDL_Rect* SourceQuad, SDL_Rect* RenderQuad)
+void Game::Render::BaseRenderer::RenderImage(SDL_Texture* Texture, SDL_Rect* SourceQuad, SDL_Rect* RenderQuad)
 {
 	SDL_RenderCopy(Data->RenderData.MainRenderer, Texture, SourceQuad, RenderQuad);
 }
@@ -267,7 +266,7 @@ void Game::App::Renderer::InRaceRenderer::DrawRacer(Race::Racer Racer, unsigned 
 	unsigned int XDraw = xOffset + (Racer.Pos.X - Camera.CameraX) - (StaggerOffset);
 
 	unsigned int RacerWidth = 153;
-	//if (XDraw + RacerWidth < 0 || XDraw > Camera.W)
+	//if (XDraw + RacerWidth + 200 < 0 || XDraw > Camera.W)
 		//return;
 
 	unsigned int FrameNum = (613 / 4) * (Racer.RunFrame);
@@ -277,13 +276,13 @@ void Game::App::Renderer::InRaceRenderer::DrawRacer(Race::Racer Racer, unsigned 
 
 	SDL_Rect RenderQuad2 = { XDraw  ,  yOffset + 79, 144,107 };
 	if (State->RaceSM.State->Type == RaceStateType::StartersOrders)
-		DrawImage(RendererData->FellaWaitT, NULL, &RenderQuad2);	//starters orders
+		RenderImage(RendererData->FellaWaitT, NULL, &RenderQuad2);	//starters orders
 	else
-		DrawImage(RendererData->FellaRunT, &SourceQuad, &RenderQuad);	//running
+		RenderImage(RendererData->FellaRunT, &SourceQuad, &RenderQuad);	//running
 
-	RenderText(RendererData->DebugFont, "x: " + to_string(Racer.Pos.X) + "\n" +
-		"v: " + to_string(Racer.Pos.Velocity) + "\n" +
-		Racer.Name, XDraw, yOffset, { 255,255,255 });
+	//RenderText(RendererData->DebugFont, "x: " + to_string(Racer.Pos.X) + "\n" +
+	//	"v: " + to_string(Racer.Pos.Velocity) + "\n" +
+	//	Racer.Name, XDraw, yOffset, { 255,255,255 });
 }
 
 void Game::App::Renderer::InRaceRenderer::DrawWinners()
@@ -293,7 +292,7 @@ void Game::App::Renderer::InRaceRenderer::DrawWinners()
 	if (State->RaceSM.Data.ThisRace.Result.RacerResults.size() > 0)
 	{
 		SDL_Rect RenderQuad2 = { 280, 220 , 378 , 359 };
-		DrawImage(RendererData->ScreenT, NULL, &RenderQuad2);
+		RenderImage(RendererData->ScreenT, NULL, &RenderQuad2);
 		for (int t = 0; t < State->RaceSM.Data.ThisRace.Result.RacerResults.size() && t < 3; ++t)
 		{
 			auto& Result = State->RaceSM.Data.ThisRace.Result.RacerResults[t];
@@ -303,7 +302,7 @@ void Game::App::Renderer::InRaceRenderer::DrawWinners()
 			RenderText(RendererData->MainFont, to_string(double(double(Result.Ms) / double(1000))) + "sec", 470, 300 + (t * 60) + 32, { 255,255,255 });
 
 			SDL_Rect RenderQuad = { 380, 300 + (t * 60), 50, 50 };
-			DrawImage(RendererData->HeadT, NULL, &RenderQuad);
+			RenderImage(RendererData->HeadT, NULL, &RenderQuad);
 		}
 	}
 }
@@ -319,31 +318,31 @@ void Game::App::Renderer::InRaceRenderer::DrawBackground()
 	int TrackDrawOffset = Camera.CameraX2 % unsigned int(TrackWidth);
 	SDL_Rect RenderQuad1 = { 0 - TrackDrawOffset ,0, TrackWidth, TrackHeight };
 	SDL_Rect RenderQuad2 = { RenderQuad1.w - TrackDrawOffset, 0, RenderQuad1.w, RenderQuad1.h };
-	DrawImage(RendererData->TrackGraphicT, NULL, &RenderQuad1);
-	DrawImage(RendererData->TrackGraphicT, NULL, &RenderQuad2);
+	RenderImage(RendererData->TrackGraphicT, NULL, &RenderQuad1);
+	RenderImage(RendererData->TrackGraphicT, NULL, &RenderQuad2);
 
 	auto MountainWidth = TrackWidth * 2, MountainHeight = RendererData->MountainsGraphic->h;
 	int xOffset2 = int(Camera.CameraX2 * 0.05) % MountainWidth;
 	SDL_Rect RenderQuad3 = { 0 - xOffset2,0, MountainWidth, MountainHeight };
 	SDL_Rect RenderQuad4 = { RenderQuad3.w - xOffset2,0, RenderQuad3.w, RenderQuad3.h };
-	DrawImage(RendererData->MountainsGraphicT, NULL, &RenderQuad3);
-	DrawImage(RendererData->MountainsGraphicT, NULL, &RenderQuad4);
+	RenderImage(RendererData->MountainsGraphicT, NULL, &RenderQuad3);
+	RenderImage(RendererData->MountainsGraphicT, NULL, &RenderQuad4);
 
 	int xOffset3 = int(Camera.CameraX2 * 0.1) % RendererData->CloudsGraphic->w;
 	SDL_Rect RenderQuad5 = { 0 - xOffset3,0, RendererData->CloudsGraphic->w , RendererData->CloudsGraphic->h };
 	SDL_Rect RenderQuad6 = { RenderQuad5.w - xOffset3,0, RendererData->CloudsGraphic->w, RendererData->CloudsGraphic->h };
-	DrawImage(RendererData->CloudsGraphicT, NULL, &RenderQuad5);
-	DrawImage(RendererData->CloudsGraphicT, NULL, &RenderQuad6);
+	RenderImage(RendererData->CloudsGraphicT, NULL, &RenderQuad5);
+	RenderImage(RendererData->CloudsGraphicT, NULL, &RenderQuad6);
 
 	int xOffset4 = int(Camera.CameraX2 * 0.75) % unsigned int(TrackWidth);
 	SDL_Rect RenderQuad7 = { 0 - xOffset4,0, TrackWidth , RendererData->StadiumGraphic->h };
 	SDL_Rect RenderQuad8 = { RenderQuad7.w - xOffset4,0, TrackWidth, RendererData->StadiumGraphic->h };
-	DrawImage(RendererData->StadiumGraphicT, NULL, &RenderQuad7);
-	DrawImage(RendererData->StadiumGraphicT, NULL, &RenderQuad8);
+	RenderImage(RendererData->StadiumGraphicT, NULL, &RenderQuad7);
+	RenderImage(RendererData->StadiumGraphicT, NULL, &RenderQuad8);
 
 	int BlockX = 10 - Camera.CameraX;
 	SDL_Rect RenderQuad9 = { BlockX , 490, 243 * 0.75, 324 * 0.75 };
-	DrawImage(RendererData->StartingBlocksGraphicT, NULL, &RenderQuad9);
+	RenderImage(RendererData->StartingBlocksGraphicT, NULL, &RenderQuad9);
 }
 
 unsigned int Game::App::Renderer::InRaceRenderer::Render()

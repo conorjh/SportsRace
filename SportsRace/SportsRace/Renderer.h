@@ -23,12 +23,16 @@ namespace Game
 			unsigned int GetFPS();
 		};
 
+		struct BaseRendererData
+		{
 
+		};
 
 		class BaseRenderer
 		{
 			unsigned int LastFrameEnd;
 		protected:
+			BaseRendererData BaseData;
 			App::AppData* Data;
 			FPSCounter FPS;
 
@@ -40,7 +44,8 @@ namespace Game
 			void LoadFontFile(std::string File, unsigned int Size, TTF_Font*);
 			
 			virtual void RenderText(TTF_Font*, std::string Text, int x, int y, SDL_Color Color);
-			void DrawImage(SDL_Texture* Surface, SDL_Rect* SourceQuad, SDL_Rect* RenderQuad);
+			void RenderImage(SDL_Texture* Surface, SDL_Rect* SourceQuad, SDL_Rect* RenderQuad);
+
 			virtual void Display();
 		};
 	}
