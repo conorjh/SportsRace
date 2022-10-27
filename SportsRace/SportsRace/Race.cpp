@@ -18,19 +18,38 @@ using namespace std;
 Game::Race::Racer::Racer(std::string _Name)
 {
     Name = _Name;
+    LastRunFrameEnd = CurrentTick = 0;
+    RunFrame = 0;
     Pos.X = 0;
     Pos.Velocity = 15 + (rand() % 10);
 }
 
 void Game::Race::Racer::Tick(unsigned int Ms)
 {
-    if (Name == "1")
-        if (rand() % 3 == 1) 
-            Pos.Velocity =20 + (rand() % 15);   //1/3 chance of a change
+    CurrentTick += Ms;
 
+    if (Name == "1")
+    {
+        if (rand() % 10 == 1)
+            Pos.Velocity = 20 + (rand() % 10);   //1/3 chance of a change
+    }
     else
-    if(rand() % 3 == 1)
-        Pos.Velocity = 0 + (rand() % 35);   //1/3 chance of a change
+    {
+        if (rand() % 10 == 1)
+            Pos.Velocity = 20 + (rand() % 10);   //1/3 chance of a change
+
+    }
+
+    auto FrameTime = (350 - (Pos.Velocity * 10)) * 0.9;
+    if (CurrentTick > LastRunFrameEnd + FrameTime)
+    { 
+        RunFrame++;
+        LastRunFrameEnd = CurrentTick;
+    }
+    if (RunFrame > 3)
+        RunFrame = 0;
+
+    Pos.X += Pos.Velocity;
 }
 
 void Game::Race::Race::Finished(Racer* R)
@@ -89,7 +108,6 @@ RaceStateType Game::Race::Race::Tick(unsigned int Ms, RaceStateType Type)
         for (int t = 0; t < Racers.size(); ++t)
         {
             Racers[t]->Tick(Ms);
-            Racers[t]->Pos.X += Racers[t]->Pos.Velocity;
 
             if (Racers[t]->Pos.X > ThisTrack->Length)
             {
@@ -107,7 +125,6 @@ RaceStateType Game::Race::Race::Tick(unsigned int Ms, RaceStateType Type)
         for (int t = 0; t < Racers.size(); ++t)
         {
             Racers[t]->Tick(Ms);
-            Racers[t]->Pos.X += Racers[t]->Pos.Velocity;
 
             if (Racers[t]->Pos.X > ThisTrack->Length && !HasFinished(Racers[t]))
                 Finished(Racers[t]);

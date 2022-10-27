@@ -249,13 +249,11 @@ void Game::App::Renderer::InRaceRenderer::DrawRacer(Race::Racer Racer, unsigned 
 	unsigned int XDraw =   xOffset + (Racer.Pos.X - Camera.CameraX) - (StaggerOffset);
 
 	unsigned int RacerWidth = 153;
-	if (XDraw + RacerWidth < 0 || XDraw > Camera.W)
-		return;
+	//if (XDraw + RacerWidth < 0 || XDraw > Camera.W)
+		//return;
 
-
-	unsigned int FrameNum = ((Racer.Pos.X % 4) * (613 / 4));
+	unsigned int FrameNum = (613 / 4) * (Racer.RunFrame);
 	SDL_Rect SourceQuad = { 0 + FrameNum, 0, 613 / 4, 186 / 1 };
-
 	SDL_Rect RenderQuad = { XDraw   ,  yOffset, 613 / 4,186 / 1 };
 
 

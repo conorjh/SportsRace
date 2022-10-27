@@ -26,7 +26,9 @@ namespace Game
 
 			void Tick(unsigned int Ms);
 
+			unsigned int CurrentTick;
 			std::string Name;
+			unsigned int RunFrame, LastRunFrameEnd;
 			Position Pos;
 		};
 

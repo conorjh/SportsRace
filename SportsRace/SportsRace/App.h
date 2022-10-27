@@ -17,6 +17,9 @@ namespace Game
 
 			unsigned int ScreenWidth = 1024, ScreenHeight = 768, ScreenDepth = 32;	
 			bool ShowFPS = true;
+
+			unsigned int Ver = 2;
+			std::string VerString = "0.0.0.2";
 		};
 
 		class ConfigParser
