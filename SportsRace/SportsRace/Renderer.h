@@ -36,8 +36,11 @@ namespace Game
 		public:
 			BaseRenderer(App::AppData* _Data);
 
+			void LoadImageFile(std::string File, SDL_Texture*&, SDL_Surface*&);
+			void LoadFontFile(std::string File, unsigned int Size, TTF_Font*);
+			
 			virtual void RenderText(TTF_Font*, std::string Text, int x, int y, SDL_Color Color);
-			void DrawImage(SDL_Surface* Surface, SDL_Rect* SourceQuad, SDL_Rect* RenderQuad);
+			void DrawImage(SDL_Texture* Surface, SDL_Rect* SourceQuad, SDL_Rect* RenderQuad);
 			virtual void Display();
 		};
 	}
@@ -51,6 +54,7 @@ namespace Game
 				void Load();
 
 				SDL_Surface* Screen;
+				SDL_Texture* ScreenT;
 
 				TTF_Font* MainFont, * InfoFont, * DebugFont;
 			};
@@ -65,6 +69,8 @@ namespace Game
 				States::MainMenuState* State;
 				MainMenuRenderer(AppData*, MainMenuRendererData* _Data);
 				MainMenuRenderer(AppData*, States::MainMenuState* _State, MainMenuRendererData* _Data);
+				
+				bool Load();
 
 				unsigned int Render();
 			};
@@ -76,6 +82,8 @@ namespace Game
 				TTF_Font* MainFont, * InfoFont, * DebugFont, * WinningFont;
 
 				SDL_Surface* RacerGraphic, * Head, * TrackGraphic, * StadiumGraphic, * StartingBlocksGraphic, * CloudsGraphic, * MountainsGraphic, * FellaRun, * FellaWait, * Screen;
+				SDL_Texture* RacerGraphicT, * HeadT, * TrackGraphicT, * StadiumGraphicT, * StartingBlocksGraphicT, * CloudsGraphicT, * MountainsGraphicT, * FellaRunT, * FellaWaitT, * ScreenT,
+					*MainFontT, * InfoFontT, * DebugFontT, * WinningFontT;
 				SDL_Texture* RacerTexture;
 
 			};
@@ -106,6 +114,8 @@ namespace Game
 				void DrawWinners();
 
 				unsigned int Render();
+
+				bool Load();
 			};
 
 			class AppRenderer : public Render::BaseRenderer

@@ -83,5 +83,8 @@
     <ClInclude Include="League.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TODO.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
