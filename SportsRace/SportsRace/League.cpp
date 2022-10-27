@@ -46,19 +46,10 @@ SeasonFixtures Game::League::SeasonFixtureMaker_Random::Make(vector<Racer*> Race
 bool Game::League::Fixture::Contains(Racer* R)
 {
 	for (int t = 0; t < Racers.size(); ++t)
-		if (R == Racers[t])
+		if (R->GUID == Racers[t]->GUID)
 			return true;
 	return false;
 }
-
-bool Game::League::Fixture::Contains(string RacerName)
-{
-	for (int t = 0; t < Racers.size(); ++t)
-		if (RacerName == Racers[t]->Name)
-			return true;
-	return false;
-}
-
 Game::Race::Race Game::League::Fixture::GetRace()
 {
 	Game::Race::Race R;
@@ -73,23 +64,23 @@ Game::Race::Race Game::League::Fixture::GetRace()
 
 Game::League::League::League()
 {
+	RacerDB db;
 	for (int t = 0; t < 600; ++t)
 	{
-		auto R = new Racer(to_string(t));
+		if (t == 0)
+		{
+			MainGuy = db.Make("Johnny Tester");
+			Racers.push_back(MainGuy);
+			Standing.AddEntry(LeagueStandingEntry(MainGuy));
+			continue;
+		}
+
+		auto R = db.Make();
 		Racers.push_back(R);
 		Standing.AddEntry(LeagueStandingEntry(R));
 	}
 
 	SeasonFixtures = SeasonFixtureMaker_Random().Make(Racers);
-}
-
-LeagueStandingEntry Game::League::LeagueStanding::Get(std::string RacerName)
-{
-	for(int t=0;t<Entries.size();++t)
-		if(Entries[t].Racer->Name == RacerName)
-			return Entries[t];
-
-	return LeagueStandingEntry();
 }
 
 LeagueStandingEntry Game::League::LeagueStanding::Get(int Rank)
@@ -100,19 +91,19 @@ LeagueStandingEntry Game::League::LeagueStanding::Get(int Rank)
 	return Entries[Rank];
 }
 
+LeagueStandingEntry Game::League::LeagueStanding::Get(Race::Racer* R)
+{
+	for (auto t = Entries.begin(); t != Entries.end(); ++t)
+		if (t->Racer->GUID == R->GUID)
+			return *(t);
+	return LeagueStandingEntry();
+}
+
 
 Fixture Game::League::RoundFixtures::GetFixtureThatContains(Race::Racer* R)
 {
 	for (int t = 0; t < Fixtures.size(); ++t)
 		if (Fixtures[t].Contains(R))
-			return Fixtures[t];
-	return Fixture();
-}
-
-Fixture Game::League::RoundFixtures::GetFixtureThatContains(string RacerName)
-{
-	for (int t = 0; t < Fixtures.size(); ++t)
-		if (Fixtures[t].Contains(RacerName))
 			return Fixtures[t];
 	return Fixture();
 }
@@ -138,7 +129,7 @@ void Game::League::LeagueStanding::AddResult(Race::RacerRaceResult Result)
 {
 	//find this racers league standing entry
 	for (int t = 0; t <  Entries.size(); ++t)
-		if (Entries[t].Racer->Name == Result.Racer->Name)
+		if (Entries[t].Racer->GUID == Result.Racer->GUID)
 		{
 			Entries[t].Update(Result);
 		}
@@ -156,7 +147,7 @@ void Game::League::LeagueStanding::Update(Race::RacerRaceResult Result)
 	for (int t = 0; t < Entries.size(); ++t)
 	{
 		Entries[t].Rank = t;
-		if (Entries[t].Racer->Name == Result.Racer->Name)
+		if (Entries[t].Racer->GUID == Result.Racer->GUID)
 		{
 			Entries[t].Update(Result);
 		}
@@ -205,7 +196,7 @@ Game::League::LeagueStandingEntry::LeagueStandingEntry(Race::Racer* _Racer)
 
 void Game::League::LeagueStandingEntry::Update(Race::RacerRaceResult Result)
 {
-	if (Result.Racer->Name != Racer->Name)
+	if (Result.Racer->GUID != Racer->GUID)
 		return;
 
 	if (Result.Position == 1)

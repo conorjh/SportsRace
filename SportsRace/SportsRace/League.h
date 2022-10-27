@@ -12,7 +12,6 @@ namespace Game
 			Fixture() {}
 
 			bool Contains(Race::Racer*);
-			bool Contains(std::string);
 
 			Race::Race GetRace();
 
@@ -22,7 +21,6 @@ namespace Game
 		struct RoundFixtures
 		{
 			Fixture GetFixtureThatContains(Race::Racer*);
-			Fixture GetFixtureThatContains(std::string);
 
 			std::vector<Fixture> Fixtures;
 		};
@@ -70,8 +68,8 @@ namespace Game
 			void AddResults(std::vector<Race::RaceResult> Results);
 			void AddResult(Race::RacerRaceResult Result), AddResult(Race::RaceResult Results);
 
-			LeagueStandingEntry Get(std::string RacerName);
 			LeagueStandingEntry Get(int Rank);
+			LeagueStandingEntry Get(Race::Racer*);
 
 			void Update(Race::RacerRaceResult Result);
 			void Sort();
@@ -82,8 +80,8 @@ namespace Game
 		class League
 		{
 			unsigned int CurrentRound = 0;
-
 		public:
+			Race::Racer* MainGuy;
 			std::vector<Race::Racer*> Racers;
 			LeagueStanding Standing;
 
