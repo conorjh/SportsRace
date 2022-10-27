@@ -5,5 +5,7 @@ Demo 2 Todo
 - Better animation for runners
 - Race sounds
 - better league table, scrollable
-- 
+- varying speeds
+- racer view screen
+- basic career mode screen
 */
