@@ -17,7 +17,7 @@ void Game::Race::Racer::Tick(unsigned int Ms)
 {
     CurrentTick += Ms;
 
-    if (Name == "1")
+    if (Name == "Johnny Tester")
     {
         if (rand() % 10 == 1)
             Pos.Velocity = 22 + (rand() % 8);   //1/3 chance of a change
@@ -39,4 +39,52 @@ void Game::Race::Racer::Tick(unsigned int Ms)
         RunFrame = 0;
 
     Pos.X += Pos.Velocity;
+}
+
+Game::Race::RacerNameMaker::RacerNameMaker()
+{
+    FirstNames =
+    {
+        "Larry", "Barry", "Steve", "Mickey Boy", "Don", "Fat Steve", "Terry", "Darren", "Mick", "Phil", "Bill", "Johnson", "Ian", "Nigel", "Colin", "Nathan", "Adam", "Josh",
+        "Davey", "David", "Dave", "Dim Clive", "Clive", "Clifford", "Jimmy", "Jimbob", "Seth", "Ivan", "Dudley", "McLovin", "Potle", "Woozle", "Elvis", "Elmer", "Jussie", "James", 
+        "Pong Whiffy", "Peter"
+    };
+
+    SecondNames = 
+    {
+        "Routledge", "Philips", "Johnson", "Andrews", "Munster", "Jones", "Smith", "Burns", "Simpson", "Mickleover", "Romero", "Kerridge", "Fenwick", "Bittlesby", "MacGregor", "Batty",
+        "Harris", "Harrison", "Smithwick", "Chibley", "Schneebly", "Bobert", "Jamieson", "Leeds", "Lawrence", "Nigelson", "Trevors", "Redbridge", "Brooks", "Battersby", "Clark", "Ramsay", 
+        "Berry", "Beard", "Redford", "Cousins", "Chapman", "Boobles"
+    };
+}
+
+std::string Game::Race::RacerNameMaker::Make()
+{
+    unsigned int FirstNameIndex = rand() % (FirstNames.size() - 1);
+    unsigned int SecondNameIndex = rand() % (SecondNames.size() - 1);
+
+
+    return FirstNames[FirstNameIndex] + " " + SecondNames[SecondNameIndex];
+}
+
+Racer* Game::Race::RacerDB::Make(std::string Name)
+{
+    Racer* R = Name == "" ? new Racer(RacerNameMaker().Make()) : new Racer(Name) ;
+
+    //while loop until we randomly generate an unused GUID
+    while (Container.find((R->GUID = rand())) != Container.end())
+    {
+    }
+
+    Container.insert(make_pair(R->GUID, R));
+
+    return R;
+}
+
+Racer* Game::Race::RacerDB::Get(unsigned int GUID)
+{
+    if (Container.find(GUID) == Container.end())
+        return nullptr;
+
+    return Container.find(GUID)->second;
 }
