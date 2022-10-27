@@ -2,7 +2,7 @@
 #define RENDERER_H
 #include "State.h"
 #include "MainMenu.h"
-#include "Race.h"
+#include "RaceState.h"
 #include "Renderer.h"
 #include "App.h"
 #include "SDL2/SDL_ttf.h"

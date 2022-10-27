@@ -1,5 +1,5 @@
 #include "MainMenu.h"
-#include "Race.h"
+#include "RaceState.h"
 #include "SDL2/SDL_mixer.h"
 
 using namespace std;

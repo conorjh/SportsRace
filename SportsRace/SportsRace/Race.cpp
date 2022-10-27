@@ -15,43 +15,6 @@ using namespace Game::MainMenu;
 using namespace Game::Race;
 using namespace std;
 
-Game::Race::Racer::Racer(std::string _Name)
-{
-    Name = _Name;
-    LastRunFrameEnd = CurrentTick = 0;
-    RunFrame = 0;
-    Pos.X = 0;
-    Pos.Velocity = 15 + (rand() % 10);
-}
-
-void Game::Race::Racer::Tick(unsigned int Ms)
-{
-    CurrentTick += Ms;
-
-    if (Name == "1")
-    {
-        if (rand() % 10 == 1)
-            Pos.Velocity = 20 + (rand() % 10);   //1/3 chance of a change
-    }
-    else
-    {
-        if (rand() % 10 == 1)
-            Pos.Velocity = 20 + (rand() % 10);   //1/3 chance of a change
-
-    }
-
-    auto FrameTime = (350 - (Pos.Velocity * 10)) * 0.9;
-    if (CurrentTick > LastRunFrameEnd + FrameTime)
-    { 
-        RunFrame++;
-        LastRunFrameEnd = CurrentTick;
-    }
-    if (RunFrame > 3)
-        RunFrame = 0;
-
-    Pos.X += Pos.Velocity;
-}
-
 void Game::Race::Race::Finished(Racer* R)
 {
     Result.RacerResults.push_back(RacerRaceResult(R, Result.RacerResults.size() + 1, CurrentTick));
@@ -97,14 +60,14 @@ Game::Race::Race::Race()
     ThisTrack = new Track();
 }
 
-RaceStateType Game::Race::Race::Tick(unsigned int Ms, RaceStateType Type)
+RaceStatus Game::Race::Race::Tick(unsigned int Ms, RaceStatus Type)
 {
     CurrentTick += Ms;
 
     unsigned int Transition = 0;
     switch (Type)
     {
-    case RaceStateType::Racing:
+    case RaceStatus::Racing:
         for (int t = 0; t < Racers.size(); ++t)
         {
             Racers[t]->Tick(Ms);
@@ -118,10 +81,10 @@ RaceStateType Game::Race::Race::Tick(unsigned int Ms, RaceStateType Type)
         }
 
         if (Transition >= 1)
-            return RaceStateType::Finishing;
+            return RaceStatus::Finishing;
         break;
 
-    case RaceStateType::Finishing:
+    case RaceStatus::Finishing:
         for (int t = 0; t < Racers.size(); ++t)
         {
             Racers[t]->Tick(Ms);
@@ -131,7 +94,7 @@ RaceStateType Game::Race::Race::Tick(unsigned int Ms, RaceStateType Type)
         }
 
         if (Result.RacerResults.size() >= Racers.size())
-            return RaceStateType::Finished;
+            return RaceStatus::Finished;
         break;
 
         default:
@@ -143,9 +106,9 @@ RaceStateType Game::Race::Race::Tick(unsigned int Ms, RaceStateType Type)
 
 RaceResult Game::Race::Race::Sim()
 {
-    RaceStateType CurrentState = RaceStateType::Racing;
+    RaceStatus CurrentState = RaceStatus::Racing;
 
-    while ((CurrentState = Tick(33, CurrentState)) != RaceStateType::Finished) { }
+    while ((CurrentState = Tick(33, CurrentState)) != RaceStatus::Finished) { }
 
     return Result;
 }

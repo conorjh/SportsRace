@@ -1,5 +1,6 @@
 #ifndef RACE_H
 #define RACE_H
+#include "Racer.h"
 #include "State.h"
 #include <vector>
 #include <string>
@@ -12,32 +13,6 @@ namespace Game
 			Track() {};
 			unsigned int Length = 5000;
 		};
-
-		struct Position
-		{
-			int X;
-			double Velocity;
-		};
-
-		class Racer
-		{
-		public:
-			Racer(std::string);
-
-			void Tick(unsigned int Ms);
-
-			unsigned int CurrentTick;
-			std::string Name;
-			unsigned int RunFrame, LastRunFrameEnd;
-			Position Pos;
-		};
-
-		enum class RaceStateType
-		{
-			PreRace, StartersOrders, Racing, Finishing, Finished
-		};
-
-		std::string RaceStateTypeToString(RaceStateType Type);
 
 		struct RacerRaceResult
 		{
@@ -56,9 +31,15 @@ namespace Game
 			std::vector<RacerRaceResult> RacerResults;
 		};
 
+		enum class RaceStatus
+		{
+			Racing, Finishing, Finished
+		};
+
 		class Race
 		{
 			void Finished(Racer*);
+
 		public:
 			Race();
 
@@ -68,99 +49,13 @@ namespace Game
 			Racer* Get(std::string RacerName);
 			bool Contains(std::string RacerName);
 
-			RaceStateType Tick(unsigned int Ms, RaceStateType Type);
+			RaceStatus Tick(unsigned int Ms, RaceStatus Type);
 			RaceResult Sim();
 
 			unsigned int CurrentTick;
 			Track* ThisTrack;
 			std::vector<Racer*> Racers;
 			RaceResult Result;
-		};
-
-		struct RaceStateData
-		{
-			RaceStateData(Race);
-			unsigned int CurrentTick;
-			
-			Race ThisRace;
-		};
-
-		class RaceState
-		{
-		protected:
-			RaceStateData& Data;
-		public:
-			RaceState(RaceStateData& _Data);
-			virtual RaceState* Tick(unsigned int TickTimeMs);
-
-			virtual void Entry(), Exit();
-
-			RaceStateType Type;
-		};
-
-		class RaceState_PreRace : public RaceState
-		{
-			unsigned int TickAccumulator = 0;
-		public:
-			RaceState_PreRace(RaceStateData& _Data);
-
-			RaceState* Tick(unsigned int TickTimeMs);
-		};
-
-		class RaceState_StartersOrders : public RaceState
-		{
-			unsigned int TickAccumulator = 0;
-		public:
-			RaceState_StartersOrders(RaceStateData& _Data);
-			RaceState* Tick(unsigned int TickTimeMs);
-		};
-
-		class RaceState_Racing : public RaceState
-		{
-		public:
-			RaceState_Racing(RaceStateData& _Data);
-			RaceState* Tick(unsigned int TickTimeMs);
-		};
-
-		class RaceState_Finishing : public RaceState
-		{
-		public:
-			RaceState_Finishing(RaceStateData& _Data);
-			RaceState* Tick(unsigned int TickTimeMs);
-		};
-
-		class RaceState_Finished : public RaceState
-		{
-		public:
-			RaceState_Finished(RaceStateData& _Data);
-			RaceState* Tick(unsigned int TickTimeMs);
-		};
-
-		class RaceStateMachine
-		{
-		public:
-			RaceStateData Data;
-			RaceStateMachine(Race);
-
-			void Tick(unsigned int TickTimeMs);
-
-			void Push(RaceState*);
-
-			RaceState* State;
-		};
-	}
-
-	namespace States
-	{
-		class InRaceState : public AppState
-		{
-			unsigned int LastFrameEnd;
-		public:
-			InRaceState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun);
-			~InRaceState();
-
-			AppState* Update();
-			Race::RaceStateMachine RaceSM;
 		};
 	}
 }

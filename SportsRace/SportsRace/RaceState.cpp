@@ -1,5 +1,4 @@
-
-#include "Race.h"
+#include "RaceState.h"
 #include "SDL2/SDL.h"
 #include "spdlog/spdlog.h"
 #include "Audio.h"
@@ -158,9 +157,9 @@ Game::Race::RaceState_Racing::RaceState_Racing(RaceStateData& _Data) : RaceState
 
 RaceState* Game::Race::RaceState_Racing::Tick(unsigned int TimeTakenMs)
 {
-    auto ReturnType = Data.ThisRace.Tick(TimeTakenMs, RaceStateType::Racing);
+    auto ReturnType = Data.ThisRace.Tick(TimeTakenMs, RaceStatus::Racing);
 
-    if (ReturnType == RaceStateType::Finishing)
+    if (ReturnType == RaceStatus::Finishing)
         return new RaceState_Finishing(Data);
     return this;
 }
@@ -174,9 +173,9 @@ Game::Race::RaceState_Finishing::RaceState_Finishing(RaceStateData& _Data) : Rac
 RaceState* Game::Race::RaceState_Finishing::Tick(unsigned int TimeTakenMs)
 {
     Data.CurrentTick += TimeTakenMs;
-    auto ReturnType = Data.ThisRace.Tick(TimeTakenMs, RaceStateType::Finishing);
+    auto ReturnType = Data.ThisRace.Tick(TimeTakenMs, RaceStatus::Finishing);
 
-    if (ReturnType == RaceStateType::Finished)
+    if (ReturnType == RaceStatus::Finished)
         return new RaceState_Finished(Data);
     return this;
 }
