@@ -46,11 +46,14 @@ namespace Game
 			bool HasFinished(), HasFinished(Racer*);
 			unsigned int FinishedCount() { return Result.RacerResults.size(); }
 			unsigned int CurrentWinnerDistance();
+
 			Racer* Get(std::string RacerName);
 			bool Contains(std::string RacerName);
 
 			RaceStatus Tick(unsigned int Ms, RaceStatus Type);
 			RaceResult Sim();
+
+			void Reset();
 
 			unsigned int CurrentTick;
 			Track* ThisTrack;

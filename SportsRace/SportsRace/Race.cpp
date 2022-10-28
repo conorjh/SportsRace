@@ -112,3 +112,12 @@ RaceResult Game::Race::Race::Sim()
 
     return Result;
 }
+
+void Game::Race::Race::Reset()
+{
+    this->Result.RacerResults.clear();
+    this->CurrentTick = 0;
+    
+    for (int t = 0; t < Racers.size(); ++t)
+        Racers[t]->Reset();
+}

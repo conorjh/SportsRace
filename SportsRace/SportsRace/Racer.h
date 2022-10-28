@@ -28,6 +28,7 @@ namespace Game
 			Racer(std::string);
 
 			void Tick(unsigned int Ms);
+			void Reset();
 
 			unsigned int GUID;
 			unsigned int CurrentTick;

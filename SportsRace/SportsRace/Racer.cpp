@@ -41,6 +41,12 @@ void Game::Race::Racer::Tick(unsigned int Ms)
     Pos.X += Pos.Velocity;
 }
 
+void Game::Race::Racer::Reset()
+{
+    this->CurrentTick = this->LastRunFrameEnd = this->RunFrame = 0;
+    this->Pos.X = 0;
+}
+
 Game::Race::RacerNameMaker::RacerNameMaker()
 {
     FirstNames =
