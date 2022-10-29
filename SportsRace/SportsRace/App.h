@@ -67,8 +67,8 @@ namespace Game
 
 			Race::RaceResult RaceStateOutput;
 
-			Career::CareerData Career;
-			Career::CareerProfile Profile;
+			Career::CareerData* Career;
+			Career::CareerProfile* Profile;
 		};
 
 		class AppIO
@@ -82,6 +82,7 @@ namespace Game
 
 			void Update();
 
+			bool Esc = false;
 			Audio::AudioPlayer Player;
 			SDL_Point MousePosition;
 			Uint32 MouseButtons;

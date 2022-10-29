@@ -13,6 +13,7 @@ bool Game::Audio::AudioPlayer::Init()
 	//load audio here for now
 	this->Hover = Mix_LoadWAV("hover.wav");
 	this->Click = Mix_LoadWAV("click.wav");
+	this->StartersPistol = Mix_LoadWAV("starter_pistol.mp3");
 
 	this->Catering = Mix_LoadMUS("catering.mp3");
 	this->Race = Mix_LoadMUS("race.mp3");
@@ -31,6 +32,9 @@ void Game::Audio::AudioPlayer::Play(BuiltInSounds Sound)
 		break;
 	case BuiltInSounds::Hover:
 		Chunk = Hover;
+		break;
+	case BuiltInSounds::StartersPistol:
+		Chunk = StartersPistol;
 		break;
 	default:
 		return;

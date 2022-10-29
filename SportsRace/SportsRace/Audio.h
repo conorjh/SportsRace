@@ -8,7 +8,7 @@ namespace Game
 	{
 		enum class BuiltInSounds
 		{
-			Hover, Click
+			Hover, Click, StartersPistol
 		};
 
 		enum class Soundtrack
@@ -18,7 +18,7 @@ namespace Game
 
 		class AudioPlayer
 		{
-			Mix_Chunk* Hover, * Click;
+			Mix_Chunk* Hover, * Click, * StartersPistol;
 			Mix_Music* Catering, *Race;
 		public:
 			AudioPlayer();

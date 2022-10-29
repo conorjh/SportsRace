@@ -242,6 +242,8 @@ bool Game::App::AppIO::Init()
 
 void Game::App::AppIO::Update()
 {
+	Esc = false;
+
 	//handle input
 	SDL_Event Event;
 	while (SDL_PollEvent(&Event))
@@ -249,6 +251,9 @@ void Game::App::AppIO::Update()
 		{
 		case SDL_KEYDOWN:
 			// Handle any key presses here.
+			if (Event.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
+				Esc = true;
+
 			break;
 
 		case SDL_MOUSEBUTTONDOWN:

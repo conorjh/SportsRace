@@ -71,8 +71,7 @@ AppState* Game::States::CareerHubState::Update()
 		return Machine.Top();
 	}
 
-	const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
-	if (currentKeyStates[SDL_SCANCODE_ESCAPE])
+	if (IO.Esc)
 	{
 		IO.Player.Play(BuiltInSounds::Click);
 

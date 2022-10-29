@@ -51,14 +51,19 @@ AppState* Game::States::InRaceState::Update()
         LastFrameEnd += 33;
 
         if (NewType != OldType && NewType == RaceStateType::Racing)
+        {
+            IO.Player.Play(BuiltInSounds::StartersPistol);
+            IO.Player.Play(Soundtrack::Race);
+        }
+
+        if (NewType != OldType && NewType == RaceStateType::Racing)
             IO.Player.Play(Soundtrack::Race);
 
         //if (NewType != OldType && NewType == RaceStateType::Finished)
         //    IO.Player.StopMusic();
     }
 
-    const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
-    if (currentKeyStates[SDL_SCANCODE_ESCAPE])
+    if (IO.Esc)
     {
         IO.Player.Play(BuiltInSounds::Click);
 
