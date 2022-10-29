@@ -15,7 +15,7 @@ namespace Game
 	{
 		enum class AppStateType
 		{
-			Null, MainMenu, InRace
+			Null, MainMenu, InRace, RacerScreen, CareerHub
 		};
 		
 		std::string AppStateTypeToString(AppStateType Type);
@@ -42,7 +42,8 @@ namespace Game
 
 		class AppStateMachine
 		{
-			std::stack<AppState*> StateStack;
+			std::stack<AppState*> StateStack; 
+			
 		public:
 			AppStateMachine();
 			AppStateMachine(AppState*);
