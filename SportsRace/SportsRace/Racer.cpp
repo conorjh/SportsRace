@@ -78,11 +78,11 @@ Racer* Game::Race::RacerDB::Make(std::string Name)
     Racer* R = Name == "" ? new Racer(RacerNameMaker().Make()) : new Racer(Name) ;
 
     //while loop until we randomly generate an unused GUID
-    while (Container.find((R->GUID = rand())) != Container.end())
+    while (Container.find((R->GUID.GUID = rand())) != Container.end())
     {
     }
 
-    Container.insert(make_pair(R->GUID, R));
+    Container.insert(make_pair(R->GUID.GUID, R));
 
     return R;
 }
@@ -93,4 +93,27 @@ Racer* Game::Race::RacerDB::Get(unsigned int GUID)
         return nullptr;
 
     return Container.find(GUID)->second;
+}
+
+bool Game::Race::RacerGUID::operator==(const RacerGUID& Other)
+{
+    return Other.GUID == GUID;
+}
+
+RacerGUID& Game::Race::RacerGUID::operator=(const RacerGUID& Other)
+{
+    GUID = Other.GUID;
+    return *this;
+}
+
+RacerGUID& Game::Race::RacerGUID::operator=(const unsigned int& Other)
+{
+    GUID = Other;
+    return *this;
+}
+
+RacerGUID& Game::Race::RacerGUID::operator=(const int& Other)
+{
+    GUID = Other;
+    return *this;
 }

@@ -2,6 +2,7 @@
 #define RACER_H
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 namespace Game
 {
@@ -22,6 +23,16 @@ namespace Game
 			double Velocity;
 		};
 
+		struct RacerGUID
+		{
+			bool operator==(const RacerGUID& Other);
+			RacerGUID& operator=(const RacerGUID& Other);
+			RacerGUID& operator=(const unsigned int& Other);
+			RacerGUID& operator=(const int& Other);
+
+			unsigned int GUID;
+		};
+
 		class Racer
 		{
 		public:
@@ -30,7 +41,7 @@ namespace Game
 			void Tick(unsigned int Ms);
 			void Reset();
 
-			unsigned int GUID;
+			RacerGUID GUID;
 			unsigned int CurrentTick;
 			std::string Name;
 			unsigned int RunFrame, LastRunFrameEnd;
@@ -40,12 +51,12 @@ namespace Game
 		class RacerDB
 		{
 			std::unordered_map<unsigned int, Racer*> Container;
-
 		public:
+
 			Racer* Make(std::string Name = "");
 			Racer* Get(unsigned int GUID);
 
-
+			bool Contains(unsigned int GUID) { return Get(GUID) != nullptr; }
 		};
 	}
 }

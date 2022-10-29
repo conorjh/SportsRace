@@ -11,7 +11,7 @@ using namespace Game::States;
 using namespace Game::Race;
 using namespace Game::App;
 using namespace Game::Audio;
-using namespace Game::MainMenu;
+using namespace Game::GUI;
 using namespace Game::Race;
 using namespace std;
 
@@ -23,7 +23,7 @@ void Game::Race::Race::Finished(Racer* R)
 bool Game::Race::Race::HasFinished(Racer* R)
 {
     for (auto it = Result.RacerResults.begin(); it != Result.RacerResults.end(); ++it)
-        if (R->Name == it->Racer->Name)
+        if (R->GUID == it->Racer->GUID)
             return true;
     return false;
 }
