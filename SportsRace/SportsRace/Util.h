@@ -2,9 +2,36 @@
 #define UTIL_H
 #include <vector>
 #include <string>
+#include "SDL2/SDL.h"
 
 namespace Game
 {
+	namespace App
+	{
+		class AppIO;
+	}
+
+	namespace GUI
+	{
+		class Button
+		{
+			bool IsButtonHoveredOver = false;
+		public:
+			App::AppIO& IO;
+
+			std::string Text;
+			int x, y, w, h;
+			SDL_Color Color;
+			SDL_Rect Rect;
+
+			Button(App::AppIO& _IO, std::string _Text, int x, int  y, int w, int h);
+
+			void Update();
+
+			bool IsMouseOver(), HasMouseClicked();
+		};
+	}
+
 	struct ErrorData
 	{
 		void AddError(std::string ErrorToAdd) { return Errors.push_back(ErrorToAdd); };
