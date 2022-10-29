@@ -6,6 +6,7 @@ namespace Game
 {
 	namespace Race
 	{
+
 		enum class RaceStateType
 		{
 			PreRace, StartersOrders, Racing, Finishing, Finished
@@ -78,7 +79,7 @@ namespace Game
 			RaceStateData Data;
 			RaceStateMachine(Race);
 
-			void Tick(unsigned int TickTimeMs);
+			RaceStateType Tick(unsigned int TickTimeMs);
 
 			void Push(RaceState*);
 
@@ -88,12 +89,20 @@ namespace Game
 
 	namespace States
 	{
+		enum class InRaceStateInitType
+		{
+			Race, Training
+		};
+
 		class InRaceState : public AppState
 		{
 			unsigned int LastFrameEnd;
 		public:
-			InRaceState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun);
+			InRaceState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer);	//InRaceStateInitType::Training
+			InRaceState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun);			//InRaceStateInitType::Race
 			~InRaceState();
+
+			void Entry(), Exit();
 
 			AppState* Update();
 			Race::RaceStateMachine RaceSM;

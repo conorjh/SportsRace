@@ -13,8 +13,9 @@ bool Game::Audio::AudioPlayer::Init()
 	//load audio here for now
 	this->Hover = Mix_LoadWAV("hover.wav");
 	this->Click = Mix_LoadWAV("click.wav");
-	
+
 	this->Catering = Mix_LoadMUS("catering.mp3");
+	this->Race = Mix_LoadMUS("race.mp3");
 
 	spdlog::trace("AudioPlayer::Init() success");
 	return true;
@@ -46,6 +47,10 @@ void Game::Audio::AudioPlayer::Play(Soundtrack Track)
 	case Soundtrack::Catering:
 		Mix_VolumeMusic(MIX_MAX_VOLUME * 0.40);
 		Chunk = Catering;
+		break;
+	case Soundtrack::Race:
+		Mix_VolumeMusic(MIX_MAX_VOLUME * 1);
+		Chunk = Race;
 		break;
 	
 	default:

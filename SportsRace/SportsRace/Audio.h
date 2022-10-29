@@ -13,13 +13,13 @@ namespace Game
 
 		enum class Soundtrack
 		{
-			Catering
+			Catering, Race
 		};
 
 		class AudioPlayer
 		{
 			Mix_Chunk* Hover, * Click;
-			Mix_Music* Catering;
+			Mix_Music* Catering, *Race;
 		public:
 			AudioPlayer();
 

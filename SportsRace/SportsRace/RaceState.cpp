@@ -11,9 +11,15 @@ using namespace Game::States;
 using namespace Game::Race;
 using namespace Game::App;
 using namespace Game::Audio;
-using namespace Game::MainMenu;
+using namespace Game::GUI;
 using namespace Game::Race;
 using namespace std;
+
+Game::States::InRaceState::InRaceState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer) : AppState(_Machine, _IO, _Data), RaceSM(*new Race::Race())
+{
+    Type = AppStateType::InRace;
+    LastFrameEnd = SDL_GetTicks();
+}
 
 Game::States::InRaceState::InRaceState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun) : AppState(_Machine, _IO, _Data), RaceSM(RaceToRun)
 {
@@ -26,12 +32,29 @@ Game::States::InRaceState::~InRaceState()
 
 }
 
+void Game::States::InRaceState::Entry()
+{
+    IO.Player.StopMusic();
+}
+
+void Game::States::InRaceState::Exit()
+{
+    IO.Player.StopMusic();
+}
+
 AppState* Game::States::InRaceState::Update()
 {
     while (SDL_GetTicks() > LastFrameEnd + 33)
     {
-        RaceSM.Tick(33);
+        auto OldType = RaceSM.State->Type;
+        auto NewType = RaceSM.Tick(33);
         LastFrameEnd += 33;
+
+        if (NewType != OldType && NewType == RaceStateType::Racing)
+            IO.Player.Play(Soundtrack::Race);
+
+        //if (NewType != OldType && NewType == RaceStateType::Finished)
+        //    IO.Player.StopMusic();
     }
 
     const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
@@ -39,14 +62,12 @@ AppState* Game::States::InRaceState::Update()
     {
         IO.Player.Play(BuiltInSounds::Click);
 
+        //save this races result to the AppData buffer
         if (RaceSM.Data.ThisRace.HasFinished())
-        {
-            Data.League.Standing.AddResult(RaceSM.Data.ThisRace.Result);
-            Data.League.NextRound();
-            Data.League.Standing.Sort();
-        }
+            Data.RaceStateOutput = RaceSM.Data.ThisRace.Result;
 
-        Machine.SwapTop(new MainMenuState(Machine, IO, Data));
+        //go back to main menu
+        Machine.Pop();
         return Machine.Top();
     }
 
@@ -55,7 +76,7 @@ AppState* Game::States::InRaceState::Update()
 
 Game::Race::RaceState::RaceState(RaceStateData& _Data) : Data(_Data)
 {
-
+    Type = RaceStateType::PreRace;
 }
 
 RaceState* Game::Race::RaceState::Tick(unsigned int TimeTakenMs)
@@ -77,7 +98,7 @@ Game::Race::RaceStateMachine::RaceStateMachine(Race TheRace) : Data(TheRace)
     Push(new RaceState_PreRace(Data));
 }
 
-void Game::Race::RaceStateMachine::Tick(unsigned int TickTimeMs)
+RaceStateType Game::Race::RaceStateMachine::Tick(unsigned int TickTimeMs)
 {
     Data.CurrentTick += TickTimeMs;
 
@@ -89,6 +110,8 @@ void Game::Race::RaceStateMachine::Tick(unsigned int TickTimeMs)
         State = NewState;
         delete OldState;
     }
+
+    return State->Type;
 }
 
 void Game::Race::RaceStateMachine::Push(RaceState* NewState)
@@ -132,7 +155,6 @@ Game::Race::RaceState_StartersOrders::RaceState_StartersOrders(RaceStateData& _D
 {
     Type = RaceStateType::StartersOrders;
     TickAccumulator = 0;
-
 }
 
 RaceState* Game::Race::RaceState_StartersOrders::Tick(unsigned int TimeTakenMs)
