@@ -72,6 +72,8 @@ void Game::States::AppStateMachine::Pop()
 {
 	StateStack.top()->Exit();
 	StateStack.pop();
+	if(StateStack.size())
+		StateStack.top()->Entry();
 }
 
 AppState* Game::States::AppStateMachine::Top()
@@ -81,6 +83,8 @@ AppState* Game::States::AppStateMachine::Top()
 
 void Game::States::AppStateMachine::Push(AppState* State)
 {
+	if (StateStack.size())
+		StateStack.top()->Exit();
 	StateStack.push(State);
 	State->Entry();
 }
