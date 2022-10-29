@@ -73,3 +73,40 @@ bool Game::GUI::Button::HasMouseClicked()
 {
 	return IsMouseOver() && SDL_BUTTON(IO.MouseButtons) == 1;
 }
+
+Game::GUI::IconButton::IconButton(App::AppIO& _IO, IconButtonType _Type, int _x, int _y, int _w, int _h) : IO(_IO), Type(_Type)
+{
+	x = _x;
+	y = _y;
+	w = _w;
+	h = _h;
+	Rect.x = _x;
+	Rect.y = _y;
+	Rect.w = _w;
+	Rect.h = _h;
+}
+
+void Game::GUI::IconButton::Update()
+{
+	if (IsMouseOver())
+	{
+		if (!IsButtonHoveredOver)
+			IO.Player.Play(BuiltInSounds::Hover);
+		IsButtonHoveredOver = true;
+
+		if (HasMouseClicked())
+			IO.Player.Play(BuiltInSounds::Click);
+	}
+	else
+		IsButtonHoveredOver = false;
+}
+
+bool Game::GUI::IconButton::IsMouseOver()
+{
+	return SDL_PointInRect(&IO.MousePosition, &Rect);
+}
+
+bool Game::GUI::IconButton::HasMouseClicked()
+{
+	return IsMouseOver() && SDL_BUTTON(IO.MouseButtons) == 1;
+}

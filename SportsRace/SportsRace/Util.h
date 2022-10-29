@@ -29,6 +29,28 @@ namespace Game
 			void Update();
 
 			bool IsMouseOver(), HasMouseClicked();
+		}; 
+
+		enum class IconButtonType
+		{
+			Racer, Training, Race
+		};
+		
+		class IconButton
+		{
+			bool IsButtonHoveredOver = false;
+		public:
+			App::AppIO& IO;
+
+			IconButtonType Type;
+			int x, y, w, h;
+			SDL_Rect Rect;
+
+			IconButton(App::AppIO& _IO, IconButtonType _Type, int x, int  y, int w, int h);
+
+			void Update();
+
+			bool IsMouseOver(), HasMouseClicked();
 		};
 	}
 
