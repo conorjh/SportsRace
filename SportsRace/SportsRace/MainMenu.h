@@ -7,34 +7,15 @@
 
 namespace Game
 {
-	namespace MainMenu
-	{
-		class MenuButton
-		{
-			bool IsButtonHoveredOver = false;
-		public:
-			App::AppIO& IO;
-
-			std::string Text;
-			int x, y, w, h;
-			SDL_Color Color;
-			SDL_Rect Rect;
-
-			MenuButton(App::AppIO& _IO, std::string _Text, int x, int  y, int w, int h);
-
-			void Update();
-
-			bool IsMouseOver(), HasMouseClicked();
-		};
-	}
-
 	namespace States
 	{
 		class MainMenuState : public AppState
 		{
+			Race::Race RaceBuffer;
+			Race::RacerDB Racers;
 
 		public:
-			MainMenu::MenuButton RaceButton, ExitButton;
+			GUI::Button RaceButton, CareerButton, ExitButton;
 
 			MainMenuState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data);
 			~MainMenuState();
