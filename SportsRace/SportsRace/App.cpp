@@ -263,6 +263,10 @@ void Game::App::AppIO::Update()
 	MouseButtons = SDL_GetMouseState(&MousePosition.x, &MousePosition.y);
 }
 
+Game::App::AppData::AppData()
+{
+}
+
 void Game::App::AppData::UpdateFromConfig(Config Cfg)
 {
 	ScreenWidth = Cfg.ScreenWidth; ScreenHeight = Cfg.ScreenHeight;

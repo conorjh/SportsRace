@@ -5,7 +5,7 @@
 #include "CommandLine.h"
 #include "Util.h"
 #include "State.h"
-#include "League.h"
+#include "Career.h"
 
 namespace Game
 {
@@ -54,6 +54,8 @@ namespace Game
 
 		struct AppData
 		{
+			AppData();
+
 			void UpdateFromConfig(Config Cfg);
 
 			AppRenderData RenderData;
@@ -62,9 +64,11 @@ namespace Game
 			bool ShowFPS = false;
 			bool Halted = false;
 
+
 			Race::RaceResult RaceStateOutput;
 
-			League::League League;
+			Career::CareerData Career;
+			Career::CareerProfile Profile;
 		};
 
 		class AppIO
