@@ -2,6 +2,7 @@
 #define RENDERER_H
 #include "State.h"
 #include "MainMenu.h"
+#include "CareerHub.h"
 #include "RaceState.h"
 #include "Renderer.h"
 #include "App.h"
@@ -23,26 +24,38 @@ namespace Game
 			unsigned int GetFPS();
 		};
 
+		struct Image
+		{
+			SDL_Surface* Surface;
+			SDL_Texture* Texture;
+		};
+
+		class BaseRenderer;
+
 		struct BaseRendererData
 		{
+			bool Load(BaseRenderer& Renderer);
 
+			TTF_Font* MainFont, * InfoFont, * DebugFont, * WinningFont;
 		};
 
 		class BaseRenderer
 		{
+			friend struct BaseRendererData;
+
 			unsigned int LastFrameEnd;
 		protected:
-			BaseRendererData BaseData;
+			BaseRendererData* BaseData;
 			App::AppData* Data;
 			FPSCounter FPS;
 
 			virtual void RenderTextSingleLine(TTF_Font*, std::string Text, int x, int y, SDL_Color Color);
 		public:
-			BaseRenderer(App::AppData* _Data);
+			BaseRenderer(App::AppData* _Data, Render::BaseRendererData* _BaseData);
 
-			void LoadImageFile(std::string File, SDL_Texture*&, SDL_Surface*&);
+			void LoadImageFile(std::string File, Image&);
 			void LoadFontFile(std::string File, unsigned int Size, TTF_Font*);
-			
+
 			virtual void RenderText(TTF_Font*, std::string Text, int x, int y, SDL_Color Color);
 			void RenderImage(SDL_Texture* Surface, SDL_Rect* SourceQuad, SDL_Rect* RenderQuad);
 
@@ -56,12 +69,11 @@ namespace Game
 		{
 			struct MainMenuRendererData
 			{
-				void Load();
+				bool Load(Render::BaseRenderer& Renderer);
 
-				SDL_Surface* Screen;
-				SDL_Texture* ScreenT;
+				Render::Image Screen;
 
-				TTF_Font* MainFont, * InfoFont, * DebugFont;
+				TTF_Font* MainFont;
 			};
 
 			class MainMenuRenderer : public Render::BaseRenderer
@@ -72,23 +84,22 @@ namespace Game
 
 			public:
 				States::MainMenuState* State;
-				MainMenuRenderer(AppData*, MainMenuRendererData* _Data);
-				MainMenuRenderer(AppData*, States::MainMenuState* _State, MainMenuRendererData* _Data);
-				
-				bool Load();
+				MainMenuRenderer(AppData*, MainMenuRendererData* _Data, Render::BaseRendererData* _BaseData);
+				MainMenuRenderer(AppData*, States::MainMenuState* _State, MainMenuRendererData* _Data, Render::BaseRendererData* _BaseData);
+
 
 				unsigned int Render();
 			};
 
 			struct InRaceRendererData
 			{
-				void Load();
+				bool Load(Render::BaseRenderer& Renderer);
 
 				TTF_Font* MainFont, * InfoFont, * DebugFont, * WinningFont;
 
-				SDL_Surface* RacerGraphic, * Head, * TrackGraphic, * StadiumGraphic, * StartingBlocksGraphic, * CloudsGraphic, * MountainsGraphic, * FellaRun, * FellaWait, * Screen;
-				SDL_Texture* RacerGraphicT, * HeadT, * TrackGraphicT, * StadiumGraphicT, * StartingBlocksGraphicT, * CloudsGraphicT, * MountainsGraphicT, * FellaRunT, * FellaWaitT, * ScreenT,
-					*MainFontT, * InfoFontT, * DebugFontT, * WinningFontT;
+				Render::Image RacerGraphic, Head, TrackGraphic, StadiumGraphic, StartingBlocksGraphic, CloudsGraphic, MountainsGraphic, FellaRun, FellaWait, Screen;
+
+				SDL_Texture* MainFontT, * InfoFontT, * DebugFontT, * WinningFontT;
 				SDL_Texture* RacerTexture;
 
 			};
@@ -112,23 +123,73 @@ namespace Game
 
 			public:
 				States::InRaceState* State;
-				InRaceRenderer(AppData*, InRaceRendererData* _Data);
-				InRaceRenderer(AppData*, States::InRaceState* _State, InRaceRendererData* _Data);
+				InRaceRenderer(AppData*, InRaceRendererData* _Data, Render::BaseRendererData* _BaseData);
+				InRaceRenderer(AppData*, States::InRaceState* _State, InRaceRendererData* _Data, Render::BaseRendererData* _BaseData);
 
 				void DrawRacer(Race::Racer, unsigned int Track);
 				void DrawWinners();
 
 				unsigned int Render();
 
-				bool Load();
 			};
+
+			struct RacerScreenRendererData
+			{
+				bool Load(Render::BaseRenderer& Renderer);
+
+				TTF_Font* WinningFont;
+
+				Render::Image RacerGraphic, Head, TrackGraphic, FellaRun, FellaWait, Screen;
+				SDL_Texture* InfoFontT, * DebugFontT, * WinningFontT;
+				SDL_Texture* RacerTexture;
+
+			};
+
+			class RacerScreenRenderer : public Render::BaseRenderer
+			{
+				RacerScreenRendererData* RendererData;
+
+			public:
+				RacerScreenRenderer(AppData*, RacerScreenRendererData* _Data, Render::BaseRendererData* _BaseData);
+
+				unsigned int Render();
+
+			};
+
+			struct CareerHubRendererData
+			{
+				bool Load(Render::BaseRenderer& Renderer);
+
+
+				Render::Image RacerIconGraphic, RaceIconGraphic, TrainingIconGraphic;
+			};
+
+			class CareerHubRenderer : public Render::BaseRenderer
+			{
+				CareerHubRendererData* RendererData;
+
+			public:
+				States::CareerHubState* State;
+
+				CareerHubRenderer(AppData*, CareerHubRendererData* _Data, Render::BaseRendererData* _BaseData);
+				CareerHubRenderer(AppData*, States::CareerHubState* State, CareerHubRendererData* _Data, Render::BaseRendererData* _BaseData);
+
+				unsigned int Render();
+
+			};
+
 
 			class AppRenderer : public Render::BaseRenderer
 			{
+				Render::BaseRendererData BaseRenData;
 				MainMenuRendererData MainMenuRenData;
 				MainMenuRenderer MainMenuRen;
 				InRaceRendererData InRaceRenData;
 				InRaceRenderer InRaceRen;
+				CareerHubRendererData CareerHubRenData;
+				CareerHubRenderer CareerHubRen;
+				RacerScreenRendererData RacerScreenRenData;
+				RacerScreenRenderer RacerScreenRen;
 
 			public:
 				Game::States::AppStateMachine* StateMachine;
