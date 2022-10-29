@@ -11,15 +11,23 @@ namespace Game
 			Hover, Click
 		};
 
+		enum class Soundtrack
+		{
+			Catering
+		};
+
 		class AudioPlayer
 		{
 			Mix_Chunk* Hover, * Click;
+			Mix_Music* Catering;
 		public:
 			AudioPlayer();
 
 			bool Init();
 
-			void Play(BuiltInSounds);
+			void Play(BuiltInSounds), Play(Soundtrack);
+
+			void StopMusic();
 		};
 	}
 }
