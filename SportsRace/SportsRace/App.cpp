@@ -212,7 +212,7 @@ bool Game::App::Application::Init()
 	if (!SDLInit(Data, Cfg))
 		return false;
 
-	srand(SDL_GetTicks());
+	srand(time(0));
 
 	spdlog::debug("IO Init");
 	IO.Init();

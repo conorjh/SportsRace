@@ -57,9 +57,12 @@ namespace Game
 			void UpdateFromConfig(Config Cfg);
 
 			AppRenderData RenderData;
+
 			unsigned int ScreenWidth = 1024, ScreenHeight = 768;
 			bool ShowFPS = false;
 			bool Halted = false;
+
+			Race::RaceResult RaceStateOutput;
 
 			League::League League;
 		};
