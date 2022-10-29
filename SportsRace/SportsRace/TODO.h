@@ -12,5 +12,9 @@ Demo 2 Todo
 	- race for cash
 	- race finder
 	- racer screen
+- career mode
+	- random races for cash
+	- random racer competitors
 - cleanup renderer
+
 */
