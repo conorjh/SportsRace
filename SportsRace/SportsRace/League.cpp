@@ -71,19 +71,19 @@ Game::League::League::League()
 		{
 			MainGuy = db.Make("Johnny Tester");
 			Racers.push_back(MainGuy);
-			Standing.AddEntry(LeagueStandingEntry(MainGuy));
+			Standings.AddEntry(LeagueStandingEntry(MainGuy));
 			continue;
 		}
 
 		auto R = db.Make();
 		Racers.push_back(R);
-		Standing.AddEntry(LeagueStandingEntry(R));
+		Standings.AddEntry(LeagueStandingEntry(R));
 	}
 
 	SeasonFixtures = SeasonFixtureMaker_Random().Make(Racers);
 }
 
-LeagueStandingEntry Game::League::LeagueStanding::Get(int Rank)
+LeagueStandingEntry Game::League::LeagueStandings::Get(int Rank)
 {
 	if(Rank  < 0 || Rank >= Entries.size())
 		return LeagueStandingEntry();
@@ -91,7 +91,7 @@ LeagueStandingEntry Game::League::LeagueStanding::Get(int Rank)
 	return Entries[Rank];
 }
 
-LeagueStandingEntry Game::League::LeagueStanding::Get(Race::Racer* R)
+LeagueStandingEntry Game::League::LeagueStandings::Get(Race::Racer* R)
 {
 	for (auto t = Entries.begin(); t != Entries.end(); ++t)
 		if (t->Racer->GUID == R->GUID)
@@ -100,7 +100,7 @@ LeagueStandingEntry Game::League::LeagueStanding::Get(Race::Racer* R)
 }
 
 
-Fixture Game::League::RoundFixtures::GetFixtureThatContains(Race::Racer* R)
+Fixture Game::League::RoundFixtures::Get(Race::Racer* R)
 {
 	for (int t = 0; t < Fixtures.size(); ++t)
 		if (Fixtures[t].Contains(R))
@@ -109,23 +109,23 @@ Fixture Game::League::RoundFixtures::GetFixtureThatContains(Race::Racer* R)
 }
 
 
-Game::League::LeagueStanding::LeagueStanding()
+Game::League::LeagueStandings::LeagueStandings()
 {
 }
 
-void Game::League::LeagueStanding::AddEntry(LeagueStandingEntry Entry)
+void Game::League::LeagueStandings::AddEntry(LeagueStandingEntry Entry)
 {
 	Entry.Rank = Entries.size();
 	Entries.push_back(Entry);
 }
 
-void Game::League::LeagueStanding::AddResults(std::vector<Race::RaceResult> Results)
+void Game::League::LeagueStandings::AddResults(std::vector<Race::RaceResult> Results)
 {
 	for (int t = 0; t < Results.size(); ++t)
 		AddResult(Results[t]);
 }
 
-void Game::League::LeagueStanding::AddResult(Race::RacerRaceResult Result)
+void Game::League::LeagueStandings::AddResult(Race::RacerRaceResult Result)
 {
 	//find this racers league standing entry
 	for (int t = 0; t <  Entries.size(); ++t)
@@ -135,13 +135,13 @@ void Game::League::LeagueStanding::AddResult(Race::RacerRaceResult Result)
 		}
 }
 
-void Game::League::LeagueStanding::AddResult(RaceResult Results)
+void Game::League::LeagueStandings::AddResult(RaceResult Results)
 {
 	for (int t = 0; t < Results.RacerResults.size(); ++t)
 		AddResult(Results.RacerResults[t]);
 }
 
-void Game::League::LeagueStanding::Update(Race::RacerRaceResult Result)
+void Game::League::LeagueStandings::Update(Race::RacerRaceResult Result)
 {
 	//find this racers league standing entry
 	for (int t = 0; t < Entries.size(); ++t)
@@ -156,7 +156,7 @@ void Game::League::LeagueStanding::Update(Race::RacerRaceResult Result)
 }
 
 
-void Game::League::LeagueStanding::Sort()
+void Game::League::LeagueStandings::Sort()
 {
 	vector<LeagueStandingEntry>& a = Entries;
 
@@ -196,7 +196,7 @@ Game::League::LeagueStandingEntry::LeagueStandingEntry(Race::Racer* _Racer)
 
 void Game::League::LeagueStandingEntry::Update(Race::RacerRaceResult Result)
 {
-	if (Result.Racer->GUID != Racer->GUID)
+	if (Result.Racer->GUID.GUID != Racer->GUID.GUID)
 		return;
 
 	if (Result.Position == 1)

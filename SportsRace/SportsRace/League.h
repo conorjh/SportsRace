@@ -20,7 +20,7 @@ namespace Game
 
 		struct RoundFixtures
 		{
-			Fixture GetFixtureThatContains(Race::Racer*);
+			Fixture Get(Race::Racer*);
 
 			std::vector<Fixture> Fixtures;
 		};
@@ -33,7 +33,7 @@ namespace Game
 		struct SeasonFixtures
 		{
 			void NextRound() { CurrentRound++; }
-			RoundFixtures GetThisRound() { return RoundFixtures[CurrentRound]; }
+			RoundFixtures Get() { return RoundFixtures[CurrentRound]; }
 
 			unsigned int CurrentRound = 0;
 			std::vector<RoundFixtures> RoundFixtures;
@@ -59,9 +59,9 @@ namespace Game
 			double AvgTime;
 		};
 
-		struct LeagueStanding
+		struct LeagueStandings
 		{
-			LeagueStanding();
+			LeagueStandings();
 
 			void AddEntry(LeagueStandingEntry Entry);
 
@@ -80,16 +80,16 @@ namespace Game
 		class League
 		{
 			unsigned int CurrentRound = 0;
+
 		public:
 			Race::Racer* MainGuy;
+
 			std::vector<Race::Racer*> Racers;
-			LeagueStanding Standing;
+			LeagueStandings Standings;
 
 			League();
 
 			void NextRound() { CurrentRound++; SeasonFixtures.NextRound(); }
-
-			LeagueStanding GetCurrentLeagueStanding();
 
 			SeasonFixtures SeasonFixtures;
 		};
