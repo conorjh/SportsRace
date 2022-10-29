@@ -13,12 +13,16 @@ namespace Game
 
 		struct CareerProfile
 		{
+			CareerProfile();
+
 			Race::Racer MainFella;
 			CareerProfileFinancial Financials;
 		};
 
 		struct CareerData
 		{
+			CareerData();
+
 			Race::RacerDB Racers;
 
 			CareerProfile Profile;
@@ -26,9 +30,12 @@ namespace Game
 
 		class CareerOrchestrator
 		{
-			CareerData* Data;
+
 		public:
-			CareerOrchestrator(CareerData*);
+			CareerData* Data;
+			CareerProfile* Profile;
+
+			CareerOrchestrator(CareerData*, CareerProfile*);
 
 
 		};
