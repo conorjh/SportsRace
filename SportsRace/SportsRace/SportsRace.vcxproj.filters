@@ -54,6 +54,15 @@
     <ClCompile Include="Racer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Career.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RacerScreen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CareerHub.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Game.h">
@@ -93,6 +102,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Racer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Career.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RacerScreen.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CareerHub.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
