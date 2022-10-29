@@ -4,6 +4,15 @@ using namespace Game;
 using namespace Game::Race;
 using namespace std;
 
+Game::Race::Racer::Racer()
+{
+    Name = "";
+    LastRunFrameEnd = CurrentTick = 0;
+    RunFrame = 0;
+    Pos.X = 0;
+    Pos.Velocity = 15 + (rand() % 10);
+}
+
 Game::Race::Racer::Racer(std::string _Name)
 {
     Name = _Name;

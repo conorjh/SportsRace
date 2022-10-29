@@ -36,6 +36,7 @@ namespace Game
 		class Racer
 		{
 		public:
+			Racer();
 			Racer(std::string);
 
 			void Tick(unsigned int Ms);
