@@ -230,6 +230,7 @@ void Game::App::Renderer::InRaceRenderer::RenderDebugText()
 	string Body = "AppState: " + AppStateTypeToString(State->Type) + "\n" +
 		"RaceState: " + RaceStateTypeToString(State->RaceSM.State->Type) + "\n" +
 		"Finished: " + to_string(State->RaceSM.Data.ThisRace.FinishedCount()) + "\n" +
+		"Leader: " + State->RaceSM.Data.ThisRace.CurrentWinner()->Name + "\n" +
 		"Camera.CameraX: " + to_string(Camera.CameraX) + "\n" +
 		"Camera.CameraX2: " + to_string(Camera.CameraX2) + "\n";
 	RenderText(BaseData->DebugFont, Body, 850, 10, { 255,0,0 });
@@ -512,15 +513,35 @@ Game::App::Renderer::CareerHubRenderer::CareerHubRenderer(AppData* _Data, Career
 }
 
 unsigned int Game::App::Renderer::RacerScreenRenderer::Render()
-{//start timerv=
+{
+	//start timer
 	auto StartTime = SDL_GetTicks();
 
 	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
 	SDL_RenderClear(Data->RenderData.MainRenderer);
 
+	SDL_Rect RenderQuad1 = { 100 , 100 , 378 , 359 };
+	RenderImage(RendererData->Screen.Texture, NULL, &RenderQuad1);
+
 	SDL_Rect RenderQuad2 = { 500 , 100 , 378 , 359 };
 	RenderImage(RendererData->Screen.Texture, NULL, &RenderQuad2);
 	
+
+	std::string SecondScreen = "Name: " + Data->Profile->MainFella.Name + "\n";
+	SDL_Color White = { 255,255,255 };
+	RenderText(BaseData->MainFont, SecondScreen, 550, 150, { 255,255,255 });
+
+
+	SDL_FillRect(Data->RenderData.MainSurface, &State->RegenButton.Rect, SDL_MapRGB(Data->RenderData.MainSurface->format, 255, 0, 0));
+	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
+	SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->RegenButton.Rect);
+	RenderText(BaseData->BigFont, State->RegenButton.Text.c_str(), State->RegenButton.x + 5, State->RegenButton.y + 5, State->RegenButton.Color);
+
+	SDL_FillRect(Data->RenderData.MainSurface, &State->ExitButton.Rect, SDL_MapRGB(Data->RenderData.MainSurface->format, 255, 0, 0));
+	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
+	SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->ExitButton.Rect);
+	SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->ExitButton.Rect);
+	RenderText(BaseData->BigFont, State->ExitButton.Text.c_str(), State->ExitButton.x + 5, State->ExitButton.y + 5, State->ExitButton.Color);
 
 	Display();
 	auto EndTime = SDL_GetTicks();
@@ -530,6 +551,7 @@ unsigned int Game::App::Renderer::RacerScreenRenderer::Render()
 
 bool Game::Render::BaseRendererData::Load(BaseRenderer& Renderer)
 {
+	Renderer.BaseData->BigFont =  TTF_OpenFont("menu_font.ttf", 96);
 	Renderer.BaseData->MainFont = TTF_OpenFont("PIXELLARI.ttf", 16);
 	Renderer.BaseData->InfoFont = TTF_OpenFont("OpenSans.ttf", 14);
 	Renderer.BaseData->DebugFont = TTF_OpenFont("OpenSans.ttf", 12);

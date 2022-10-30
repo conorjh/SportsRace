@@ -35,7 +35,6 @@ void Game::Race::Racer::Tick(unsigned int Ms)
     {
         if (rand() % 10 == 1)
             Pos.Velocity = 20 + (rand() % 10);   //1/3 chance of a change
-
     }
 
     auto FrameTime = (350 - (Pos.Velocity * 10)) * 0.9;
@@ -84,7 +83,7 @@ std::string Game::Race::RacerNameMaker::Make()
 
 Racer* Game::Race::RacerDB::Make(std::string Name)
 {
-    Racer* R = Name == "" ? new Racer(RacerNameMaker().Make()) : new Racer(Name) ;
+    Racer* R = Name == "" ? new Racer(RacerNameMaker().Make()) : new Racer(Name);
 
     //while loop until we randomly generate an unused GUID
     while (Container.find((R->GUID.GUID = rand())) != Container.end())

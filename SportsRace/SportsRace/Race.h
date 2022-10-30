@@ -45,6 +45,7 @@ namespace Game
 
 			bool HasFinished(), HasFinished(Racer*);
 			unsigned int FinishedCount() { return Result.RacerResults.size(); }
+			Racer* CurrentWinner();
 			unsigned int CurrentWinnerDistance();
 
 			Racer* Get(std::string RacerName);

@@ -37,7 +37,7 @@ namespace Game
 		{
 			bool Load(BaseRenderer& Renderer);
 
-			TTF_Font* MainFont, * InfoFont, * DebugFont, * WinningFont;
+			TTF_Font* MainFont, * InfoFont, * DebugFont, * WinningFont, *BigFont;
 		};
 
 		class BaseRenderer

@@ -33,6 +33,19 @@ bool Game::Race::Race::HasFinished()
     return (FinishedCount() >= Racers.size());
 }
 
+Racer* Game::Race::Race::CurrentWinner()
+{
+    unsigned int Max = 0, RacerNum = 0, t = 0;
+    for (vector<Racer*>::iterator it = Racers.begin(); it != Racers.end(); ++it)
+        if ((*it)->Pos.X > Max)
+        {
+            t++;
+            RacerNum = t;
+            Max = (*it)->Pos.X;
+        }
+    return Racers[RacerNum];
+}
+
 unsigned int Game::Race::Race::CurrentWinnerDistance()
 {
     unsigned int Max = 0;
