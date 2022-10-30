@@ -33,8 +33,6 @@ Game::App::Renderer::AppRenderer::AppRenderer(AppData* _Data, States::AppStateMa
 	RacerScreenRenData.Load(*this);
 	CareerHubRenData.Load(*this);
 
-	spdlog::trace("Loading renderer data done");
-	spdlog::trace("Starting AppRenderer done");
 }
 
 unsigned int Game::App::Renderer::AppRenderer::Render()
@@ -63,6 +61,12 @@ unsigned int Game::App::Renderer::AppRenderer::Render()
 		CareerHubRen.State = CareerHState;
 		return CareerHubRen.Render();
 	}
+	case AppStateType::RacerScreen:
+	{
+		RacerScreenState* RacerScreenRenSt = reinterpret_cast<RacerScreenState*>(StateMachine->Top());
+		RacerScreenRen.State = RacerScreenRenSt;
+		return RacerScreenRen.Render();
+	}
 	}
 
 	return 0;
@@ -71,6 +75,7 @@ unsigned int Game::App::Renderer::AppRenderer::Render()
 Game::Render::BaseRenderer::BaseRenderer(AppData* _Data, BaseRendererData* _BaseData) : BaseData(_BaseData)
 {
 	Data = _Data;
+	LastFrameEnd = 0;
 }
 
 void Game::Render::BaseRenderer::LoadImageFile(std::string File, Image& Img)
@@ -154,6 +159,7 @@ void Game::App::Renderer::MainMenuRenderer::DrawLeague()
 
 	unsigned int OtherStandings = 4;
 
+	/*
 	auto ranl = Data->League.Standings.Get(Data->League.MainGuy).Rank;
 	int TopEnd = Data->League.Standings.Get(Data->League.MainGuy).Rank - 4;
 	if (TopEnd < 0)
@@ -172,6 +178,7 @@ void Game::App::Renderer::MainMenuRenderer::DrawLeague()
 		RenderText(BaseData->InfoFont, to_string(Standing.Rank) + "  " + Standing.Racer->Name + ": " + to_string(Standing.Points) + "pts ", 600, (t * 32) + 133, White);
 
 	}
+	*/
 }
 
 unsigned int Game::App::Renderer::MainMenuRenderer::Render()
@@ -179,7 +186,7 @@ unsigned int Game::App::Renderer::MainMenuRenderer::Render()
 	//start timer
 	auto StartTime = SDL_GetTicks();
 
-	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 0, 0, 0, 0);
+	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255,255,255,255);
 	SDL_RenderClear(Data->RenderData.MainRenderer);
 
 	//draw de buttons
@@ -321,7 +328,6 @@ void Game::App::Renderer::InRaceRenderer::DrawBackground()
 
 	//track
 	auto TrackWidth = ScreenWidth, TrackHeight = ScreenHeight;
-
 
 	int TrackDrawOffset = Camera.CameraX2 % unsigned int(TrackWidth);
 	SDL_Rect RenderQuad1 = { 0 - TrackDrawOffset ,0, TrackWidth, TrackHeight };
@@ -506,8 +512,20 @@ Game::App::Renderer::CareerHubRenderer::CareerHubRenderer(AppData* _Data, Career
 }
 
 unsigned int Game::App::Renderer::RacerScreenRenderer::Render()
-{
-	return 0;
+{//start timerv=
+	auto StartTime = SDL_GetTicks();
+
+	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
+	SDL_RenderClear(Data->RenderData.MainRenderer);
+
+	SDL_Rect RenderQuad2 = { 500 , 100 , 378 , 359 };
+	RenderImage(RendererData->Screen.Texture, NULL, &RenderQuad2);
+	
+
+	Display();
+	auto EndTime = SDL_GetTicks();
+	FPS.AddFrame(EndTime - StartTime);
+	return EndTime - StartTime;
 }
 
 bool Game::Render::BaseRendererData::Load(BaseRenderer& Renderer)
@@ -548,10 +566,6 @@ bool Game::App::Renderer::InRaceRendererData::Load(Render::BaseRenderer& Rendere
 
 bool Game::App::Renderer::RacerScreenRendererData::Load(Render::BaseRenderer& Renderer)
 {
-	Renderer.LoadFontFile("menu_font.ttf", 16, WinningFont);
-
-	RacerGraphic.Surface = IMG_Load("fella.png");
-
 	Renderer.LoadImageFile("reido.png", Head);
 	Renderer.LoadImageFile("track.png", TrackGraphic);
 	Renderer.LoadImageFile("fellarun.png", FellaRun);

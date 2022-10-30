@@ -61,7 +61,7 @@ void Game::GUI::Button::Update()
 	if (IsButtonHoveredOver)
 		Color = { 255, 0, 255 };
 	else
-		Color = { 255, 255, 255 };
+		Color = { 0, 0, 0 };
 }
 
 bool Game::GUI::Button::IsMouseOver()
@@ -108,5 +108,5 @@ bool Game::GUI::IconButton::IsMouseOver()
 
 bool Game::GUI::IconButton::HasMouseClicked()
 {
-	return IsMouseOver() && SDL_BUTTON(IO.MouseButtons) == 1;
+	return IsMouseOver() && IO.MouseButtons == 1;
 }

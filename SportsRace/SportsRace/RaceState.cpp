@@ -56,9 +56,6 @@ AppState* Game::States::InRaceState::Update()
             IO.Player.Play(Soundtrack::Race);
         }
 
-        if (NewType != OldType && NewType == RaceStateType::Racing)
-            IO.Player.Play(Soundtrack::Race);
-
         //if (NewType != OldType && NewType == RaceStateType::Finished)
         //    IO.Player.StopMusic();
     }

@@ -4,6 +4,7 @@
 #include "MainMenu.h"
 #include "CareerHub.h"
 #include "RaceState.h"
+#include "RacerScreen.h"
 #include "Renderer.h"
 #include "App.h"
 #include "SDL2/SDL_ttf.h"
@@ -137,7 +138,6 @@ namespace Game
 			{
 				bool Load(Render::BaseRenderer& Renderer);
 
-				TTF_Font* WinningFont;
 
 				Render::Image RacerGraphic, Head, TrackGraphic, FellaRun, FellaWait, Screen;
 				SDL_Texture* InfoFontT, * DebugFontT, * WinningFontT;
@@ -150,6 +150,8 @@ namespace Game
 				RacerScreenRendererData* RendererData;
 
 			public:
+				States::RacerScreenState* State;
+
 				RacerScreenRenderer(AppData*, RacerScreenRendererData* _Data, Render::BaseRendererData* _BaseData);
 
 				unsigned int Render();

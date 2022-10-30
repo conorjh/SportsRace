@@ -8,8 +8,10 @@ Game::Career::CareerOrchestrator::CareerOrchestrator(CareerData* _Data, CareerPr
 
 Game::Career::CareerData::CareerData()
 {
+
 }
 
 Game::Career::CareerProfile::CareerProfile() 
 {
+
 }

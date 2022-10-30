@@ -1,6 +1,7 @@
 #include "MainMenu.h"
 #include "RaceState.h"
 #include "CareerHub.h"
+#include "RacerScreen.h"
 #include "SDL2/SDL_mixer.h"
 
 using namespace std;
@@ -9,6 +10,7 @@ using namespace Game::States;
 using namespace Game::App;
 using namespace Game::Audio;
 using namespace Game::Race;
+using namespace Game::Career;
 
 Game::States::MainMenuState::MainMenuState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data) : 
 	AppState(_Machine, _IO, _Data),
@@ -42,8 +44,19 @@ AppState* Game::States::MainMenuState::Update()
 	CareerButton.Update();
 	if (CareerButton.HasMouseClicked())
 	{
-		//check if we have a saved profile
-		
+		//check if we dont have a saved profile
+		if (Data.Profile == nullptr)
+		{
+			//create a new profile + career
+			Data.Profile = new CareerProfile();
+			Data.Career = new CareerData();
+
+			//call character creation screen
+			Machine.Push(new RacerScreenState(Machine, IO, Data, &Data.Profile->MainFella, RacerScreenStateInitType::RacerCreation));
+			return Machine.Top();
+		}
+
+		//run career hub with it
 		Machine.Push(new CareerHubState(Machine, IO, Data));
 		return Machine.Top();
 	}
