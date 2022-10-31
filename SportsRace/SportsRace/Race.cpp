@@ -121,6 +121,7 @@ RaceStatus Game::Race::Race::Tick(unsigned int Ms, RaceStatus Type)
 
 RaceResult Game::Race::Race::Sim()
 {
+    Result.GUID = GUID;
     RaceStatus CurrentState = RaceStatus::Racing;
 
     while ((CurrentState = Tick(33, CurrentState)) != RaceStatus::Finished) { }

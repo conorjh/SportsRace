@@ -26,8 +26,14 @@ namespace Game
 			Racer* Racer;
 		};
 
+		struct RaceGUID
+		{
+			unsigned int GUID;
+		};
+
 		struct RaceResult
 		{
+			RaceGUID GUID;
 			std::vector<RacerRaceResult> RacerResults;
 		};
 
@@ -60,6 +66,7 @@ namespace Game
 			Track* ThisTrack;
 			std::vector<Racer*> Racers;
 			RaceResult Result;
+			RaceGUID GUID;
 		};
 	}
 }

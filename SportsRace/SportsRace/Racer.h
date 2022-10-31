@@ -40,6 +40,8 @@ namespace Game
 			unsigned int Xp;
 
 			unsigned int BaseSpeed, Sprint, StandardVelocity, Luck;
+
+			unsigned int SprintCutoff, StandardCutoff;
 		};
 
 		class Racer

@@ -26,15 +26,35 @@ void Game::Race::Racer::Tick(unsigned int Ms)
 {
     CurrentTick += Ms;
 
-    if (Name == "Johnny Tester")
+
+    if (Pos.X < Skills.SprintCutoff && Pos.X < Skills.StandardCutoff)
     {
-        if (rand() % 10 == 1)
-            Pos.Velocity = 22 + (rand() % 8);   //1/3 chance of a change
+        if (rand() % 8 == 1)
+        {
+            Pos.Velocity = Skills.BaseSpeed + (rand() % Skills.StandardVelocity);
+            if (Skills.Sprint > 0)
+                Pos.Velocity += (rand() % Skills.Sprint);
+            if (Skills.Luck > 0)
+                Pos.Velocity += (rand() % Skills.Luck);   //1/5
+        }
     }
-    else
+    else if (Pos.X >= Skills.SprintCutoff && Pos.X < Skills.StandardCutoff)
     {
         if (rand() % 10 == 1)
-            Pos.Velocity = 20 + (rand() % 10);   //1/3 chance of a change
+        {
+            Pos.Velocity = Skills.BaseSpeed + (rand() % Skills.StandardVelocity);
+            if (Skills.Luck > 0)
+                Pos.Velocity += (rand() % Skills.Luck);   //1/10
+        }
+    }
+    else if (Pos.X >= Skills.SprintCutoff && Pos.X >= Skills.StandardCutoff)
+    {
+        if (rand() % 20 == 1)
+        {
+            Pos.Velocity = Skills.BaseSpeed;
+            if (Skills.Luck > 0)
+                Pos.Velocity += (rand() % Skills.Luck);   //1/20
+        }
     }
 
     //animation
@@ -134,5 +154,8 @@ Game::Race::RacerSkills::RacerSkills()
     BaseSpeed = 1 + rand() % 15;
     StandardVelocity = 1 + rand() % 9;
     Sprint = rand() % 5;
-    Luck = rand() % 1;
+    Luck = rand() % 2;
+
+    StandardCutoff = rand() % 50000;
+    SprintCutoff = rand() % (StandardCutoff / 2);
 }

@@ -4,7 +4,7 @@ Demo 2 Todo
 + RacerDB
 - Better animation for runners
 + Race sounds
-- varying speeds
++ varying speeds
 + racer view screen
 	+ creation 
 	+ view
