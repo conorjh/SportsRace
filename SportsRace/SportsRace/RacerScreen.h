@@ -30,5 +30,32 @@ namespace Game
 		};
 
 	}
+
+	namespace Renderer
+	{
+		struct RacerScreenRendererData
+		{
+			bool Load(Render::BaseRenderer& Renderer);
+
+
+			Render::Image RacerGraphic, Head, TrackGraphic, FellaRun, FellaWait, Screen;
+			SDL_Texture* InfoFontT, * DebugFontT, * WinningFontT;
+			SDL_Texture* RacerTexture;
+
+		};
+
+		class RacerScreenRenderer : public Render::BaseRenderer
+		{
+			RacerScreenRendererData* RendererData;
+
+		public:
+			States::RacerScreenState* State;
+
+			RacerScreenRenderer(AppData*, RacerScreenRendererData* _Data, Render::BaseRendererData* _BaseData);
+
+			unsigned int Render();
+
+		};
+	}
 }
 #endif

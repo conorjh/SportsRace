@@ -6,7 +6,6 @@ namespace Game
 {
 	namespace Race
 	{
-
 		enum class RaceStateType
 		{
 			PreRace, StartersOrders, Racing, Finishing, Finished
@@ -87,28 +86,6 @@ namespace Game
 		};
 	}
 
-	namespace States
-	{
-		enum class InRaceStateInitType
-		{
-			Race, Training
-		};
-
-		class InRaceState : public AppState
-		{
-			unsigned int LastFrameEnd;
-		public:
-			Race::RacerGUID PlayerGUID;
-			InRaceState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer);	//InRaceStateInitType::Training
-			InRaceState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun);			//demo
-			InRaceState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun, Race::RacerGUID);			//InRaceStateInitType::Race
-			~InRaceState();
-
-			void Entry(), Exit();
-
-			AppState* Update();
-			Race::RaceStateMachine RaceSM;
-		};
-	}
+	
 }
 #endif

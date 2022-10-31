@@ -37,7 +37,7 @@ AppState* Game::States::MainMenuState::Update()
 		RaceBuffer.Reset();
 
 		//actually run our race
-		Machine.Push(new InRaceState(Machine, IO, Data, RaceBuffer));
+		Machine.Push(new RaceScreenState(Machine, IO, Data, RaceBuffer));
 		return Machine.Top();
 	}
 

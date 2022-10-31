@@ -4,6 +4,7 @@
 #include "MainMenu.h"
 #include "CareerHub.h"
 #include "RaceState.h"
+#include "RaceScreen.h"
 #include "RacerScreen.h"
 #include "Renderer.h"
 #include "App.h"
@@ -68,130 +69,17 @@ namespace Game
 	{
 		namespace Renderer
 		{
-			struct MainMenuRendererData
-			{
-				bool Load(Render::BaseRenderer& Renderer);
-
-				Render::Image Screen;
-
-				TTF_Font* MainFont;
-			};
-
-			class MainMenuRenderer : public Render::BaseRenderer
-			{
-				MainMenuRendererData* RendererData;
-
-				void DrawLeague();
-
-			public:
-				States::MainMenuState* State;
-				MainMenuRenderer(AppData*, MainMenuRendererData* _Data, Render::BaseRendererData* _BaseData);
-				MainMenuRenderer(AppData*, States::MainMenuState* _State, MainMenuRendererData* _Data, Render::BaseRendererData* _BaseData);
-
-
-				unsigned int Render();
-			};
-
-			struct InRaceRendererData
-			{
-				bool Load(Render::BaseRenderer& Renderer);
-
-				TTF_Font* MainFont, * InfoFont, * DebugFont, * WinningFont;
-
-				Render::Image RacerGraphic, Head, TrackGraphic, StadiumGraphic, StartingBlocksGraphic, CloudsGraphic, MountainsGraphic, FellaRun, FellaWait, Screen;
-
-				SDL_Texture* MainFontT, * InfoFontT, * DebugFontT, * WinningFontT;
-				SDL_Texture* RacerTexture;
-
-			};
-
-			struct InRaceRendererCamera
-			{
-				void PointAt(unsigned int X);
-
-				unsigned int X, TrackLength;
-				int  W, H;
-
-				int CameraX, CameraX2;
-			};
-
-			class InRaceRenderer : public Render::BaseRenderer
-			{
-				InRaceRendererData* RendererData;
-				void RenderDebugText();
-				void DrawBackground();
-				InRaceRendererCamera Camera;
-
-			public:
-				States::InRaceState* State;
-				InRaceRenderer(AppData*, InRaceRendererData* _Data, Render::BaseRendererData* _BaseData);
-				InRaceRenderer(AppData*, States::InRaceState* _State, InRaceRendererData* _Data, Render::BaseRendererData* _BaseData);
-
-				void DrawRacer(Race::Racer, unsigned int Track);
-				void DrawWinners();
-
-				unsigned int Render();
-
-			};
-
-			struct RacerScreenRendererData
-			{
-				bool Load(Render::BaseRenderer& Renderer);
-
-
-				Render::Image RacerGraphic, Head, TrackGraphic, FellaRun, FellaWait, Screen;
-				SDL_Texture* InfoFontT, * DebugFontT, * WinningFontT;
-				SDL_Texture* RacerTexture;
-
-			};
-
-			class RacerScreenRenderer : public Render::BaseRenderer
-			{
-				RacerScreenRendererData* RendererData;
-
-			public:
-				States::RacerScreenState* State;
-
-				RacerScreenRenderer(AppData*, RacerScreenRendererData* _Data, Render::BaseRendererData* _BaseData);
-
-				unsigned int Render();
-
-			};
-
-			struct CareerHubRendererData
-			{
-				bool Load(Render::BaseRenderer& Renderer);
-
-
-				Render::Image RacerIconGraphic, RaceIconGraphic, TrainingIconGraphic;
-			};
-
-			class CareerHubRenderer : public Render::BaseRenderer
-			{
-				CareerHubRendererData* RendererData;
-
-			public:
-				States::CareerHubState* State;
-
-				CareerHubRenderer(AppData*, CareerHubRendererData* _Data, Render::BaseRendererData* _BaseData);
-				CareerHubRenderer(AppData*, States::CareerHubState* State, CareerHubRendererData* _Data, Render::BaseRendererData* _BaseData);
-
-				unsigned int Render();
-
-			};
-
-
 			class AppRenderer : public Render::BaseRenderer
 			{
 				Render::BaseRendererData BaseRenData;
-				MainMenuRendererData MainMenuRenData;
-				MainMenuRenderer MainMenuRen;
-				InRaceRendererData InRaceRenData;
-				InRaceRenderer InRaceRen;
-				CareerHubRendererData CareerHubRenData;
-				CareerHubRenderer CareerHubRen;
-				RacerScreenRendererData RacerScreenRenData;
-				RacerScreenRenderer RacerScreenRen;
+				Game::Renderer::MainMenuRendererData MainMenuRenData;
+				Game::Renderer::MainMenuRenderer MainMenuRen;
+				Game::Renderer::RaceScreenRendererData InRaceRenData;
+				Game::Renderer::RaceScreenRenderer InRaceRen;
+				Game::Renderer::CareerHubRendererData CareerHubRenData;
+				Game::Renderer::CareerHubRenderer CareerHubRen;
+				Game::Renderer::RacerScreenRendererData RacerScreenRenData;
+				Game::Renderer::RacerScreenRenderer RacerScreenRen;
 
 			public:
 				Game::States::AppStateMachine* StateMachine;

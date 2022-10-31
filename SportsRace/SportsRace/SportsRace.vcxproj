@@ -176,6 +176,7 @@
     <ClInclude Include="MainMenu.h" />
     <ClInclude Include="Race.h" />
     <ClInclude Include="Racer.h" />
+    <ClInclude Include="RaceScreen.h" />
     <ClInclude Include="RaceState.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="State.h" />

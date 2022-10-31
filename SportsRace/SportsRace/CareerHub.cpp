@@ -49,7 +49,7 @@ AppState* Game::States::CareerHubState::Update()
 			RaceBuffer->Racers.push_back(Orchestrator.Data->Racers.Make(RacerNameMaker().Make()));
 		
 		//actually run our race
-		Machine.Push(new InRaceState(Machine, IO, Data, *RaceBuffer, Orchestrator.Profile->MainFella.GUID));
+		Machine.Push(new RaceScreenState(Machine, IO, Data, *RaceBuffer, Orchestrator.Profile->MainFella.GUID));
 		return Machine.Top();
 	}
 
@@ -59,7 +59,7 @@ AppState* Game::States::CareerHubState::Update()
 		RacerDB* DB = new RacerDB();
 
 		//actually run our race
-		Machine.Push(new InRaceState(Machine, IO, Data, &Orchestrator.Profile->MainFella));
+		Machine.Push(new RaceScreenState(Machine, IO, Data, &Orchestrator.Profile->MainFella));
 		return Machine.Top();
 	}
 

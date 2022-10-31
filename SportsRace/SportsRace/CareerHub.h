@@ -21,5 +21,30 @@ namespace Game
 			AppState* Update();
 		};
 	}
+
+	namespace Renderer
+	{
+		struct CareerHubRendererData
+		{
+			bool Load(Render::BaseRenderer& Renderer);
+
+
+			Render::Image RacerIconGraphic, RaceIconGraphic, TrainingIconGraphic;
+		};
+
+		class CareerHubRenderer : public Render::BaseRenderer
+		{
+			CareerHubRendererData* RendererData;
+
+		public:
+			States::CareerHubState* State;
+
+			CareerHubRenderer(AppData*, CareerHubRendererData* _Data, Render::BaseRendererData* _BaseData);
+			CareerHubRenderer(AppData*, States::CareerHubState* State, CareerHubRendererData* _Data, Render::BaseRendererData* _BaseData);
+
+			unsigned int Render();
+
+		};
+	}
 }
 #endif

@@ -44,7 +44,7 @@ unsigned int Game::App::Renderer::AppRenderer::Render()
 	{
 	case AppStateType::InRace:
 	{
-		InRaceState* RaceState = reinterpret_cast<InRaceState*>(StateMachine->Top());
+		RaceScreenState* RaceState = reinterpret_cast<RaceScreenState*>(StateMachine->Top());
 		InRaceRen.State = RaceState;
 		return InRaceRen.Render();
 	}
@@ -224,7 +224,7 @@ unsigned int Game::App::Renderer::MainMenuRenderer::Render()
 	return EndTime - StartTime;
 }
 
-void Game::App::Renderer::InRaceRenderer::RenderDebugText()
+void Game::App::Renderer::RaceScreenRenderer::RenderDebugText()
 {
 	//top right
 	string Body = "AppState: " + AppStateTypeToString(State->Type) + "\n" +
@@ -250,7 +250,7 @@ void Game::App::Renderer::InRaceRenderer::RenderDebugText()
 
 }
 
-Game::App::Renderer::InRaceRenderer::InRaceRenderer(AppData* _Data, InRaceRendererData* _RendererData, BaseRendererData* _BaseData) :
+Game::App::Renderer::RaceScreenRenderer::RaceScreenRenderer(AppData* _Data, RaceScreenRendererData* _RendererData, BaseRendererData* _BaseData) :
 	State(nullptr), RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
 {
 	Camera.X = 0;
@@ -258,7 +258,7 @@ Game::App::Renderer::InRaceRenderer::InRaceRenderer(AppData* _Data, InRaceRender
 	Camera.H = Data->ScreenHeight;
 }
 
-Game::App::Renderer::InRaceRenderer::InRaceRenderer(AppData* _Data, States::InRaceState* _State, InRaceRendererData* _RendererData, BaseRendererData* _BaseData) :
+Game::App::Renderer::RaceScreenRenderer::RaceScreenRenderer(AppData* _Data, States::RaceScreenState* _State, RaceScreenRendererData* _RendererData, BaseRendererData* _BaseData) :
 	State(_State), RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
 {
 	Camera.X = 0;
@@ -272,7 +272,7 @@ void Game::Render::BaseRenderer::RenderImage(SDL_Texture* Texture, SDL_Rect* Sou
 	SDL_RenderCopy(Data->RenderData.MainRenderer, Texture, SourceQuad, RenderQuad);
 }
 
-void Game::App::Renderer::InRaceRenderer::DrawRacer(Race::Racer Racer, unsigned int Track)
+void Game::App::Renderer::RaceScreenRenderer::DrawRacer(Race::Racer Racer, unsigned int Track)
 {
 	unsigned int yOffset = ((Track + 1) * 40) + 300;
 	unsigned int StaggerOffset = (Track + 1) * 20;
@@ -303,7 +303,7 @@ void Game::App::Renderer::InRaceRenderer::DrawRacer(Race::Racer Racer, unsigned 
 
 }
 
-void Game::App::Renderer::InRaceRenderer::DrawWinners()
+void Game::App::Renderer::RaceScreenRenderer::DrawWinners()
 {
 	double ScaleFactor = double(this->Data->ScreenWidth) / double(unsigned int(State->RaceSM.Data.ThisRace.ThisTrack->Length) + 200);
 	unsigned int yOffset = 50;
@@ -325,7 +325,7 @@ void Game::App::Renderer::InRaceRenderer::DrawWinners()
 	}
 }
 
-void Game::App::Renderer::InRaceRenderer::DrawBackground()
+void Game::App::Renderer::RaceScreenRenderer::DrawBackground()
 {
 	auto ScreenWidth = 1024, ScreenHeight = 768;
 
@@ -362,7 +362,7 @@ void Game::App::Renderer::InRaceRenderer::DrawBackground()
 	RenderImage(RendererData->StartingBlocksGraphic.Texture, NULL, &RenderQuad9);
 }
 
-unsigned int Game::App::Renderer::InRaceRenderer::Render()
+unsigned int Game::App::Renderer::RaceScreenRenderer::Render()
 {
 	//start timer
 	auto StartTime = SDL_GetTicks();
@@ -433,7 +433,7 @@ unsigned int Game::Render::FPSCounter::GetFPS()
 	return 1000 / GetFrameTime();
 }
 
-void Game::App::Renderer::InRaceRendererCamera::PointAt(unsigned int X)
+void Game::App::Renderer::RaceScreenRendererCamera::PointAt(unsigned int X)
 {
 	CameraX = X - (W / 2);
 	CameraX2 = X + (W / 2);
@@ -587,7 +587,7 @@ bool Game::App::Renderer::MainMenuRendererData::Load(Render::BaseRenderer& Rende
 	return true;
 }
 
-bool Game::App::Renderer::InRaceRendererData::Load(Render::BaseRenderer& Renderer)
+bool Game::App::Renderer::RaceScreenRendererData::Load(Render::BaseRenderer& Renderer)
 {
 	Renderer.LoadFontFile("menu_font.ttf", 16, WinningFont);
 

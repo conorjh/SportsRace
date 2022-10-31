@@ -15,41 +15,41 @@ using namespace Game::GUI;
 using namespace Game::Race;
 using namespace std;
 
-Game::States::InRaceState::InRaceState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer) : AppState(_Machine, _IO, _Data), RaceSM(*new Race::Race())
+Game::States::RaceScreenState::RaceScreenState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer) : AppState(_Machine, _IO, _Data), RaceSM(*new Race::Race())
 {
     Type = AppStateType::InRace;
     LastFrameEnd = SDL_GetTicks();
 }
 
-Game::States::InRaceState::InRaceState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun) : AppState(_Machine, _IO, _Data), RaceSM(RaceToRun)
+Game::States::RaceScreenState::RaceScreenState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun) : AppState(_Machine, _IO, _Data), RaceSM(RaceToRun)
 {
     Type = AppStateType::InRace;
     LastFrameEnd = SDL_GetTicks();
 }
 
-Game::States::InRaceState::InRaceState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun, RacerGUID PlayerRacer) : AppState(_Machine, _IO, _Data), RaceSM(RaceToRun)
+Game::States::RaceScreenState::RaceScreenState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun, RacerGUID PlayerRacer) : AppState(_Machine, _IO, _Data), RaceSM(RaceToRun)
 {
     Type = AppStateType::InRace;
     LastFrameEnd = SDL_GetTicks();
     PlayerGUID = PlayerRacer;
 }
 
-Game::States::InRaceState::~InRaceState()
+Game::States::RaceScreenState::~RaceScreenState()
 {
 
 }
 
-void Game::States::InRaceState::Entry()
-{
-    IO.Player.StopMusic();
-}
-
-void Game::States::InRaceState::Exit()
+void Game::States::RaceScreenState::Entry()
 {
     IO.Player.StopMusic();
 }
 
-AppState* Game::States::InRaceState::Update()
+void Game::States::RaceScreenState::Exit()
+{
+    IO.Player.StopMusic();
+}
+
+AppState* Game::States::RaceScreenState::Update()
 {
     while (SDL_GetTicks() > LastFrameEnd + 33)
     {

@@ -24,5 +24,32 @@ namespace Game
 		};
 
 	}
+
+	namespace Renderer
+	{
+		struct MainMenuRendererData
+		{
+			bool Load(Render::BaseRenderer& Renderer);
+
+			Render::Image Screen;
+
+			TTF_Font* MainFont;
+		};
+
+		class MainMenuRenderer : public Render::BaseRenderer
+		{
+			MainMenuRendererData* RendererData;
+
+			void DrawLeague();
+
+		public:
+			States::MainMenuState* State;
+			MainMenuRenderer(AppData*, MainMenuRendererData* _Data, Render::BaseRendererData* _BaseData);
+			MainMenuRenderer(AppData*, States::MainMenuState* _State, MainMenuRendererData* _Data, Render::BaseRendererData* _BaseData);
+
+
+			unsigned int Render();
+		};
+	}
 }
 #endif
