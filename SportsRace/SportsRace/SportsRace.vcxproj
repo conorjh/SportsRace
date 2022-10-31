@@ -159,6 +159,7 @@
     <ClCompile Include="Race.cpp" />
     <ClCompile Include="Racer.cpp" />
     <ClCompile Include="RacerScreen.cpp" />
+    <ClCompile Include="RaceScreen.cpp" />
     <ClCompile Include="RaceState.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="State.cpp" />
@@ -166,6 +167,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.h" />
+    <ClInclude Include="AppRenderer.h" />
     <ClInclude Include="Career.h" />
     <ClInclude Include="CareerHub.h" />
     <ClInclude Include="Game.h" />

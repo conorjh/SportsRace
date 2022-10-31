@@ -1,12 +1,6 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 #include "State.h"
-#include "MainMenu.h"
-#include "CareerHub.h"
-#include "RaceState.h"
-#include "RaceScreen.h"
-#include "RacerScreen.h"
-#include "Renderer.h"
 #include "App.h"
 #include "SDL2/SDL_ttf.h"
 
@@ -64,32 +58,7 @@ namespace Game
 			virtual void Display();
 		};
 	}
-
-	namespace App
-	{
-		namespace Renderer
-		{
-			class AppRenderer : public Render::BaseRenderer
-			{
-				Render::BaseRendererData BaseRenData;
-				Game::Renderer::MainMenuRendererData MainMenuRenData;
-				Game::Renderer::MainMenuRenderer MainMenuRen;
-				Game::Renderer::RaceScreenRendererData InRaceRenData;
-				Game::Renderer::RaceScreenRenderer InRaceRen;
-				Game::Renderer::CareerHubRendererData CareerHubRenData;
-				Game::Renderer::CareerHubRenderer CareerHubRen;
-				Game::Renderer::RacerScreenRendererData RacerScreenRenData;
-				Game::Renderer::RacerScreenRenderer RacerScreenRen;
-
-			public:
-				Game::States::AppStateMachine* StateMachine;
-
-				AppRenderer(AppData* _RenderData, States::AppStateMachine* _StateMachine);
-
-				unsigned int Render();
-			};
-		}
-
-	}
+	
+	
 }
 #endif

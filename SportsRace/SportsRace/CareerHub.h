@@ -3,6 +3,7 @@
 #include "State.h"
 #include "App.h"
 #include "Career.h"
+#include "Renderer.h"
 
 namespace Game
 {
@@ -39,8 +40,8 @@ namespace Game
 		public:
 			States::CareerHubState* State;
 
-			CareerHubRenderer(AppData*, CareerHubRendererData* _Data, Render::BaseRendererData* _BaseData);
-			CareerHubRenderer(AppData*, States::CareerHubState* State, CareerHubRendererData* _Data, Render::BaseRendererData* _BaseData);
+			CareerHubRenderer(App::AppData*, CareerHubRendererData* _Data, Render::BaseRendererData* _BaseData);
+			CareerHubRenderer(App::AppData*, States::CareerHubState* State, CareerHubRendererData* _Data, Render::BaseRendererData* _BaseData);
 
 			unsigned int Render();
 

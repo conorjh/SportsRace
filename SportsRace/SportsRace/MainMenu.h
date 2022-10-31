@@ -1,5 +1,6 @@
 #ifndef MAINMENU_H
 #define MAINMENU_H
+#include "Renderer.h"
 #include "State.h"
 #include "App.h"
 #include "SDL2/SDL_ttf.h"
@@ -44,8 +45,8 @@ namespace Game
 
 		public:
 			States::MainMenuState* State;
-			MainMenuRenderer(AppData*, MainMenuRendererData* _Data, Render::BaseRendererData* _BaseData);
-			MainMenuRenderer(AppData*, States::MainMenuState* _State, MainMenuRendererData* _Data, Render::BaseRendererData* _BaseData);
+			MainMenuRenderer(App::AppData*, MainMenuRendererData* _Data, Render::BaseRendererData* _BaseData);
+			MainMenuRenderer(App::AppData*, States::MainMenuState* _State, MainMenuRendererData* _Data, Render::BaseRendererData* _BaseData);
 
 
 			unsigned int Render();

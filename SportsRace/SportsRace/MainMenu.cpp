@@ -1,7 +1,9 @@
 #include "MainMenu.h"
 #include "RaceState.h"
 #include "CareerHub.h"
+#include "RaceScreen.h"
 #include "RacerScreen.h"
+#include "SDL2/SDL.h"
 #include "SDL2/SDL_mixer.h"
 
 using namespace std;
@@ -12,6 +14,14 @@ using namespace Game::Audio;
 using namespace Game::Race;
 using namespace Game::Career;
 
+
+bool Game::Renderer::MainMenuRendererData::Load(Render::BaseRenderer& Renderer)
+{
+	Renderer.LoadImageFile("screen.png", Screen);
+	MainFont = TTF_OpenFont("menu_font.ttf", 96);
+
+	return true;
+}
 Game::States::MainMenuState::MainMenuState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data) : 
 	AppState(_Machine, _IO, _Data),
 	RaceButton(_IO, "Race", 100, 100, 210, 80),
@@ -67,4 +77,90 @@ AppState* Game::States::MainMenuState::Update()
 		Data.Halted = true;
 
 	return this;
+}
+
+
+
+Game::Renderer::MainMenuRenderer::MainMenuRenderer(AppData* _Data, MainMenuRendererData* _RenData, Render::BaseRendererData* _BaseData) : RendererData(_RenData), BaseRenderer(_Data, _BaseData)
+{
+	State = nullptr;
+}
+
+Game::Renderer::MainMenuRenderer::MainMenuRenderer(AppData* _Data, MainMenuState* _State, MainMenuRendererData* _RenData, Render::BaseRendererData* _BaseData) : State(_State), RendererData(_RenData), BaseRenderer(_Data, _BaseData)
+{
+
+}
+
+
+void Game::Renderer::MainMenuRenderer::DrawLeague()
+{
+	SDL_Color White = { 255, 255, 255 };
+	SDL_Rect RenderQuad2 = { 500 , 100 , 378 , 359 };
+	RenderImage(RendererData->Screen.Texture, NULL, &RenderQuad2);
+
+	unsigned int OtherStandings = 4;
+
+	/*
+	auto ranl = Data->League.Standings.Get(Data->League.MainGuy).Rank;
+	int TopEnd = Data->League.Standings.Get(Data->League.MainGuy).Rank - 4;
+	if (TopEnd < 0)
+		TopEnd = 0;
+	int BottomEnd = Data->League.Standings.Get(Data->League.MainGuy).Rank + 4;
+	if (BottomEnd >= Data->League.Standings.Entries.size())
+		BottomEnd = int(Data->League.Standings.Entries.size() - 1);
+
+
+	for (int t = 0; t <= BottomEnd - TopEnd; ++t)
+	{
+		auto Standing = Data->League.Standings.Get(TopEnd + t);
+		if (Standing.IsNull())
+			continue;
+
+		RenderText(BaseData->InfoFont, to_string(Standing.Rank) + "  " + Standing.Racer->Name + ": " + to_string(Standing.Points) + "pts ", 600, (t * 32) + 133, White);
+
+	}
+	*/
+}
+
+unsigned int Game::Renderer::MainMenuRenderer::Render()
+{
+	//start timer
+	auto StartTime = SDL_GetTicks();
+
+	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
+	SDL_RenderClear(Data->RenderData.MainRenderer);
+
+	//draw de buttons
+
+	//race button
+	SDL_FillRect(Data->RenderData.MainSurface, &State->RaceButton.Rect, SDL_MapRGB(Data->RenderData.MainSurface->format, 255, 0, 0));
+	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
+	SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->RaceButton.Rect);
+	RenderText(RendererData->MainFont, State->RaceButton.Text.c_str(), State->RaceButton.x + 5, State->RaceButton.y + 5, State->RaceButton.Color);
+
+	//career button
+	SDL_FillRect(Data->RenderData.MainSurface, &State->CareerButton.Rect, SDL_MapRGB(Data->RenderData.MainSurface->format, 255, 0, 0));
+	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
+	SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->CareerButton.Rect);
+	RenderText(RendererData->MainFont, State->CareerButton.Text.c_str(), State->CareerButton.x + 5, State->CareerButton.y + 5, State->CareerButton.Color);
+
+	//exit button
+	SDL_FillRect(Data->RenderData.MainSurface, &State->ExitButton.Rect, SDL_MapRGB(Data->RenderData.MainSurface->format, 255, 0, 0));
+	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
+	SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->ExitButton.Rect);
+	RenderText(RendererData->MainFont, State->ExitButton.Text.c_str(), State->ExitButton.x + 5, State->ExitButton.y + 5, State->ExitButton.Color);
+
+	//League standings
+	DrawLeague();
+
+	//fps
+	if (Data->ShowFPS)
+		RenderText(BaseData->DebugFont, "FPS: " + to_string(FPS.GetFrameTime()), 975, 5, { 255,255,255 });
+
+	Display();
+
+	auto EndTime = SDL_GetTicks();
+	FPS.AddFrame(EndTime - StartTime);
+
+	return EndTime - StartTime;
 }

@@ -3,6 +3,7 @@
 #include "App.h"
 #include "Renderer.h"
 #include "Race.h"
+#include "RaceState.h"
 
 namespace Game
 {
@@ -38,7 +39,7 @@ namespace Game
 
 			TTF_Font* MainFont, * InfoFont, * DebugFont, * WinningFont;
 
-			Render::Image RacerGraphic, Head, TrackGraphic, StadiumGraphic, StartingBlocksGraphic, CloudsGraphic, MountainsGraphic, FellaRun, FellaWait, Screen;
+			Game::Render::Image RacerGraphic, Head, TrackGraphic, StadiumGraphic, StartingBlocksGraphic, CloudsGraphic, MountainsGraphic, FellaRun, FellaWait, Screen;
 
 			SDL_Texture* MainFontT, * InfoFontT, * DebugFontT, * WinningFontT;
 			SDL_Texture* RacerTexture;

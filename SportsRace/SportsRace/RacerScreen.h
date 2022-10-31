@@ -1,5 +1,6 @@
 #ifndef RACERSCREEN_H
 #define RACERSCREEN_H
+#include "Renderer.h"
 #include "State.h"
 #include "App.h"
 #include "Race.h"
@@ -51,7 +52,7 @@ namespace Game
 		public:
 			States::RacerScreenState* State;
 
-			RacerScreenRenderer(AppData*, RacerScreenRendererData* _Data, Render::BaseRendererData* _BaseData);
+			RacerScreenRenderer(App::AppData*, RacerScreenRendererData* _Data, Render::BaseRendererData* _BaseData);
 
 			unsigned int Render();
 
