@@ -48,8 +48,8 @@ namespace Game
 			Racer* CurrentWinner();
 			unsigned int CurrentWinnerDistance();
 
-			Racer* Get(std::string RacerName);
-			bool Contains(std::string RacerName);
+			Racer* Get(RacerGUID Guid);
+			bool Contains(RacerGUID Guid);
 
 			RaceStatus Tick(unsigned int Ms, RaceStatus Type);
 			RaceResult Sim();

@@ -98,8 +98,10 @@ namespace Game
 		{
 			unsigned int LastFrameEnd;
 		public:
+			Race::RacerGUID PlayerGUID;
 			InRaceState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer);	//InRaceStateInitType::Training
-			InRaceState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun);			//InRaceStateInitType::Race
+			InRaceState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun);			//demo
+			InRaceState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun, Race::RacerGUID);			//InRaceStateInitType::Race
 			~InRaceState();
 
 			void Entry(), Exit();

@@ -14,12 +14,12 @@ using namespace Game::Render;
 using namespace Game::Race;
 
 
-Game::App::Renderer::AppRenderer::AppRenderer(AppData* _Data, States::AppStateMachine* _StateMachine) : 
-	MainMenuRen(_Data, &MainMenuRenData, &BaseRenData), 
+Game::App::Renderer::AppRenderer::AppRenderer(AppData* _Data, States::AppStateMachine* _StateMachine) :
+	MainMenuRen(_Data, &MainMenuRenData, &BaseRenData),
 	InRaceRen(_Data, &InRaceRenData, &BaseRenData),
 	RacerScreenRen(_Data, &RacerScreenRenData, &BaseRenData),
 	CareerHubRen(_Data, &CareerHubRenData, &BaseRenData),
-	
+
 	BaseRenderer(_Data, &BaseRenData)
 {
 	spdlog::debug("Starting AppRenderer");
@@ -186,7 +186,7 @@ unsigned int Game::App::Renderer::MainMenuRenderer::Render()
 	//start timer
 	auto StartTime = SDL_GetTicks();
 
-	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255,255,255,255);
+	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
 	SDL_RenderClear(Data->RenderData.MainRenderer);
 
 	//draw de buttons
@@ -196,7 +196,7 @@ unsigned int Game::App::Renderer::MainMenuRenderer::Render()
 	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
 	SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->RaceButton.Rect);
 	RenderText(RendererData->MainFont, State->RaceButton.Text.c_str(), State->RaceButton.x + 5, State->RaceButton.y + 5, State->RaceButton.Color);
-	
+
 	//career button
 	SDL_FillRect(Data->RenderData.MainSurface, &State->CareerButton.Rect, SDL_MapRGB(Data->RenderData.MainSurface->format, 255, 0, 0));
 	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
@@ -250,7 +250,7 @@ void Game::App::Renderer::InRaceRenderer::RenderDebugText()
 
 }
 
-Game::App::Renderer::InRaceRenderer::InRaceRenderer(AppData* _Data, InRaceRendererData* _RendererData, BaseRendererData* _BaseData) : 
+Game::App::Renderer::InRaceRenderer::InRaceRenderer(AppData* _Data, InRaceRendererData* _RendererData, BaseRendererData* _BaseData) :
 	State(nullptr), RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
 {
 	Camera.X = 0;
@@ -258,7 +258,7 @@ Game::App::Renderer::InRaceRenderer::InRaceRenderer(AppData* _Data, InRaceRender
 	Camera.H = Data->ScreenHeight;
 }
 
-Game::App::Renderer::InRaceRenderer::InRaceRenderer(AppData* _Data, States::InRaceState* _State, InRaceRendererData* _RendererData, BaseRendererData* _BaseData) : 
+Game::App::Renderer::InRaceRenderer::InRaceRenderer(AppData* _Data, States::InRaceState* _State, InRaceRendererData* _RendererData, BaseRendererData* _BaseData) :
 	State(_State), RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
 {
 	Camera.X = 0;
@@ -296,9 +296,11 @@ void Game::App::Renderer::InRaceRenderer::DrawRacer(Race::Racer Racer, unsigned 
 	else
 		RenderImage(RendererData->FellaRun.Texture, &SourceQuad, &RenderQuad);	//running
 
-	//RenderText(RendererData->DebugFont, "x: " + to_string(Racer.Pos.X) + "\n" +
-	//	"v: " + to_string(Racer.Pos.Velocity) + "\n" +
-	//	Racer.Name, XDraw, yOffset, { 255,255,255 });
+	RenderText(BaseData->DebugFont, "x: " + to_string(Racer.Pos.X) + "\n" +
+		"v: " + to_string(Racer.Pos.Velocity) + "\n" +
+		Racer.Name, XDraw, yOffset, { 255,255,255 });
+
+
 }
 
 void Game::App::Renderer::InRaceRenderer::DrawWinners()
@@ -367,8 +369,8 @@ unsigned int Game::App::Renderer::InRaceRenderer::Render()
 
 	Camera.TrackLength = State->RaceSM.Data.ThisRace.ThisTrack->Length;
 
-	if (State->RaceSM.Data.ThisRace.Contains("1"))
-		Camera.PointAt(State->RaceSM.Data.ThisRace.Get("1")->Pos.X + 75);
+	if (this->State->RaceSM.Data.ThisRace.Contains(State->PlayerGUID))
+		Camera.PointAt(State->RaceSM.Data.ThisRace.Get(State->PlayerGUID)->Pos.X + 75);
 	else
 		Camera.PointAt(State->RaceSM.Data.ThisRace.CurrentWinnerDistance() + 75);
 
@@ -454,7 +456,7 @@ unsigned int Game::App::Renderer::CareerHubRenderer::Render()
 	//start timerv=
 	auto StartTime = SDL_GetTicks();
 
-	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer,255, 255, 255, 255);
+	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
 	SDL_RenderClear(Data->RenderData.MainRenderer);
 
 	if (State->RacerIcon.IsMouseOver())
@@ -495,14 +497,14 @@ unsigned int Game::App::Renderer::CareerHubRenderer::Render()
 }
 
 
-Game::App::Renderer::RacerScreenRenderer::RacerScreenRenderer(AppData* _Data, RacerScreenRendererData* _RendererData, Render::BaseRendererData* _BaseData) : 
-	 RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
+Game::App::Renderer::RacerScreenRenderer::RacerScreenRenderer(AppData* _Data, RacerScreenRendererData* _RendererData, Render::BaseRendererData* _BaseData) :
+	RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
 {
 
 }
 
 
-Game::App::Renderer::CareerHubRenderer::CareerHubRenderer(AppData* _Data,  CareerHubState* _State, CareerHubRendererData* _RendererData,  Render::BaseRendererData* _BaseData) :
+Game::App::Renderer::CareerHubRenderer::CareerHubRenderer(AppData* _Data, CareerHubState* _State, CareerHubRendererData* _RendererData, Render::BaseRendererData* _BaseData) :
 	State(_State), RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
 {
 }
@@ -525,23 +527,41 @@ unsigned int Game::App::Renderer::RacerScreenRenderer::Render()
 
 	SDL_Rect RenderQuad2 = { 500 , 100 , 378 , 359 };
 	RenderImage(RendererData->Screen.Texture, NULL, &RenderQuad2);
-	
 
-	std::string SecondScreen = "Name: " + Data->Profile->MainFella.Name + "\n";
+
+	std::string SecondScreen = "Name: " + Data->Profile->MainFella.Name + "\n" + "\n" +
+		"Base Speed: " + to_string(Data->Profile->MainFella.Skills.BaseSpeed) + "\n" + "\n" +
+		"Standard Velovity: " + to_string(Data->Profile->MainFella.Skills.StandardVelocity) + "\n" + "\n" +
+		"Sprint Boost: " + to_string(Data->Profile->MainFella.Skills.Sprint) + "\n" + "\n" +
+		"Luck: " + to_string(Data->Profile->MainFella.Skills.Luck) + "% \n";
 	SDL_Color White = { 255,255,255 };
 	RenderText(BaseData->MainFont, SecondScreen, 550, 150, { 255,255,255 });
 
+	if (State->InitType == RacerScreenStateInitType::RacerCreation)
+	{
+		//regen
+		SDL_FillRect(Data->RenderData.MainSurface, &State->RegenButton.Rect, SDL_MapRGB(Data->RenderData.MainSurface->format, 255, 0, 0));
+		SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
+		SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->RegenButton.Rect);
+		RenderText(BaseData->BigFont, State->RegenButton.Text.c_str(), State->RegenButton.x + 5, State->RegenButton.y + 5, State->RegenButton.Color);
 
-	SDL_FillRect(Data->RenderData.MainSurface, &State->RegenButton.Rect, SDL_MapRGB(Data->RenderData.MainSurface->format, 255, 0, 0));
-	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
-	SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->RegenButton.Rect);
-	RenderText(BaseData->BigFont, State->RegenButton.Text.c_str(), State->RegenButton.x + 5, State->RegenButton.y + 5, State->RegenButton.Color);
+		//apply
+		SDL_FillRect(Data->RenderData.MainSurface, &State->ApplyButton.Rect, SDL_MapRGB(Data->RenderData.MainSurface->format, 255, 0, 0));
+		SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
+		SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->ApplyButton.Rect);
+		SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->ApplyButton.Rect);
+		RenderText(BaseData->BigFont, State->ApplyButton.Text.c_str(), State->ApplyButton.x + 5, State->ApplyButton.y + 5, State->ApplyButton.Color);
+	}
 
-	SDL_FillRect(Data->RenderData.MainSurface, &State->ExitButton.Rect, SDL_MapRGB(Data->RenderData.MainSurface->format, 255, 0, 0));
-	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
-	SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->ExitButton.Rect);
-	SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->ExitButton.Rect);
-	RenderText(BaseData->BigFont, State->ExitButton.Text.c_str(), State->ExitButton.x + 5, State->ExitButton.y + 5, State->ExitButton.Color);
+	if (State->InitType == RacerScreenStateInitType::ViewOnly)
+	{
+		//exit
+		SDL_FillRect(Data->RenderData.MainSurface, &State->ExitButton.Rect, SDL_MapRGB(Data->RenderData.MainSurface->format, 255, 0, 0));
+		SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
+		SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->ExitButton.Rect);
+		RenderText(BaseData->BigFont, State->ExitButton.Text.c_str(), State->ExitButton.x + 5, State->ExitButton.y + 5, State->ExitButton.Color);
+	}
+
 
 	Display();
 	auto EndTime = SDL_GetTicks();
@@ -551,7 +571,7 @@ unsigned int Game::App::Renderer::RacerScreenRenderer::Render()
 
 bool Game::Render::BaseRendererData::Load(BaseRenderer& Renderer)
 {
-	Renderer.BaseData->BigFont =  TTF_OpenFont("menu_font.ttf", 96);
+	Renderer.BaseData->BigFont = TTF_OpenFont("menu_font.ttf", 96);
 	Renderer.BaseData->MainFont = TTF_OpenFont("PIXELLARI.ttf", 16);
 	Renderer.BaseData->InfoFont = TTF_OpenFont("OpenSans.ttf", 14);
 	Renderer.BaseData->DebugFont = TTF_OpenFont("OpenSans.ttf", 12);
@@ -572,7 +592,7 @@ bool Game::App::Renderer::InRaceRendererData::Load(Render::BaseRenderer& Rendere
 	Renderer.LoadFontFile("menu_font.ttf", 16, WinningFont);
 
 	RacerGraphic.Surface = IMG_Load("fella.png");
-	
+
 	Renderer.LoadImageFile("reido.png", Head);
 	Renderer.LoadImageFile("track.png", TrackGraphic);
 	Renderer.LoadImageFile("stadium.png", StadiumGraphic);

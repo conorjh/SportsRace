@@ -43,13 +43,13 @@ AppState* Game::States::CareerHubState::Update()
 	RaceIcon.Update();
 	if (RaceIcon.HasMouseClicked())
 	{
-		RacerDB* DB = new RacerDB();
 		Race::Race* RaceBuffer = new Race::Race();
-		for (int t = 0; t < 6; ++t)
-			RaceBuffer->Racers.push_back(DB->Make(RacerNameMaker().Make()));
+		RaceBuffer->Racers.push_back(&Orchestrator.Profile->MainFella);
+		for (int t = 0; t < 5; ++t)
+			RaceBuffer->Racers.push_back(Orchestrator.Data->Racers.Make(RacerNameMaker().Make()));
 		
 		//actually run our race
-		Machine.Push(new InRaceState(Machine, IO, Data, *RaceBuffer));
+		Machine.Push(new InRaceState(Machine, IO, Data, *RaceBuffer, Orchestrator.Profile->MainFella.GUID));
 		return Machine.Top();
 	}
 

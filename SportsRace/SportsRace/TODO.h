@@ -4,9 +4,10 @@ Demo 2 Todo
 + RacerDB
 - Better animation for runners
 + Race sounds
-- better league table, scrollable
 - varying speeds
-- racer view screen
++ racer view screen
+	+ creation 
+	+ view
 - basic career mode screen
 	- training
 	- race for cash

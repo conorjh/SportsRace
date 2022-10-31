@@ -27,6 +27,13 @@ Game::States::InRaceState::InRaceState(AppStateMachine& _Machine, AppIO& _IO, Ap
     LastFrameEnd = SDL_GetTicks();
 }
 
+Game::States::InRaceState::InRaceState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun, RacerGUID PlayerRacer) : AppState(_Machine, _IO, _Data), RaceSM(RaceToRun)
+{
+    Type = AppStateType::InRace;
+    LastFrameEnd = SDL_GetTicks();
+    PlayerGUID = PlayerRacer;
+}
+
 Game::States::InRaceState::~InRaceState()
 {
 
@@ -56,8 +63,6 @@ AppState* Game::States::InRaceState::Update()
             IO.Player.Play(Soundtrack::Race);
         }
 
-        //if (NewType != OldType && NewType == RaceStateType::Finished)
-        //    IO.Player.StopMusic();
     }
 
     if (IO.Esc)
@@ -144,7 +149,6 @@ Game::Race::RaceState_PreRace::RaceState_PreRace(RaceStateData& _Data) : RaceSta
 
 RaceState* Game::Race::RaceState_PreRace::Tick(unsigned int TimeTakenMs)
 {
-    Data.CurrentTick += TimeTakenMs;
     TickAccumulator += TimeTakenMs;
 
     if (TickAccumulator > 1000)
@@ -161,7 +165,6 @@ Game::Race::RaceState_StartersOrders::RaceState_StartersOrders(RaceStateData& _D
 
 RaceState* Game::Race::RaceState_StartersOrders::Tick(unsigned int TimeTakenMs)
 {
-    Data.CurrentTick += TimeTakenMs;
     TickAccumulator += TimeTakenMs;
 
     if (TickAccumulator > 1000)
@@ -196,7 +199,6 @@ Game::Race::RaceState_Finishing::RaceState_Finishing(RaceStateData& _Data) : Rac
 
 RaceState* Game::Race::RaceState_Finishing::Tick(unsigned int TimeTakenMs)
 {
-    Data.CurrentTick += TimeTakenMs;
     auto ReturnType = Data.ThisRace.Tick(TimeTakenMs, RaceStatus::Finishing);
 
     if (ReturnType == RaceStatus::Finished)
@@ -211,7 +213,6 @@ Game::Race::RaceState_Finished::RaceState_Finished(RaceStateData& _Data) : RaceS
 
 RaceState* Game::Race::RaceState_Finished::Tick(unsigned int TimeTakenMs)
 {
-    Data.CurrentTick += TimeTakenMs;
     return this;
 }
 

@@ -37,6 +37,7 @@ void Game::Race::Racer::Tick(unsigned int Ms)
             Pos.Velocity = 20 + (rand() % 10);   //1/3 chance of a change
     }
 
+    //animation
     auto FrameTime = (350 - (Pos.Velocity * 10)) * 0.9;
     if (CurrentTick > LastRunFrameEnd + FrameTime)
     {
@@ -124,4 +125,14 @@ RacerGUID& Game::Race::RacerGUID::operator=(const int& Other)
 {
     GUID = Other;
     return *this;
+}
+
+Game::Race::RacerSkills::RacerSkills()
+{
+    Xp = 0;
+
+    BaseSpeed = 1 + rand() % 15;
+    StandardVelocity = 1 + rand() % 9;
+    Sprint = rand() % 5;
+    Luck = rand() % 1;
 }

@@ -35,14 +35,16 @@ bool Game::Race::Race::HasFinished()
 
 Racer* Game::Race::Race::CurrentWinner()
 {
-    unsigned int Max = 0, RacerNum = 0, t = 0;
+    unsigned int Max = 0, RacerNum = 0, t = -1;
     for (vector<Racer*>::iterator it = Racers.begin(); it != Racers.end(); ++it)
+    {
+        t++;
         if ((*it)->Pos.X > Max)
         {
-            t++;
             RacerNum = t;
             Max = (*it)->Pos.X;
         }
+    }
     return Racers[RacerNum];
 }
 
@@ -55,17 +57,17 @@ unsigned int Game::Race::Race::CurrentWinnerDistance()
     return Max;
 }
 
-Racer* Game::Race::Race::Get(std::string RacerName)
+Racer* Game::Race::Race::Get(RacerGUID Guid)
 {
     for (vector<Racer*>::iterator it = Racers.begin(); it != Racers.end(); ++it)
-        if ((*it)->Name == RacerName)
+        if ((*it)->GUID == Guid)
             return (*it);
     return nullptr;
 }
 
-bool Game::Race::Race::Contains(std::string RacerName)
+bool Game::Race::Race::Contains(RacerGUID Guid)
 {
-    return Get(RacerName) != nullptr;
+    return Get(Guid) != nullptr;
 }
 
 Game::Race::Race::Race()

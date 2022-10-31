@@ -17,10 +17,11 @@ namespace Game
 		{
 		protected:
 			Race::Racer* RacerToDisplay;
-			RacerScreenStateInitType InitType;
 
 		public:
-			GUI::Button RegenButton, ExitButton;
+			RacerScreenStateInitType InitType;
+
+			GUI::Button RegenButton, ApplyButton, ExitButton;
 			RacerScreenState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay, RacerScreenStateInitType _Type);
 
 			~RacerScreenState();

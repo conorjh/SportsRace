@@ -33,6 +33,15 @@ namespace Game
 			unsigned int GUID;
 		};
 
+		struct RacerSkills
+		{
+			RacerSkills();
+
+			unsigned int Xp;
+
+			unsigned int BaseSpeed, Sprint, StandardVelocity, Luck;
+		};
+
 		class Racer
 		{
 		public:
@@ -46,6 +55,7 @@ namespace Game
 			unsigned int CurrentTick;
 			std::string Name;
 			unsigned int RunFrame, LastRunFrameEnd;
+			RacerSkills Skills;
 			Position Pos;
 		};
 

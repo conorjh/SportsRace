@@ -52,6 +52,7 @@ AppState* Game::States::MainMenuState::Update()
 			Data.Career = new CareerData();
 
 			//call character creation screen
+			Machine.Push(new CareerHubState(Machine, IO, Data));
 			Machine.Push(new RacerScreenState(Machine, IO, Data, &Data.Profile->MainFella, RacerScreenStateInitType::RacerCreation));
 			return Machine.Top();
 		}
