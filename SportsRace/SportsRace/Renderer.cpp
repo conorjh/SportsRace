@@ -305,7 +305,7 @@ void Game::App::Renderer::InRaceRenderer::DrawRacer(Race::Racer Racer, unsigned 
 
 void Game::App::Renderer::InRaceRenderer::DrawWinners()
 {
-	double ScaleFactor = double(this->Data->ScreenWidth) / double(State->RaceSM.Data.ThisRace.ThisTrack->Length + 200);
+	double ScaleFactor = double(this->Data->ScreenWidth) / double(unsigned int(State->RaceSM.Data.ThisRace.ThisTrack->Length) + 200);
 	unsigned int yOffset = 50;
 	if (State->RaceSM.Data.ThisRace.Result.RacerResults.size() > 0)
 	{
@@ -367,7 +367,7 @@ unsigned int Game::App::Renderer::InRaceRenderer::Render()
 	//start timer
 	auto StartTime = SDL_GetTicks();
 
-	Camera.TrackLength = State->RaceSM.Data.ThisRace.ThisTrack->Length;
+	Camera.TrackLength = unsigned int(State->RaceSM.Data.ThisRace.ThisTrack->Length);
 
 	if (this->State->RaceSM.Data.ThisRace.Contains(State->PlayerGUID))
 		Camera.PointAt(State->RaceSM.Data.ThisRace.Get(State->PlayerGUID)->Pos.X + 75);

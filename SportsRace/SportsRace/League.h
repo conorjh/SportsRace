@@ -27,7 +27,7 @@ namespace Game
 
 		struct RoundResults
 		{
-			std::vector<Race::RacerRaceResult> Results;
+			std::vector<Race::RaceResult> Results;
 		};
 
 		struct SeasonFixtures
@@ -45,53 +45,18 @@ namespace Game
 			SeasonFixtures Make(std::vector<Race::Racer*> Racers);
 		};
 
-		struct LeagueStandingEntry
+		struct Ranking
 		{
-			LeagueStandingEntry();
-			LeagueStandingEntry(Race::Racer* _Racer);
-
-			bool IsNull() { return ((Racer != nullptr && Racer->Name == ""    ) && Rank == Races == First == Second == Third == DNF == Points == 0); }
-			
-			void Update(Race::RacerRaceResult);
-
 			Race::Racer* Racer;
-			unsigned int Rank, Races, First, Second, Third, DNF, Points;
-			double AvgTime;
+			int Ranking;
+
+			unsigned int Races;
 		};
 
-		struct LeagueStandings
+		struct Rankings
 		{
-			LeagueStandings();
 
-			void AddEntry(LeagueStandingEntry Entry);
 
-			void AddResults(std::vector<Race::RaceResult> Results);
-			void AddResult(Race::RacerRaceResult Result), AddResult(Race::RaceResult Results);
-
-			LeagueStandingEntry Get(int Rank);
-			LeagueStandingEntry Get(Race::Racer*);
-
-			void Update(Race::RacerRaceResult Result);
-			void Sort();
-
-			std::vector<LeagueStandingEntry> Entries;
-		};
-
-		class League
-		{
-			unsigned int CurrentRound = 0;
-
-		public:
-			Race::Racer* MainGuy;
-
-			std::vector<Race::Racer*> Racers;
-			LeagueStandings Standings;
-
-			League();
-
-			void NextRound() { CurrentRound++; SeasonFixtures.NextRound(); }
-
-			SeasonFixtures SeasonFixtures;
 		};
 	}
 }
