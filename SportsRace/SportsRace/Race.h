@@ -30,8 +30,9 @@ namespace Game
 
 		struct RacerRaceResult
 		{
-			RacerRaceResult(Racer* _Racer, unsigned int _Position, unsigned int _Ms)
+			RacerRaceResult(Racer* _Racer, unsigned int _Position, unsigned int _Ms, RaceGUID _GUID)
 			{
+				GUID = _GUID;
 				Racer = _Racer;
 				Position = _Position;
 				Ms = _Ms;
@@ -44,6 +45,7 @@ namespace Game
 
 		struct RaceResult
 		{
+
 			RaceGUID GUID;
 			std::vector<RacerRaceResult> RacerResults;
 		};
@@ -51,6 +53,14 @@ namespace Game
 		enum class RaceStatus
 		{
 			Racing, Finishing, Finished
+		};
+
+		struct RaceFinancials
+		{
+			RaceFinancials();
+			RaceFinancials(unsigned int irstPlacePrize, unsigned int EntranceFee);
+			unsigned int FirstPlacePrize, SecondPlacePrize, ThirdPlacePrize;
+			unsigned int EntranceFee;
 		};
 
 		class Race
@@ -77,6 +87,7 @@ namespace Game
 			Track* ThisTrack;
 			std::vector<Racer*> Racers;
 			RaceResult Result;
+			RaceFinancials Financials;
 			RaceGUID GUID;
 		};
 	}

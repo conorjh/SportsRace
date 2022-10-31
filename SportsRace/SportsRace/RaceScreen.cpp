@@ -60,6 +60,7 @@ void Game::States::RaceScreenState::Entry()
 void Game::States::RaceScreenState::Exit()
 {
 	IO.Player.StopMusic();
+
 }
 
 AppState* Game::States::RaceScreenState::Update()
@@ -84,7 +85,18 @@ AppState* Game::States::RaceScreenState::Update()
 
 		//save this races result to the AppData buffer
 		if (RaceSM.Data.ThisRace.HasFinished())
+		{
+			this->Data.Profile->Financials.Cash -= RaceSM.Data.ThisRace.Financials.EntranceFee;
+
+			if (RaceSM.Data.ThisRace.Result.RacerResults[0].Racer->GUID.GUID == PlayerGUID.GUID)
+				this->Data.Profile->Financials.Cash += RaceSM.Data.ThisRace.Financials.FirstPlacePrize;
+			if (RaceSM.Data.ThisRace.Result.RacerResults[1].Racer->GUID.GUID == PlayerGUID.GUID)
+				this->Data.Profile->Financials.Cash += RaceSM.Data.ThisRace.Financials.SecondPlacePrize;
+			if (RaceSM.Data.ThisRace.Result.RacerResults[2].Racer->GUID.GUID == PlayerGUID.GUID)
+				this->Data.Profile->Financials.Cash += RaceSM.Data.ThisRace.Financials.ThirdPlacePrize;
+			
 			Data.RaceStateOutput = RaceSM.Data.ThisRace.Result;
+		}
 
 		//go back to main menu
 		Machine.Pop();
@@ -92,6 +104,40 @@ AppState* Game::States::RaceScreenState::Update()
 	}
 
 	return this;
+}
+
+
+Game::Renderer::RaceScreenRenderer::RaceScreenRenderer(AppData* _Data, RaceScreenRendererData* _RendererData, BaseRendererData* _BaseData) :
+	State(nullptr), RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
+{
+	Camera.X = 0;
+	Camera.W = Data->ScreenWidth;
+	Camera.H = Data->ScreenHeight;
+}
+
+Game::Renderer::RaceScreenRenderer::RaceScreenRenderer(AppData* _Data, States::RaceScreenState* _State, RaceScreenRendererData* _RendererData, BaseRendererData* _BaseData) :
+	State(_State), RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
+{
+	Camera.X = 0;
+	Camera.W = Data->ScreenWidth;
+	Camera.H = Data->ScreenHeight;
+}
+
+void Game::Renderer::RaceScreenRendererCamera::PointAt(unsigned int X)
+{
+	CameraX = X - (W / 2);
+	CameraX2 = X + (W / 2);
+
+	if (CameraX2 > TrackLength)
+	{
+		CameraX = TrackLength - W;
+		CameraX2 = TrackLength;
+	}
+	if (CameraX < 0)
+	{
+		CameraX = 0;
+		CameraX2 = CameraX + W;
+	}
 }
 
 
@@ -139,6 +185,10 @@ void Game::Renderer::RaceScreenRenderer::DrawWinners()
 			auto& Result = State->RaceSM.Data.ThisRace.Result.RacerResults[t];
 			auto& Racer = State->RaceSM.Data.ThisRace.Result.RacerResults[t].Racer;
 
+			auto WinAmount = t == 0 ? State->RaceSM.Data.ThisRace.Financials.FirstPlacePrize :
+				t == 1 ? State->RaceSM.Data.ThisRace.Financials.SecondPlacePrize : State->RaceSM.Data.ThisRace.Financials.ThirdPlacePrize;
+
+			RenderText(BaseData->MainFont, "Wins " + to_string(WinAmount), 290, 290 + (t * 60) + 20, { 255,255,255 });
 			RenderText(BaseData->MainFont, "#: " + Racer->Name, 470, 290 + (t * 60) + 20, { 255,255,255 });
 			RenderText(BaseData->MainFont, to_string(double(double(Result.Ms) / double(1000))) + "sec", 470, 300 + (t * 60) + 32, { 255,255,255 });
 
@@ -224,6 +274,8 @@ void Game::Renderer::RaceScreenRenderer::RenderDebugText()
 		"RaceState: " + RaceStateTypeToString(State->RaceSM.State->Type) + "\n" +
 		"Finished: " + to_string(State->RaceSM.Data.ThisRace.FinishedCount()) + "\n" +
 		"Leader: " + State->RaceSM.Data.ThisRace.CurrentWinner()->Name + "\n" +
+		"Entrance Fee: " + to_string(State->RaceSM.Data.ThisRace.Financials.EntranceFee) + "\n" +
+		"1st Prize: " + to_string(State->RaceSM.Data.ThisRace.Financials.FirstPlacePrize) + "\n" +
 		"Camera.CameraX: " + to_string(Camera.CameraX) + "\n" +
 		"Camera.CameraX2: " + to_string(Camera.CameraX2) + "\n";
 	RenderText(BaseData->DebugFont, Body, 850, 10, { 255,0,0 });
@@ -242,37 +294,3 @@ void Game::Renderer::RaceScreenRenderer::RenderDebugText()
 
 
 }
-
-Game::Renderer::RaceScreenRenderer::RaceScreenRenderer(AppData* _Data, RaceScreenRendererData* _RendererData, BaseRendererData* _BaseData) :
-	State(nullptr), RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
-{
-	Camera.X = 0;
-	Camera.W = Data->ScreenWidth;
-	Camera.H = Data->ScreenHeight;
-}
-
-Game::Renderer::RaceScreenRenderer::RaceScreenRenderer(AppData* _Data, States::RaceScreenState* _State, RaceScreenRendererData* _RendererData, BaseRendererData* _BaseData) :
-	State(_State), RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
-{
-	Camera.X = 0;
-	Camera.W = Data->ScreenWidth;
-	Camera.H = Data->ScreenHeight;
-}
-
-void Game::Renderer::RaceScreenRendererCamera::PointAt(unsigned int X)
-{
-	CameraX = X - (W / 2);
-	CameraX2 = X + (W / 2);
-
-	if (CameraX2 > TrackLength)
-	{
-		CameraX = TrackLength - W;
-		CameraX2 = TrackLength;
-	}
-	if (CameraX < 0)
-	{
-		CameraX = 0;
-		CameraX2 = CameraX + W;
-	}
-}
-

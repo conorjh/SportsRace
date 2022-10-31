@@ -8,7 +8,7 @@ namespace Game
 	{
 		struct CareerProfileFinancial
 		{
-			int Cash;
+			int Cash = 5000;
 		};
 
 		struct CareerProfile

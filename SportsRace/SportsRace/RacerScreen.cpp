@@ -85,7 +85,8 @@ unsigned int Game::Renderer::RacerScreenRenderer::Render()
 		"Base Speed: " + to_string(Data->Profile->MainFella.Skills.BaseSpeed) + "\n" + "\n" +
 		"Standard Velovity: " + to_string(Data->Profile->MainFella.Skills.StandardVelocity) + "\n" + "\n" +
 		"Sprint Boost: " + to_string(Data->Profile->MainFella.Skills.Sprint) + "\n" + "\n" +
-		"Luck: " + to_string(Data->Profile->MainFella.Skills.Luck) + "% \n";
+		"Luck: " + to_string(Data->Profile->MainFella.Skills.Luck) + "% \n" + "\n" + "\n" + "\n" + "\n" + "\n" +
+		"Cash: $" + to_string(Data->Profile->Financials.Cash) + "\n" + "\n" ;
 	SDL_Color White = { 255,255,255 };
 	RenderText(BaseData->MainFont, SecondScreen, 550, 150, { 255,255,255 });
 

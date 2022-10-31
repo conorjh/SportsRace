@@ -17,123 +17,141 @@ using namespace std;
 
 void Game::Race::Race::Finished(Racer* R)
 {
-    Result.RacerResults.push_back(RacerRaceResult(R, Result.RacerResults.size() + 1, CurrentTick));
+	Result.RacerResults.push_back(RacerRaceResult(R, Result.RacerResults.size() + 1, CurrentTick, GUID));
 }
 
 bool Game::Race::Race::HasFinished(Racer* R)
 {
-    for (auto it = Result.RacerResults.begin(); it != Result.RacerResults.end(); ++it)
-        if (R->GUID == it->Racer->GUID)
-            return true;
-    return false;
+	for (auto it = Result.RacerResults.begin(); it != Result.RacerResults.end(); ++it)
+		if (R->GUID == it->Racer->GUID)
+			return true;
+	return false;
 }
 
 bool Game::Race::Race::HasFinished()
 {
-    return (FinishedCount() >= Racers.size());
+	return (FinishedCount() >= Racers.size());
 }
 
 Racer* Game::Race::Race::CurrentWinner()
 {
-    unsigned int Max = 0, RacerNum = 0, t = -1;
-    for (vector<Racer*>::iterator it = Racers.begin(); it != Racers.end(); ++it)
-    {
-        t++;
-        if ((*it)->Pos.X > Max)
-        {
-            RacerNum = t;
-            Max = (*it)->Pos.X;
-        }
-    }
-    return Racers[RacerNum];
+	unsigned int Max = 0, RacerNum = 0, t = -1;
+	for (vector<Racer*>::iterator it = Racers.begin(); it != Racers.end(); ++it)
+	{
+		t++;
+		if ((*it)->Pos.X > Max)
+		{
+			RacerNum = t;
+			Max = (*it)->Pos.X;
+		}
+	}
+	return Racers[RacerNum];
 }
 
 unsigned int Game::Race::Race::CurrentWinnerDistance()
 {
-    unsigned int Max = 0;
-    for (vector<Racer*>::iterator it = Racers.begin(); it != Racers.end(); ++it)
-        if ( (*it)->Pos.X > Max)
-            Max = (*it)->Pos.X;
-    return Max;
+	unsigned int Max = 0;
+	for (vector<Racer*>::iterator it = Racers.begin(); it != Racers.end(); ++it)
+		if ((*it)->Pos.X > Max)
+			Max = (*it)->Pos.X;
+	return Max;
 }
 
 Racer* Game::Race::Race::Get(RacerGUID Guid)
 {
-    for (vector<Racer*>::iterator it = Racers.begin(); it != Racers.end(); ++it)
-        if ((*it)->GUID == Guid)
-            return (*it);
-    return nullptr;
+	for (vector<Racer*>::iterator it = Racers.begin(); it != Racers.end(); ++it)
+		if ((*it)->GUID == Guid)
+			return (*it);
+	return nullptr;
 }
 
 bool Game::Race::Race::Contains(RacerGUID Guid)
 {
-    return Get(Guid) != nullptr;
+	return Get(Guid) != nullptr;
 }
 
 Game::Race::Race::Race()
 {
-    ThisTrack = new Track();
+	ThisTrack = new Track();
 }
 
 RaceStatus Game::Race::Race::Tick(unsigned int Ms, RaceStatus Type)
 {
-    CurrentTick += Ms;
+	CurrentTick += Ms;
 
-    unsigned int Transition = 0;
-    switch (Type)
-    {
-    case RaceStatus::Racing:
-        for (int t = 0; t < Racers.size(); ++t)
-        {
-            Racers[t]->Tick(Ms);
+	unsigned int Transition = 0;
+	switch (Type)
+	{
+	case RaceStatus::Racing:
+		for (int t = 0; t < Racers.size(); ++t)
+		{
+			Racers[t]->Tick(Ms);
 
-            if (Racers[t]->Pos.X > unsigned int(ThisTrack->Length))
-            {
-                if (!HasFinished(Racers[t]))
-                    Finished(Racers[t]);
-                Transition++;
-            }
-        }
+			if (Racers[t]->Pos.X > unsigned int(ThisTrack->Length))
+			{
+				if (!HasFinished(Racers[t]))
+					Finished(Racers[t]);
+				Transition++;
+			}
+		}
 
-        if (Transition >= 1)
-            return RaceStatus::Finishing;
-        break;
+		if (Transition >= 1)
+			return RaceStatus::Finishing;
+		break;
 
-    case RaceStatus::Finishing:
-        for (int t = 0; t < Racers.size(); ++t)
-        {
-            Racers[t]->Tick(Ms);
+	case RaceStatus::Finishing:
+		for (int t = 0; t < Racers.size(); ++t)
+		{
+			Racers[t]->Tick(Ms);
 
-            if (Racers[t]->Pos.X > unsigned int(ThisTrack->Length) && !HasFinished(Racers[t]))
-                Finished(Racers[t]);
-        }
+			if (Racers[t]->Pos.X > unsigned int(ThisTrack->Length) && !HasFinished(Racers[t]))
+				Finished(Racers[t]);
+		}
 
-        if (Result.RacerResults.size() >= Racers.size())
-            return RaceStatus::Finished;
-        break;
+		if (Result.RacerResults.size() >= Racers.size())
+			return RaceStatus::Finished;
+		break;
 
-        default:
-            return Type;
-    }
+	default:
+		return Type;
+	}
 
-    return Type;
+	return Type;
 }
 
 RaceResult Game::Race::Race::Sim()
 {
-    Result.GUID = GUID;
-    RaceStatus CurrentState = RaceStatus::Racing;
+	Result.GUID = GUID;
+	RaceStatus CurrentState = RaceStatus::Racing;
 
-    while ((CurrentState = Tick(33, CurrentState)) != RaceStatus::Finished) { }
+	while ((CurrentState = Tick(33, CurrentState)) != RaceStatus::Finished) {}
 
-    return Result;
+	return Result;
 }
 
 void Game::Race::Race::Reset()
 {
-    this->Result.RacerResults.clear();
-    this->CurrentTick = 0;
-    
-    for (int t = 0; t < Racers.size(); ++t)
-        Racers[t]->Reset();
+	this->Result.RacerResults.clear();
+	this->CurrentTick = 0;
+
+	for (int t = 0; t < Racers.size(); ++t)
+		Racers[t]->Reset();
+}
+
+Game::Race::RaceFinancials::RaceFinancials()
+{
+
+	FirstPlacePrize = 
+	SecondPlacePrize = 
+	ThirdPlacePrize = 
+	EntranceFee = 0;
+}
+
+Game::Race::RaceFinancials::RaceFinancials(unsigned int _FirstPlacePrize, unsigned int _EntranceFee)
+{
+	FirstPlacePrize = _FirstPlacePrize;
+	SecondPlacePrize = FirstPlacePrize / 2;
+	ThirdPlacePrize = FirstPlacePrize / 4;
+	EntranceFee = _EntranceFee;
+
 }

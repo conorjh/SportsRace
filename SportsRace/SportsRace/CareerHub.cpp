@@ -59,6 +59,7 @@ AppState* Game::States::CareerHubState::Update()
 		RaceBuffer->Racers.push_back(&Orchestrator.Profile->MainFella);
 		for (int t = 0; t < 5; ++t)
 			RaceBuffer->Racers.push_back(Orchestrator.Data->Racers.Make(RacerNameMaker().Make()));
+		RaceBuffer->Financials = RaceFinancials(unsigned int(500 * (rand() % 10)), 50 * (rand() % 4));
 		
 		//actually run our race
 		Machine.Push(new RaceScreenState(Machine, IO, Data, *RaceBuffer, Orchestrator.Profile->MainFella.GUID));
