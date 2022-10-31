@@ -87,7 +87,7 @@ RaceStatus Game::Race::Race::Tick(unsigned int Ms, RaceStatus Type)
         {
             Racers[t]->Tick(Ms);
 
-            if (Racers[t]->Pos.X > ThisTrack->Length)
+            if (Racers[t]->Pos.X > unsigned int(ThisTrack->Length))
             {
                 if (!HasFinished(Racers[t]))
                     Finished(Racers[t]);
@@ -104,7 +104,7 @@ RaceStatus Game::Race::Race::Tick(unsigned int Ms, RaceStatus Type)
         {
             Racers[t]->Tick(Ms);
 
-            if (Racers[t]->Pos.X > ThisTrack->Length && !HasFinished(Racers[t]))
+            if (Racers[t]->Pos.X > unsigned int(ThisTrack->Length) && !HasFinished(Racers[t]))
                 Finished(Racers[t]);
         }
 

@@ -18,9 +18,7 @@ Game::States::RacerScreenState::RacerScreenState(AppStateMachine& _Machine, App:
 	RacerToDisplay = _RacerToDisplay;
 
 	if (InitType == RacerScreenStateInitType::RacerCreation)
-	{
 		Data.Profile->MainFella.Name = RacerNameMaker().Make();
-	}
 }
 
 Game::States::RacerScreenState::~RacerScreenState()

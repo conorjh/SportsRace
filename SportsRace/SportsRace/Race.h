@@ -8,10 +8,24 @@ namespace Game
 {
 	namespace Race
 	{
+		enum class TrackLength : unsigned int
+		{
+			Standard100m = 5000,
+			Standard200m = Standard100m * 2,
+			Standard250m = unsigned int(Standard100m * 2.5),
+			Standard500m = Standard100m * 5,
+			Standard1000m = Standard100m * 10
+		};
+
 		struct Track
 		{
 			Track() {};
-			unsigned int Length = 5000;
+			TrackLength Length = TrackLength::Standard100m;
+		};
+
+		struct RaceGUID
+		{
+			unsigned int GUID;
 		};
 
 		struct RacerRaceResult
@@ -22,13 +36,10 @@ namespace Game
 				Position = _Position;
 				Ms = _Ms;
 			}
+
+			RaceGUID GUID;
 			unsigned int Position, Ms;
 			Racer* Racer;
-		};
-
-		struct RaceGUID
-		{
-			unsigned int GUID;
 		};
 
 		struct RaceResult
