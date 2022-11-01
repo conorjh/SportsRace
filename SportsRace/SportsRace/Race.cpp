@@ -4,6 +4,7 @@
 #include "Audio.h"
 #include "App.h"
 #include "MainMenu.h"
+#include <map>
 #include <string>
 
 using namespace Game;
@@ -71,7 +72,17 @@ Racer* Game::Race::Race::GetByRank(unsigned int Rank)
 	if (Rank == 0 || Rank > Racers.size())
 		return nullptr;
 
-	return Racers[Rank - 1];
+	multimap<unsigned int, Racer*> SortList;
+
+	for (vector<Racer*>::iterator it = Racers.begin(); it != Racers.end(); ++it)
+		SortList.insert(make_pair((*it)->Pos.X, (*it)));
+	
+	auto it = SortList.rbegin();
+	for (int t = 0; t < Rank - 1; ++t)
+		it++;
+	
+	auto* output = it->second;
+	return Get(output->GUID);
 }
 
 bool Game::Race::Race::Contains(RacerGUID Guid)

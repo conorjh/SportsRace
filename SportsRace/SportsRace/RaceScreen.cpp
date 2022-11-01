@@ -250,13 +250,19 @@ void Game::Renderer::RaceScreenRenderer::DrawProgressBar()
 
 
 	auto& Race = State->RaceSM.Data.ThisRace;
-	for (int t = 0; t < Race.Racers.size(); ++t)
+	for (int t = Race.Racers.size() - 1; t > -1 ; --t)
 	{
 		//Draw racers circle
 		auto* R = Race.GetByRank(t + 1);
 		double ScaleFactor =  double(R->Pos.X) / unsigned int(Race.ThisTrack->Length);
 		
 		SDL_Rect RenderQuad = { X + (W * ScaleFactor) - 10, Y - 10, 32,32 };
+		if (R->GUID == State->PlayerGUID)
+		{
+			RenderQuad.x -= 8;
+			RenderQuad.y -= 8;
+			RenderQuad.w = RenderQuad.h = 48;
+		}
 		RenderImage(this->RendererData->Head.Texture,NULL, &RenderQuad);
 	}
 }
