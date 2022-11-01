@@ -242,10 +242,10 @@ void Game::Renderer::RaceScreenRenderer::DrawBackground()
 void Game::Renderer::RaceScreenRenderer::DrawProgressBar()
 {
 	//Render red filled quad
-	int W = 200, H = 10;
+	int W = 300, H = 7;
 	int X = (1024 / 2) - (W / 2), Y = 740;
 	SDL_Rect fillRect = { X ,Y , W,H };
-	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
+	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 0, 0, 0, 255);
 	SDL_RenderFillRect(Data->RenderData.MainRenderer, &fillRect);
 
 	auto& Race = State->RaceSM.Data.ThisRace;
@@ -255,7 +255,7 @@ void Game::Renderer::RaceScreenRenderer::DrawProgressBar()
 		auto* R = Race.GetByRank(t + 1);
 		double ScaleFactor =  double(R->Pos.X) / unsigned int(Race.ThisTrack->Length);
 		
-		SDL_Rect RenderQuad = { X + (W * ScaleFactor) - 10, Y - 10, 32,32 };
+		SDL_Rect RenderQuad = { X + (W * ScaleFactor) - 10, Y - 15, 32,32 };
 		if (R->GUID == State->PlayerGUID)
 		{
 			RenderQuad.x -= 8;

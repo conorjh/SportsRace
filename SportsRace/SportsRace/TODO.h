@@ -11,6 +11,7 @@ Demo 2 Todo
 	- training
 	+ race for cash
 	- race finder
+		- scroll bars
 	+ racer screen
 - career mode
 	+ random races for cash

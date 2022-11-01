@@ -21,6 +21,8 @@ std::string Game::States::AppStateTypeToString(AppStateType Type)
 		return "CareerHub";
 	case AppStateType::RacerScreen:
 		return "RacerScreen";
+	case AppStateType::RankingScreen:
+		return "RankingScreen";
 	}
 	return "";
 }
