@@ -6,6 +6,7 @@
 #include "RaceScreen.h"
 #include "CareerHub.h"
 #include "RacerScreen.h"
+#include "RankingScreen.h"
 
 namespace Game
 {
@@ -24,6 +25,8 @@ namespace Game
 				Game::Renderer::CareerHubRenderer CareerHubRen;
 				Game::Renderer::RacerScreenRendererData RacerScreenRenData;
 				Game::Renderer::RacerScreenRenderer RacerScreenRen;
+				Game::Renderer::RankingScreenRendererData RankingScreenRenData;
+				Game::Renderer::RankingScreenRenderer RankingScreenRen;
 
 			public:
 				Game::States::AppStateMachine* StateMachine;

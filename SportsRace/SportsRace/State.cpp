@@ -13,8 +13,8 @@ std::string Game::States::AppStateTypeToString(AppStateType Type)
 	{
 	case AppStateType::Null:
 		return "Null";
-	case AppStateType::InRace:
-		return "InRace";
+	case AppStateType::RaceScreen:
+		return "RaceScreen";
 	case AppStateType::MainMenu:
 		return "MainMenu";
 	case AppStateType::CareerHub:

@@ -13,7 +13,7 @@ namespace Game
 		{
 			Career::CareerOrchestrator Orchestrator;
 		public:
-			GUI::IconButton RacerIcon, RaceIcon, TrainingIcon;
+			GUI::IconButton RacerIcon, RaceIcon, TrainingIcon, RankingIcon;
 			CareerHubState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data);
 			~CareerHubState();
 
@@ -30,7 +30,7 @@ namespace Game
 			bool Load(Render::BaseRenderer& Renderer);
 
 
-			Render::Image RacerIconGraphic, RaceIconGraphic, TrainingIconGraphic;
+			Render::Image RacerIconGraphic, RaceIconGraphic, TrainingIconGraphic, RankingIconGraphic;
 		};
 
 		class CareerHubRenderer : public Render::BaseRenderer

@@ -33,7 +33,7 @@ namespace Game
 
 		enum class IconButtonType
 		{
-			Racer, Training, Race
+			Racer, Training, Race, Ranking
 		};
 		
 		class IconButton

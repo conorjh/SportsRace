@@ -144,11 +144,13 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)lib\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>SDL2.lib;SDL2main.lib;SDL2_image.lib;SDL2_ttf.lib;SDL2_mixer.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <Version>0.0.0.2</Version>
+      <Version>
+      </Version>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
+    <ClCompile Include="AppRenderer.cpp" />
     <ClCompile Include="Audio.cpp" />
     <ClCompile Include="Career.cpp" />
     <ClCompile Include="CareerHub.cpp" />
@@ -162,6 +164,7 @@
     <ClCompile Include="RacerScreen.cpp" />
     <ClCompile Include="RaceScreen.cpp" />
     <ClCompile Include="RaceState.cpp" />
+    <ClCompile Include="RankingScreen.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="State.cpp" />
     <ClCompile Include="Util.cpp" />
@@ -181,6 +184,7 @@
     <ClInclude Include="Racer.h" />
     <ClInclude Include="RaceScreen.h" />
     <ClInclude Include="RaceState.h" />
+    <ClInclude Include="RankingScreen.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="State.h" />
     <ClInclude Include="TODO.h" />

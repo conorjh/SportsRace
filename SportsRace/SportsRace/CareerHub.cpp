@@ -3,6 +3,7 @@
 #include "RaceState.h"
 #include "RaceScreen.h"
 #include "RacerScreen.h"
+#include "RankingScreen.h"
 #include "SDL2\SDL.h"
 
 using namespace std;
@@ -18,6 +19,7 @@ bool Game::Renderer::CareerHubRendererData::Load(Render::BaseRenderer& Renderer)
 	Renderer.LoadImageFile("race_icon.png", RaceIconGraphic);
 	Renderer.LoadImageFile("racer_icon.png", RacerIconGraphic);
 	Renderer.LoadImageFile("training_icon.png", TrainingIconGraphic);
+	Renderer.LoadImageFile("ranking_icon.png", RankingIconGraphic);
 
 	return true;
 }
@@ -26,9 +28,10 @@ Game::States::CareerHubState::CareerHubState(AppStateMachine& _Machine, AppIO& _
 	AppState(_Machine, _IO, _Data),
 	Orchestrator(_Data.Career, _Data.Profile),
 
-	RaceIcon(_IO, IconButtonType::Race, 400, 500, 200, 200),
-	TrainingIcon(_IO, IconButtonType::Race, 700, 100, 200, 200),
-	RacerIcon(_IO, IconButtonType::Race, 100, 100, 200, 200)
+	RaceIcon(_IO, IconButtonType::Race, 700, 450, 200, 200),
+	TrainingIcon(_IO, IconButtonType::Training, 700, 50, 200, 200),
+	RankingIcon(_IO, IconButtonType::Ranking, 100, 450, 200, 200),
+	RacerIcon(_IO, IconButtonType::Racer, 100, 50, 200, 200)
 {
 	Type = AppStateType::CareerHub;
 
@@ -77,10 +80,18 @@ AppState* Game::States::CareerHubState::Update()
 	}
 
 	RacerIcon.Update();
-	if(RacerIcon.HasMouseClicked())
+	if (RacerIcon.HasMouseClicked())
 	{
 		//actually run our race
 		Machine.Push(new RacerScreenState(Machine, IO, Data, &Orchestrator.Profile->MainFella, RacerScreenStateInitType::ViewOnly));
+		return Machine.Top();
+	}
+
+	RankingIcon.Update();
+	if (RankingIcon.HasMouseClicked())
+	{
+		//actually run our race
+		Machine.Push(new RankingScreenState(Machine, IO, Data, &Orchestrator.Profile->MainFella));
 		return Machine.Top();
 	}
 
@@ -91,6 +102,8 @@ AppState* Game::States::CareerHubState::Update()
 		Machine.Pop();
 		return Machine.Top();
 	}
+
+	
 
 	return this;
 }
@@ -151,6 +164,17 @@ unsigned int Game::Renderer::CareerHubRenderer::Render()
 	else
 		RenderImage(RendererData->RaceIconGraphic.Texture, NULL, &State->RaceIcon.Rect);
 
+	if (State->RankingIcon.IsMouseOver())
+	{
+		SDL_Rect RenderQuad3 = State->RankingIcon.Rect;
+		RenderQuad3.x += 7;
+		RenderQuad3.y -= 7;
+		RenderImage(RendererData->RankingIconGraphic.Texture, NULL, &RenderQuad3);
+	}
+	else
+		RenderImage(RendererData->RankingIconGraphic.Texture, NULL, &State->RankingIcon.Rect);
+
+	RenderText(BaseData->MainFont, "Cash: $" + to_string(Data->Profile->Financials.Cash), 450,720, {0,0,0});
 
 	Display();
 	auto EndTime = SDL_GetTicks();

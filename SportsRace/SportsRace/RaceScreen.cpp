@@ -31,21 +31,21 @@ bool Game::Renderer::RaceScreenRendererData::Load(Render::BaseRenderer& Renderer
 Game::States::RaceScreenState::RaceScreenState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer) : 
 	AppState(_Machine, _IO, _Data), RaceSM(*new Race::Race())
 {
-	Type = AppStateType::InRace;
+	Type = AppStateType::RaceScreen;
 	LastFrameEnd = SDL_GetTicks();
 }
 
 Game::States::RaceScreenState::RaceScreenState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun) : 
 	AppState(_Machine, _IO, _Data), RaceSM(RaceToRun)
 {
-	Type = AppStateType::InRace;
+	Type = AppStateType::RaceScreen;
 	LastFrameEnd = SDL_GetTicks();
 }
 
 Game::States::RaceScreenState::RaceScreenState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun, RacerGUID PlayerRacer) : 
 	AppState(_Machine, _IO, _Data), RaceSM(RaceToRun)
 {
-	Type = AppStateType::InRace;
+	Type = AppStateType::RaceScreen;
 	LastFrameEnd = SDL_GetTicks();
 	PlayerGUID = PlayerRacer;
 }
@@ -247,7 +247,6 @@ void Game::Renderer::RaceScreenRenderer::DrawProgressBar()
 	SDL_Rect fillRect = { X ,Y , W,H };
 	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
 	SDL_RenderFillRect(Data->RenderData.MainRenderer, &fillRect);
-
 
 	auto& Race = State->RaceSM.Data.ThisRace;
 	for (int t = Race.Racers.size() - 1; t > -1 ; --t)
