@@ -96,6 +96,22 @@ AppState* Game::States::CareerHubState::Update()
 }
 
 
+Game::Renderer::RacerScreenRenderer::RacerScreenRenderer(AppData* _Data, RacerScreenRendererData* _RendererData, Render::BaseRendererData* _BaseData) :
+	RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
+{
+
+}
+
+
+Game::Renderer::CareerHubRenderer::CareerHubRenderer(AppData* _Data, CareerHubState* _State, CareerHubRendererData* _RendererData, Render::BaseRendererData* _BaseData) :
+	State(_State), RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
+{
+}
+
+Game::Renderer::CareerHubRenderer::CareerHubRenderer(AppData* _Data, CareerHubRendererData* _RendererData, Render::BaseRendererData* _BaseData) :
+	RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
+{
+}
 
 unsigned int Game::Renderer::CareerHubRenderer::Render()
 {
@@ -142,20 +158,3 @@ unsigned int Game::Renderer::CareerHubRenderer::Render()
 	return EndTime - StartTime;
 }
 
-
-Game::Renderer::RacerScreenRenderer::RacerScreenRenderer(AppData* _Data, RacerScreenRendererData* _RendererData, Render::BaseRendererData* _BaseData) :
-	RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
-{
-
-}
-
-
-Game::Renderer::CareerHubRenderer::CareerHubRenderer(AppData* _Data, CareerHubState* _State, CareerHubRendererData* _RendererData, Render::BaseRendererData* _BaseData) :
-	State(_State), RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
-{
-}
-
-Game::Renderer::CareerHubRenderer::CareerHubRenderer(AppData* _Data, CareerHubRendererData* _RendererData, Render::BaseRendererData* _BaseData) :
-	RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
-{
-}
