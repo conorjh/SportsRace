@@ -45,7 +45,6 @@ namespace Game
 
 		struct RaceResult
 		{
-
 			RaceGUID GUID;
 			std::vector<RacerRaceResult> RacerResults;
 		};
@@ -59,6 +58,7 @@ namespace Game
 		{
 			RaceFinancials();
 			RaceFinancials(unsigned int irstPlacePrize, unsigned int EntranceFee);
+
 			unsigned int FirstPlacePrize, SecondPlacePrize, ThirdPlacePrize;
 			unsigned int EntranceFee;
 		};
@@ -76,6 +76,7 @@ namespace Game
 			unsigned int CurrentWinnerDistance();
 
 			Racer* Get(RacerGUID Guid);
+			Racer* GetByRank(unsigned int);
 			bool Contains(RacerGUID Guid);
 
 			RaceStatus Tick(unsigned int Ms, RaceStatus Type);

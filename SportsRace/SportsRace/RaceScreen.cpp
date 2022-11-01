@@ -28,19 +28,22 @@ bool Game::Renderer::RaceScreenRendererData::Load(Render::BaseRenderer& Renderer
 }
 
 
-Game::States::RaceScreenState::RaceScreenState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer) : AppState(_Machine, _IO, _Data), RaceSM(*new Race::Race())
+Game::States::RaceScreenState::RaceScreenState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer) : 
+	AppState(_Machine, _IO, _Data), RaceSM(*new Race::Race())
 {
 	Type = AppStateType::InRace;
 	LastFrameEnd = SDL_GetTicks();
 }
 
-Game::States::RaceScreenState::RaceScreenState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun) : AppState(_Machine, _IO, _Data), RaceSM(RaceToRun)
+Game::States::RaceScreenState::RaceScreenState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun) : 
+	AppState(_Machine, _IO, _Data), RaceSM(RaceToRun)
 {
 	Type = AppStateType::InRace;
 	LastFrameEnd = SDL_GetTicks();
 }
 
-Game::States::RaceScreenState::RaceScreenState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun, RacerGUID PlayerRacer) : AppState(_Machine, _IO, _Data), RaceSM(RaceToRun)
+Game::States::RaceScreenState::RaceScreenState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun, RacerGUID PlayerRacer) : 
+	AppState(_Machine, _IO, _Data), RaceSM(RaceToRun)
 {
 	Type = AppStateType::InRace;
 	LastFrameEnd = SDL_GetTicks();
@@ -84,8 +87,11 @@ AppState* Game::States::RaceScreenState::Update()
 		IO.Player.Play(BuiltInSounds::Click);
 
 		//save this races result to the AppData buffer
-		if (RaceSM.Data.ThisRace.HasFinished())
+		if (&Data.Profile->MainFella != nullptr && RaceSM.Data.ThisRace.HasFinished(&Data.Profile->MainFella))
 		{
+			if (!RaceSM.Data.ThisRace.HasFinished())
+				RaceSM.Data.ThisRace.Sim();
+
 			this->Data.Profile->Financials.Cash -= RaceSM.Data.ThisRace.Financials.EntranceFee;
 
 			if (RaceSM.Data.ThisRace.Result.RacerResults[0].Racer->GUID.GUID == PlayerGUID.GUID)
@@ -94,7 +100,7 @@ AppState* Game::States::RaceScreenState::Update()
 				this->Data.Profile->Financials.Cash += RaceSM.Data.ThisRace.Financials.SecondPlacePrize;
 			if (RaceSM.Data.ThisRace.Result.RacerResults[2].Racer->GUID.GUID == PlayerGUID.GUID)
 				this->Data.Profile->Financials.Cash += RaceSM.Data.ThisRace.Financials.ThirdPlacePrize;
-			
+
 			Data.RaceStateOutput = RaceSM.Data.ThisRace.Result;
 		}
 
@@ -165,9 +171,7 @@ void Game::Renderer::RaceScreenRenderer::DrawRacer(Race::Racer Racer, unsigned i
 	else
 		RenderImage(RendererData->FellaRun.Texture, &SourceQuad, &RenderQuad);	//running
 
-	RenderText(BaseData->DebugFont, "x: " + to_string(Racer.Pos.X) + "\n" +
-		"v: " + to_string(Racer.Pos.Velocity) + "\n" +
-		Racer.Name, XDraw, yOffset, { 255,255,255 });
+	RenderText(BaseData->DebugFont, Racer.Name, XDraw, yOffset + 50, { 255,255,255 });
 
 
 }
@@ -235,6 +239,28 @@ void Game::Renderer::RaceScreenRenderer::DrawBackground()
 	RenderImage(RendererData->StartingBlocksGraphic.Texture, NULL, &RenderQuad9);
 }
 
+void Game::Renderer::RaceScreenRenderer::DrawProgressBar()
+{
+	//Render red filled quad
+	int W = 200, H = 10;
+	int X = (1024 / 2) - (W / 2), Y = 740;
+	SDL_Rect fillRect = { X ,Y , W,H };
+	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
+	SDL_RenderFillRect(Data->RenderData.MainRenderer, &fillRect);
+
+
+	auto& Race = State->RaceSM.Data.ThisRace;
+	for (int t = 0; t < Race.Racers.size(); ++t)
+	{
+		//Draw racers circle
+		auto* R = Race.GetByRank(t + 1);
+		double ScaleFactor =  double(R->Pos.X) / unsigned int(Race.ThisTrack->Length);
+		
+		SDL_Rect RenderQuad = { X + (W * ScaleFactor) - 10, Y - 10, 32,32 };
+		RenderImage(this->RendererData->Head.Texture,NULL, &RenderQuad);
+	}
+}
+
 unsigned int Game::Renderer::RaceScreenRenderer::Render()
 {
 	//start timer
@@ -257,9 +283,12 @@ unsigned int Game::Renderer::RaceScreenRenderer::Render()
 	for (int t = 0; t < Racers.size(); ++t)
 		DrawRacer(*Racers[t], t);
 
+	DrawProgressBar();
+
 	DrawWinners();
 
-	RenderDebugText();
+
+	//RenderDebugText();
 
 	Display();
 	auto EndTime = SDL_GetTicks();

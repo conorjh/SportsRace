@@ -61,6 +61,7 @@ namespace Game
 			RaceScreenRendererData* RendererData;
 			void RenderDebugText();
 			void DrawBackground();
+			void DrawProgressBar();
 			RaceScreenRendererCamera Camera;
 
 		public:

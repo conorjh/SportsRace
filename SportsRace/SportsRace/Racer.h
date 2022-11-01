@@ -25,6 +25,8 @@ namespace Game
 
 		struct RacerGUID
 		{
+			RacerGUID() { GUID = 0; }
+			RacerGUID(unsigned int _GUID) { GUID = _GUID; }
 			bool operator==(const RacerGUID& Other);
 			RacerGUID& operator=(const RacerGUID& Other);
 			RacerGUID& operator=(const unsigned int& Other);

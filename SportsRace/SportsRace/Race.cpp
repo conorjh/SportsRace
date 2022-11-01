@@ -65,6 +65,15 @@ Racer* Game::Race::Race::Get(RacerGUID Guid)
 	return nullptr;
 }
 
+//count from 1
+Racer* Game::Race::Race::GetByRank(unsigned int Rank)
+{
+	if (Rank == 0 || Rank > Racers.size())
+		return nullptr;
+
+	return Racers[Rank - 1];
+}
+
 bool Game::Race::Race::Contains(RacerGUID Guid)
 {
 	return Get(Guid) != nullptr;
@@ -73,6 +82,7 @@ bool Game::Race::Race::Contains(RacerGUID Guid)
 Game::Race::Race::Race()
 {
 	ThisTrack = new Track();
+	
 }
 
 RaceStatus Game::Race::Race::Tick(unsigned int Ms, RaceStatus Type)
@@ -106,6 +116,10 @@ RaceStatus Game::Race::Race::Tick(unsigned int Ms, RaceStatus Type)
 
 			if (Racers[t]->Pos.X > unsigned int(ThisTrack->Length) && !HasFinished(Racers[t]))
 				Finished(Racers[t]);
+
+			//stop racers after finish line
+			if (Racers[t]->Pos.X > unsigned int(ThisTrack->Length) + 1000)
+				Racers[t]->Pos.X = unsigned int(ThisTrack->Length) + 1000;
 		}
 
 		if (Result.RacerResults.size() >= Racers.size())

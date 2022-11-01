@@ -13,11 +13,16 @@ Demo 2 Todo
 	- race finder
 	+ racer screen
 - career mode
-	- random races for cash
-	- random racer competitors
+	+ random races for cash
+	+ random racer competitors
+	- career orchestrator
+		- races
+		- racers
+		- rankings
 - cleanup renderer
 	+ move rendererers out of Renderer.cpp
 	- cleanup the mess
+- race screen progress bar
 
 Demo 3 Todo
 - Better animation for runners
