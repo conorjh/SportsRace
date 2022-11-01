@@ -115,6 +115,14 @@ unsigned int Game::Renderer::RacerScreenRenderer::Render()
 		RenderText(BaseData->BigFont, State->ExitButton.Text.c_str(), State->ExitButton.x + 5, State->ExitButton.y + 5, State->ExitButton.Color);
 	}
 
+	//racer
+	auto& Fella = this->Data->Profile->MainFella;
+	unsigned int FrameTime = 250 - (Fella.Skills.BaseSpeed * 10);
+	unsigned int FrameNum =  ( (SDL_GetTicks() % 1000)  / 250) * (613 / 4);
+	SDL_Rect SourceQuad = { 0 + FrameNum, 0, 613 / 4, 186 / 1 };
+	SDL_Rect RenderQuad = { 180,  150, 613 / 4 , 186 / 1 };
+
+	RenderImage(RendererData->FellaRun.Texture, &SourceQuad, &RenderQuad);	//running
 
 	Display();
 	auto EndTime = SDL_GetTicks();
