@@ -22,14 +22,14 @@ Demo 2 Todo
 - cleanup renderer
 	+ move rendererers out of Renderer.cpp
 	- cleanup the mess
-- race screen progress bar
++ race screen progress bar
 
 Demo 3 Todo
 - Better animation for runners
 - Commentator AI
 	- CommentatorSystem
 	- commentator wav files
-
+- Newspapers
 
 Demo 4 Todo
 - network play
