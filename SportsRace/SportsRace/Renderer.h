@@ -1,6 +1,6 @@
 #ifndef RENDERER_H
 #define RENDERER_H
-#include "State.h"
+#include "Screens.h"
 #include "App.h"
 #include "SDL2/SDL_ttf.h"
 

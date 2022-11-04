@@ -186,7 +186,7 @@
     <ClInclude Include="RaceState.h" />
     <ClInclude Include="RankingScreen.h" />
     <ClInclude Include="Renderer.h" />
-    <ClInclude Include="State.h" />
+    <ClInclude Include="Screens.h" />
     <ClInclude Include="TODO.h" />
     <ClInclude Include="Util.h" />
   </ItemGroup>

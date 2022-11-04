@@ -1,7 +1,7 @@
 #ifndef RANKINGSCREEN_H
 #define RANKINGSCREEN_H
 #include "Renderer.h"
-#include "State.h"
+#include "Screens.h"
 #include "App.h"
 #include "Race.h"
 

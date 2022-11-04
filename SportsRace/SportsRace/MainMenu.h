@@ -1,7 +1,7 @@
 #ifndef MAINMENU_H
 #define MAINMENU_H
 #include "Renderer.h"
-#include "State.h"
+#include "Screens.h"
 #include "App.h"
 #include "SDL2/SDL_ttf.h"
 #include "League.h"
