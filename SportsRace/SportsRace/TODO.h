@@ -4,6 +4,7 @@ Demo 2 Todo
 + RacerDB
 + Race sounds
 + varying speeds
+- scroll bars
 + racer view screen
 	+ creation 
 	+ view
@@ -11,7 +12,6 @@ Demo 2 Todo
 	- training
 	+ race for cash
 	- race finder
-		- scroll bars
 	+ racer screen
 - career mode
 	+ random races for cash
@@ -24,6 +24,9 @@ Demo 2 Todo
 	+ move rendererers out of Renderer.cpp
 	- cleanup the mess
 + race screen progress bar
+- settings screen
+	- audio
+	- graphics
 
 Demo 3 Todo
 - Better animation for runners

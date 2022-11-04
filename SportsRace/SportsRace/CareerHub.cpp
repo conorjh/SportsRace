@@ -9,7 +9,7 @@
 using namespace std;
 using namespace Game::App;
 using namespace Game::Audio;
-using namespace Game::States;
+using namespace Game::Screens;
 using namespace Game::GUI;
 using namespace Game::Race;
 using namespace Game::Career;
@@ -24,8 +24,8 @@ bool Game::Renderer::CareerHubRendererData::Load(Render::BaseRenderer& Renderer)
 	return true;
 }
 
-Game::States::CareerHubState::CareerHubState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data) :
-	AppState(_Machine, _IO, _Data),
+Game::Screens::CareerHubScreen::CareerHubScreen(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data) :
+	AppScreen(_Machine, _IO, _Data),
 	Orchestrator(_Data.Career, _Data.Profile),
 
 	RaceIcon(_IO, IconButtonType::Race, 700, 450, 200, 200),
@@ -37,23 +37,23 @@ Game::States::CareerHubState::CareerHubState(AppStateMachine& _Machine, AppIO& _
 
 }
 
-Game::States::CareerHubState::~CareerHubState()
+Game::Screens::CareerHubScreen::~CareerHubScreen()
 {
 
 }
 
-void Game::States::CareerHubState::Entry()
+void Game::Screens::CareerHubScreen::Entry()
 {
 	IO.Player.Play(Soundtrack::Catering);
 }
 
-void Game::States::CareerHubState::Exit()
+void Game::Screens::CareerHubScreen::Exit()
 {
 	IO.Player.StopMusic();
 }
 
 
-AppState* Game::States::CareerHubState::Update()
+AppScreen* Game::Screens::CareerHubScreen::Update()
 {
 	RaceIcon.Update();
 	if (RaceIcon.HasMouseClicked())
@@ -65,7 +65,7 @@ AppState* Game::States::CareerHubState::Update()
 		RaceBuffer->Financials = RaceFinancials(unsigned int(500 * (rand() % 10)), 50 * (rand() % 4));
 		
 		//actually run our race
-		Machine.Push(new RaceScreenState(Machine, IO, Data, *RaceBuffer, Orchestrator.Profile->MainFella.GUID));
+		Machine.Push(new RaceScreen(Machine, IO, Data, *RaceBuffer, Orchestrator.Profile->MainFella.GUID));
 		return Machine.Top();
 	}
 
@@ -75,7 +75,7 @@ AppState* Game::States::CareerHubState::Update()
 		RacerDB* DB = new RacerDB();
 
 		//actually run our race
-		Machine.Push(new RaceScreenState(Machine, IO, Data, &Orchestrator.Profile->MainFella));
+		Machine.Push(new RaceScreen(Machine, IO, Data, &Orchestrator.Profile->MainFella));
 		return Machine.Top();
 	}
 
@@ -83,7 +83,7 @@ AppState* Game::States::CareerHubState::Update()
 	if (RacerIcon.HasMouseClicked())
 	{
 		//actually run our race
-		Machine.Push(new RacerScreenState(Machine, IO, Data, &Orchestrator.Profile->MainFella, RacerScreenStateInitType::ViewOnly));
+		Machine.Push(new RacerScreen(Machine, IO, Data, &Orchestrator.Profile->MainFella, RacerScreenStateInitType::ViewOnly));
 		return Machine.Top();
 	}
 
@@ -91,7 +91,7 @@ AppState* Game::States::CareerHubState::Update()
 	if (RankingIcon.HasMouseClicked())
 	{
 		//actually run our race
-		Machine.Push(new RankingScreenState(Machine, IO, Data, &Orchestrator.Profile->MainFella));
+		Machine.Push(new RankingScreen(Machine, IO, Data, &Orchestrator.Profile->MainFella));
 		return Machine.Top();
 	}
 
@@ -116,7 +116,7 @@ Game::Renderer::RacerScreenRenderer::RacerScreenRenderer(AppData* _Data, RacerSc
 }
 
 
-Game::Renderer::CareerHubRenderer::CareerHubRenderer(AppData* _Data, CareerHubState* _State, CareerHubRendererData* _RendererData, Render::BaseRendererData* _BaseData) :
+Game::Renderer::CareerHubRenderer::CareerHubRenderer(AppData* _Data, CareerHubScreen* _State, CareerHubRendererData* _RendererData, Render::BaseRendererData* _BaseData) :
 	State(_State), RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
 {
 }

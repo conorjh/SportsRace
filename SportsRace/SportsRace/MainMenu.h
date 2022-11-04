@@ -8,9 +8,9 @@
 
 namespace Game
 {
-	namespace States
+	namespace Screens
 	{
-		class MainMenuState : public AppState
+		class MainMenuScreen : public AppScreen
 		{
 			Race::Race RaceBuffer;
 			Race::RacerDB Racers;
@@ -18,10 +18,10 @@ namespace Game
 		public:
 			GUI::Button RaceButton, CareerButton, ExitButton;
 
-			MainMenuState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data);
-			~MainMenuState();
+			MainMenuScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data);
+			~MainMenuScreen();
 
-			AppState* Update();
+			AppScreen* Update();
 		};
 
 	}
@@ -44,9 +44,9 @@ namespace Game
 			void DrawLeague();
 
 		public:
-			States::MainMenuState* State;
+			Screens::MainMenuScreen* State;
 			MainMenuRenderer(App::AppData*, MainMenuRendererData* _Data, Render::BaseRendererData* _BaseData);
-			MainMenuRenderer(App::AppData*, States::MainMenuState* _State, MainMenuRendererData* _Data, Render::BaseRendererData* _BaseData);
+			MainMenuRenderer(App::AppData*, Screens::MainMenuScreen* _State, MainMenuRendererData* _Data, Render::BaseRendererData* _BaseData);
 
 
 			unsigned int Render();

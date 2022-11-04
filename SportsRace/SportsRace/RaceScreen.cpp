@@ -6,7 +6,7 @@ using namespace Game::Audio;
 using namespace Game::Race;
 using namespace Game::Render;
 using namespace Game::Renderer;
-using namespace Game::States;
+using namespace Game::Screens;
 using namespace std;
 
 bool Game::Renderer::RaceScreenRendererData::Load(Render::BaseRenderer& Renderer)
@@ -28,45 +28,45 @@ bool Game::Renderer::RaceScreenRendererData::Load(Render::BaseRenderer& Renderer
 }
 
 
-Game::States::RaceScreenState::RaceScreenState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer) : 
-	AppState(_Machine, _IO, _Data), RaceSM(*new Race::Race())
+Game::Screens::RaceScreen::RaceScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer) : 
+	AppScreen(_Machine, _IO, _Data), RaceSM(*new Race::Race())
 {
 	Type = AppStateType::RaceScreen;
 	LastFrameEnd = SDL_GetTicks();
 }
 
-Game::States::RaceScreenState::RaceScreenState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun) : 
-	AppState(_Machine, _IO, _Data), RaceSM(RaceToRun)
+Game::Screens::RaceScreen::RaceScreen(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun) : 
+	AppScreen(_Machine, _IO, _Data), RaceSM(RaceToRun)
 {
 	Type = AppStateType::RaceScreen;
 	LastFrameEnd = SDL_GetTicks();
 }
 
-Game::States::RaceScreenState::RaceScreenState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun, RacerGUID PlayerRacer) : 
-	AppState(_Machine, _IO, _Data), RaceSM(RaceToRun)
+Game::Screens::RaceScreen::RaceScreen(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun, RacerGUID PlayerRacer) : 
+	AppScreen(_Machine, _IO, _Data), RaceSM(RaceToRun)
 {
 	Type = AppStateType::RaceScreen;
 	LastFrameEnd = SDL_GetTicks();
 	PlayerGUID = PlayerRacer;
 }
 
-Game::States::RaceScreenState::~RaceScreenState()
+Game::Screens::RaceScreen::~RaceScreen()
 {
 
 }
 
-void Game::States::RaceScreenState::Entry()
-{
-	IO.Player.StopMusic();
-}
-
-void Game::States::RaceScreenState::Exit()
+void Game::Screens::RaceScreen::Entry()
 {
 	IO.Player.StopMusic();
+}
+
+void Game::Screens::RaceScreen::Exit()
+{
+	IO.Player.StopMusic();
 
 }
 
-AppState* Game::States::RaceScreenState::Update()
+AppScreen* Game::Screens::RaceScreen::Update()
 {
 	while (SDL_GetTicks() > LastFrameEnd + 33)
 	{
@@ -121,7 +121,7 @@ Game::Renderer::RaceScreenRenderer::RaceScreenRenderer(AppData* _Data, RaceScree
 	Camera.H = Data->ScreenHeight;
 }
 
-Game::Renderer::RaceScreenRenderer::RaceScreenRenderer(AppData* _Data, States::RaceScreenState* _State, RaceScreenRendererData* _RendererData, BaseRendererData* _BaseData) :
+Game::Renderer::RaceScreenRenderer::RaceScreenRenderer(AppData* _Data, Screens::RaceScreen* _State, RaceScreenRendererData* _RendererData, BaseRendererData* _BaseData) :
 	State(_State), RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
 {
 	Camera.X = 0;
@@ -242,7 +242,7 @@ void Game::Renderer::RaceScreenRenderer::DrawBackground()
 void Game::Renderer::RaceScreenRenderer::DrawProgressBar()
 {
 	//Render red filled quad
-	int W = 300, H = 7;
+	int W = 200, H = 7;
 	int X = (1024 / 2) - (W / 2), Y = 740;
 	SDL_Rect fillRect = { X ,Y , W,H };
 	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 0, 0, 0, 255);
@@ -304,7 +304,7 @@ unsigned int Game::Renderer::RaceScreenRenderer::Render()
 void Game::Renderer::RaceScreenRenderer::RenderDebugText()
 {
 	//top right
-	string Body = "AppState: " + AppStateTypeToString(State->Type) + "\n" +
+	string Body = "AppScreen: " + AppStateTypeToString(State->Type) + "\n" +
 		"RaceState: " + RaceStateTypeToString(State->RaceSM.State->Type) + "\n" +
 		"Finished: " + to_string(State->RaceSM.Data.ThisRace.FinishedCount()) + "\n" +
 		"Leader: " + State->RaceSM.Data.ThisRace.CurrentWinner()->Name + "\n" +

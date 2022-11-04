@@ -30,12 +30,16 @@ namespace Game
 
 		class CareerOrchestrator
 		{
-
+			unsigned int CurrentTick = 0;
 		public:
 			CareerData* Data;
 			CareerProfile* Profile;
 
 			CareerOrchestrator(CareerData*, CareerProfile*);
+
+			void Init();
+
+			void Update(unsigned int Ms);
 
 
 		};

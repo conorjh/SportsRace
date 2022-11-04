@@ -124,6 +124,11 @@ Racer* Game::Race::RacerDB::Get(unsigned int GUID)
     return Container.find(GUID)->second;
 }
 
+void Game::Race::RacerDB::Add(Racer* R)
+{
+    Container.insert(make_pair(R->GUID.GUID, R));
+}
+
 bool Game::Race::RacerGUID::operator==(const RacerGUID& Other)
 {
     return Other.GUID == GUID;
@@ -158,4 +163,11 @@ Game::Race::RacerSkills::RacerSkills()
 
     StandardCutoff = rand() % 50000;
     SprintCutoff = rand() % (StandardCutoff / 2);
+}
+
+Racer* Game::Race::RacerMaker::Make()
+{
+    Racer* R = new Racer();
+    R->Name = RacerNameMaker().Make();
+    return R;
 }

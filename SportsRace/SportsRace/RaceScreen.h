@@ -7,26 +7,26 @@
 
 namespace Game
 {
-	namespace States
+	namespace Screens
 	{
 		enum class InRaceStateInitType
 		{
 			Race, Training
 		};
 
-		class RaceScreenState : public AppState
+		class RaceScreen : public AppScreen
 		{
 			unsigned int LastFrameEnd;
 		public:
 			Race::RacerGUID PlayerGUID;
-			RaceScreenState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer);	//InRaceStateInitType::Training
-			RaceScreenState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun);			//demo
-			RaceScreenState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun, Race::RacerGUID);			//InRaceStateInitType::Race
-			~RaceScreenState();
+			RaceScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer);	//InRaceStateInitType::Training
+			RaceScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun);			//demo
+			RaceScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun, Race::RacerGUID);			//InRaceStateInitType::Race
+			~RaceScreen();
 
 			void Entry(), Exit();
 
-			AppState* Update();
+			AppScreen* Update();
 			Race::RaceStateMachine RaceSM;
 		};
 	}
@@ -65,9 +65,9 @@ namespace Game
 			RaceScreenRendererCamera Camera;
 
 		public:
-			States::RaceScreenState* State;
+			Screens::RaceScreen* State;
 			RaceScreenRenderer(App::AppData*, RaceScreenRendererData* _Data, Render::BaseRendererData* _BaseData);
-			RaceScreenRenderer(App::AppData*, States::RaceScreenState* _State, RaceScreenRendererData* _Data, Render::BaseRendererData* _BaseData);
+			RaceScreenRenderer(App::AppData*, Screens::RaceScreen* _State, RaceScreenRendererData* _Data, Render::BaseRendererData* _BaseData);
 
 			void DrawRacer(Race::Racer, unsigned int Track);
 			void DrawWinners();

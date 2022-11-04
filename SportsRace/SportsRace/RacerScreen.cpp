@@ -4,7 +4,7 @@
 using namespace std;
 using namespace Game::App;
 using namespace Game::Audio;
-using namespace Game::States;
+using namespace Game::Screens;
 using namespace Game::Renderer;
 using namespace Game::Race;
 
@@ -19,8 +19,8 @@ bool Game::Renderer::RacerScreenRendererData::Load(Render::BaseRenderer& Rendere
 	return true;
 }
 
-Game::States::RacerScreenState::RacerScreenState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay, RacerScreenStateInitType _InitType) :
-	AppState(_Machine, _IO, _Data),
+Game::Screens::RacerScreen::RacerScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay, RacerScreenStateInitType _InitType) :
+	AppScreen(_Machine, _IO, _Data),
 	RegenButton(_IO, "Regen", 400, 500, 210, 80),
 	ApplyButton(_IO, "Apply", 750, 650, 210, 80),
 	ExitButton(_IO, "Exit", 750, 650, 210, 80)
@@ -33,11 +33,11 @@ Game::States::RacerScreenState::RacerScreenState(AppStateMachine& _Machine, App:
 		Data.Profile->MainFella.Name = RacerNameMaker().Make();
 }
 
-Game::States::RacerScreenState::~RacerScreenState()
+Game::Screens::RacerScreen::~RacerScreen()
 {
 }
 
-AppState* Game::States::RacerScreenState::Update()
+AppScreen* Game::Screens::RacerScreen::Update()
 {
 	RegenButton.Update();
 	if (RegenButton.HasMouseClicked())

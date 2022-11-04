@@ -7,7 +7,7 @@
 #include <string>
 
 using namespace Game;
-using namespace Game::States;
+using namespace Game::Screens;
 using namespace Game::Race;
 using namespace Game::App;
 using namespace Game::Audio;

@@ -4,10 +4,10 @@
 using namespace Game;
 using namespace Game::App;
 using namespace Game::Renderer;
-using namespace Game::States;
-using namespace Game::States;
+using namespace Game::Screens;
+using namespace Game::Screens;
 
-Game::App::Renderer::AppRenderer::AppRenderer(AppData* _Data, States::AppStateMachine* _StateMachine) :
+Game::App::Renderer::AppRenderer::AppRenderer(AppData* _Data, Screens::AppStateMachine* _StateMachine) :
 	MainMenuRen(_Data, &MainMenuRenData, &BaseRenData),
 	InRaceRen(_Data, &InRaceRenData, &BaseRenData),
 	RacerScreenRen(_Data, &RacerScreenRenData, &BaseRenData),
@@ -39,32 +39,32 @@ unsigned int Game::App::Renderer::AppRenderer::Render()
 	{
 	case AppStateType::RaceScreen:
 	{
-		RaceScreenState* RaceState = reinterpret_cast<RaceScreenState*>(StateMachine->Top());
+		RaceScreen* RaceState = reinterpret_cast<RaceScreen*>(StateMachine->Top());
 		InRaceRen.State = RaceState;
 		return InRaceRen.Render();
 	}
 
 	case AppStateType::MainMenu:
 	{
-		MainMenuState* MenuState = reinterpret_cast<MainMenuState*>(StateMachine->Top());
+		MainMenuScreen* MenuState = reinterpret_cast<MainMenuScreen*>(StateMachine->Top());
 		MainMenuRen.State = MenuState;
 		return MainMenuRen.Render();
 	}
 	case AppStateType::CareerHub:
 	{
-		CareerHubState* CareerHState = reinterpret_cast<CareerHubState*>(StateMachine->Top());
+		CareerHubScreen* CareerHState = reinterpret_cast<CareerHubScreen*>(StateMachine->Top());
 		CareerHubRen.State = CareerHState;
 		return CareerHubRen.Render();
 	}
 	case AppStateType::RacerScreen:
 	{
-		RacerScreenState* RacerScreenRenSt = reinterpret_cast<RacerScreenState*>(StateMachine->Top());
+		RacerScreen* RacerScreenRenSt = reinterpret_cast<RacerScreen*>(StateMachine->Top());
 		RacerScreenRen.State = RacerScreenRenSt;
 		return RacerScreenRen.Render();
 	}
 	case AppStateType::RankingScreen:
 	{
-		RankingScreenState* RankingScreenStt = reinterpret_cast<RankingScreenState*>(StateMachine->Top());
+		RankingScreen* RankingScreenStt = reinterpret_cast<RankingScreen*>(StateMachine->Top());
 		RankingScreenRen.State = RankingScreenStt;
 		return RankingScreenRen.Render();
 	}

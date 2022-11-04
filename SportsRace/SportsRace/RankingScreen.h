@@ -7,9 +7,9 @@
 
 namespace Game
 {
-	namespace States
+	namespace Screens
 	{
-		class RankingScreenState : public AppState
+		class RankingScreen : public AppScreen
 		{
 		protected:
 			Race::Racer* RacerToDisplay;
@@ -17,11 +17,11 @@ namespace Game
 		public:
 
 			GUI::Button ExitButton;
-			RankingScreenState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay);
+			RankingScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay);
 
-			~RankingScreenState();
+			~RankingScreen();
 
-			AppState* Update();
+			AppScreen* Update();
 		};
 
 	}
@@ -44,7 +44,7 @@ namespace Game
 			RankingScreenRendererData* RendererData;
 
 		public:
-			States::RankingScreenState* State;
+			Screens::RankingScreen* State;
 
 			RankingScreenRenderer(App::AppData*, RankingScreenRendererData* _Data, Render::BaseRendererData* _BaseData);
 

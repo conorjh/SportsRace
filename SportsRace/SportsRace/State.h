@@ -11,7 +11,7 @@ namespace Game
 		struct AppData;
 	}
 
-	namespace States
+	namespace Screens
 	{
 		enum class AppStateType
 		{
@@ -22,7 +22,7 @@ namespace Game
 		
 		class AppStateMachine;
 
-		class AppState
+		class AppScreen
 		{
 		protected:
 			AppStateMachine& Machine;
@@ -30,28 +30,28 @@ namespace Game
 			App::AppData& Data;
 
 		public:
-			AppState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data);
-			~AppState();
+			AppScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data);
+			~AppScreen();
 
 			virtual void Entry(), Exit();
 
-			virtual AppState* Update();
+			virtual AppScreen* Update();
 
 			AppStateType Type;
 		};
 
 		class AppStateMachine
 		{
-			std::stack<AppState*> StateStack; 
+			std::stack<AppScreen*> StateStack; 
 			
 		public:
 			AppStateMachine();
-			AppStateMachine(AppState*);
+			AppStateMachine(AppScreen*);
 
 			void Update();
 
-			void Push(AppState*), Pop(), SwapTop(AppState*);
-			AppState* Top();
+			void Push(AppScreen*), Pop(), SwapTop(AppScreen*);
+			AppScreen* Top();
 		};
 	}
 }

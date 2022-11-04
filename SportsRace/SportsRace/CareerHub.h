@@ -7,19 +7,20 @@
 
 namespace Game
 {
-	namespace States
+	namespace Screens
 	{
-		class CareerHubState : public AppState
+		class CareerHubScreen : public AppScreen
 		{
 			Career::CareerOrchestrator Orchestrator;
 		public:
 			GUI::IconButton RacerIcon, RaceIcon, TrainingIcon, RankingIcon;
-			CareerHubState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data);
-			~CareerHubState();
+
+			CareerHubScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data);
+			~CareerHubScreen();
 
 			void Entry(), Exit();
 
-			AppState* Update();
+			AppScreen* Update();
 		};
 	}
 
@@ -38,10 +39,10 @@ namespace Game
 			CareerHubRendererData* RendererData;
 
 		public:
-			States::CareerHubState* State;
+			Screens::CareerHubScreen* State;
 
 			CareerHubRenderer(App::AppData*, CareerHubRendererData* _Data, Render::BaseRendererData* _BaseData);
-			CareerHubRenderer(App::AppData*, States::CareerHubState* State, CareerHubRendererData* _Data, Render::BaseRendererData* _BaseData);
+			CareerHubRenderer(App::AppData*, Screens::CareerHubScreen* State, CareerHubRendererData* _Data, Render::BaseRendererData* _BaseData);
 
 			unsigned int Render();
 

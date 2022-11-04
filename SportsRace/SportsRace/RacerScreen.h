@@ -7,14 +7,14 @@
 
 namespace Game
 {
-	namespace States
+	namespace Screens
 	{
 		enum class RacerScreenStateInitType
 		{
 			RacerCreation, ViewOnly
 		};
 
-		class RacerScreenState : public AppState
+		class RacerScreen : public AppScreen
 		{
 		protected:
 			Race::Racer* RacerToDisplay;
@@ -23,11 +23,11 @@ namespace Game
 			RacerScreenStateInitType InitType;
 
 			GUI::Button RegenButton, ApplyButton, ExitButton;
-			RacerScreenState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay, RacerScreenStateInitType _Type);
+			RacerScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay, RacerScreenStateInitType _Type);
 
-			~RacerScreenState();
+			~RacerScreen();
 
-			AppState* Update();
+			AppScreen* Update();
 		};
 
 	}
@@ -50,7 +50,7 @@ namespace Game
 			RacerScreenRendererData* RendererData;
 
 		public:
-			States::RacerScreenState* State;
+			Screens::RacerScreen* State;
 
 			RacerScreenRenderer(App::AppData*, RacerScreenRendererData* _Data, Render::BaseRendererData* _BaseData);
 

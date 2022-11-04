@@ -8,7 +8,7 @@
 
 using namespace std;
 using namespace Game;
-using namespace Game::States;
+using namespace Game::Screens;
 using namespace Game::App;
 using namespace Game::Audio;
 using namespace Game::Race;
@@ -22,8 +22,8 @@ bool Game::Renderer::MainMenuRendererData::Load(Render::BaseRenderer& Renderer)
 
 	return true;
 }
-Game::States::MainMenuState::MainMenuState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data) : 
-	AppState(_Machine, _IO, _Data),
+Game::Screens::MainMenuScreen::MainMenuScreen(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data) : 
+	AppScreen(_Machine, _IO, _Data),
 	RaceButton(_IO, "Race", 100, 100, 210, 80),
 	CareerButton(_IO, "Career", 100, 200, 290, 80),
 	ExitButton(_IO, "Exit", 100, 400, 180, 80)
@@ -34,12 +34,12 @@ Game::States::MainMenuState::MainMenuState(AppStateMachine& _Machine, AppIO& _IO
 		RaceBuffer.Racers.push_back(Racers.Make(RacerNameMaker().Make()));
 }
 
-Game::States::MainMenuState::~MainMenuState()
+Game::Screens::MainMenuScreen::~MainMenuScreen()
 {
 
 }
 
-AppState* Game::States::MainMenuState::Update()
+AppScreen* Game::Screens::MainMenuScreen::Update()
 {
 	RaceButton.Update();
 	if (RaceButton.HasMouseClicked())
@@ -47,7 +47,7 @@ AppState* Game::States::MainMenuState::Update()
 		RaceBuffer.Reset();
 
 		//actually run our race
-		Machine.Push(new RaceScreenState(Machine, IO, Data, RaceBuffer));
+		Machine.Push(new RaceScreen(Machine, IO, Data, RaceBuffer));
 		return Machine.Top();
 	}
 
@@ -62,13 +62,13 @@ AppState* Game::States::MainMenuState::Update()
 			Data.Career = new CareerData();
 
 			//call character creation screen
-			Machine.Push(new CareerHubState(Machine, IO, Data));
-			Machine.Push(new RacerScreenState(Machine, IO, Data, &Data.Profile->MainFella, RacerScreenStateInitType::RacerCreation));
+			Machine.Push(new CareerHubScreen(Machine, IO, Data));
+			Machine.Push(new RacerScreen(Machine, IO, Data, &Data.Profile->MainFella, RacerScreenStateInitType::RacerCreation));
 			return Machine.Top();
 		}
 
 		//run career hub with it
-		Machine.Push(new CareerHubState(Machine, IO, Data));
+		Machine.Push(new CareerHubScreen(Machine, IO, Data));
 		return Machine.Top();
 	}
 
@@ -86,7 +86,7 @@ Game::Renderer::MainMenuRenderer::MainMenuRenderer(AppData* _Data, MainMenuRende
 	State = nullptr;
 }
 
-Game::Renderer::MainMenuRenderer::MainMenuRenderer(AppData* _Data, MainMenuState* _State, MainMenuRendererData* _RenData, Render::BaseRendererData* _BaseData) : State(_State), RendererData(_RenData), BaseRenderer(_Data, _BaseData)
+Game::Renderer::MainMenuRenderer::MainMenuRenderer(AppData* _Data, MainMenuScreen* _State, MainMenuRendererData* _RenData, Render::BaseRendererData* _BaseData) : State(_State), RendererData(_RenData), BaseRenderer(_Data, _BaseData)
 {
 
 }

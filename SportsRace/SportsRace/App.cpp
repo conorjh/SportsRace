@@ -12,7 +12,7 @@
 using namespace std;
 using namespace Game;
 using namespace Game::App;
-using namespace Game::States;
+using namespace Game::Screens;
 using namespace Game::Util;
 using enum CommandLineArgumentType;
 
@@ -217,8 +217,8 @@ bool Game::App::Application::Init()
 	spdlog::debug("IO Init");
 	IO.Init();
 
-	spdlog::debug("Starting AppStateMachine: Pushing MainMenuState");
-	StateMachine.Push(new MainMenuState(StateMachine, IO, Data));
+	spdlog::debug("Starting AppStateMachine: Pushing MainMenuScreen");
+	StateMachine.Push(new MainMenuScreen(StateMachine, IO, Data));
 
 	return true;
 }

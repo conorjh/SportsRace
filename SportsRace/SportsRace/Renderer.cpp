@@ -8,7 +8,7 @@
 using namespace std;
 using namespace Game;
 using namespace Game::App;
-using namespace Game::States;
+using namespace Game::Screens;
 using namespace Game::Render;
 
 using namespace Game::Race;

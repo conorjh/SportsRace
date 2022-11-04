@@ -48,14 +48,15 @@ namespace Game
 		struct Ranking
 		{
 			Race::Racer* Racer;
-			int Ranking;
 
+			int Ranking;
+			int Points;
 			unsigned int Races;
 		};
 
 		struct Rankings
 		{
-
+			std::vector<Ranking>
 
 		};
 	}

@@ -3,11 +3,11 @@
 #include "spdlog/spdlog.h"
 
 using namespace Game;
-using namespace Game::States;
+using namespace Game::Screens;
 using namespace Game::App;
 using namespace Game::Audio;
 
-std::string Game::States::AppStateTypeToString(AppStateType Type)
+std::string Game::Screens::AppStateTypeToString(AppStateType Type)
 {
 	switch (Type)
 	{
@@ -27,50 +27,50 @@ std::string Game::States::AppStateTypeToString(AppStateType Type)
 	return "";
 }
 
-Game::States::AppState::AppState(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data) : Machine(_Machine), IO(_IO), Data(_Data)
+Game::Screens::AppScreen::AppScreen(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data) : Machine(_Machine), IO(_IO), Data(_Data)
 {
 
 }
 
-Game::States::AppState::~AppState()
+Game::Screens::AppScreen::~AppScreen()
 {
 
 }
 
-void Game::States::AppState::Entry()
+void Game::Screens::AppScreen::Entry()
 {
-	spdlog::trace("AppState::Entry({})", AppStateTypeToString(Type));
+	spdlog::trace("AppScreen::Entry({})", AppStateTypeToString(Type));
 
 }
 
-void Game::States::AppState::Exit()
+void Game::Screens::AppScreen::Exit()
 {
-	spdlog::trace("AppState::Exit({})", AppStateTypeToString(Type));
+	spdlog::trace("AppScreen::Exit({})", AppStateTypeToString(Type));
 }
 
-AppState* Game::States::AppState::Update()
+AppScreen* Game::Screens::AppScreen::Update()
 {
 	return nullptr;
 }
 
 
-Game::States::AppStateMachine::AppStateMachine()
+Game::Screens::AppStateMachine::AppStateMachine()
 {
 
 }
 
-Game::States::AppStateMachine::AppStateMachine(AppState* StartingState)
+Game::Screens::AppStateMachine::AppStateMachine(AppScreen* StartingState)
 {
 	Push(StartingState);
 }
 
-void Game::States::AppStateMachine::Update()
+void Game::Screens::AppStateMachine::Update()
 {
 	if (StateStack.size())
 		StateStack.top()->Update();
 }
 
-void Game::States::AppStateMachine::Pop()
+void Game::Screens::AppStateMachine::Pop()
 {
 	StateStack.top()->Exit();
 	StateStack.pop();
@@ -78,12 +78,12 @@ void Game::States::AppStateMachine::Pop()
 		StateStack.top()->Entry();
 }
 
-AppState* Game::States::AppStateMachine::Top()
+AppScreen* Game::Screens::AppStateMachine::Top()
 {
 	return StateStack.top();
 }
 
-void Game::States::AppStateMachine::Push(AppState* State)
+void Game::Screens::AppStateMachine::Push(AppScreen* State)
 {
 	if (StateStack.size())
 		StateStack.top()->Exit();
@@ -91,7 +91,7 @@ void Game::States::AppStateMachine::Push(AppState* State)
 	State->Entry();
 }
 
-void Game::States::AppStateMachine::SwapTop(AppState* State)
+void Game::Screens::AppStateMachine::SwapTop(AppScreen* State)
 {
 	Pop();
 	Push(State);

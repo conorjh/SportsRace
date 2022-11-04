@@ -16,6 +16,11 @@ namespace Game
 
 			std::string Make();
 		};
+		class Racer;
+		class RacerMaker
+		{
+			Racer* Make();
+		};
 
 		struct Position
 		{
@@ -27,6 +32,7 @@ namespace Game
 		{
 			RacerGUID() { GUID = 0; }
 			RacerGUID(unsigned int _GUID) { GUID = _GUID; }
+			
 			bool operator==(const RacerGUID& Other);
 			RacerGUID& operator=(const RacerGUID& Other);
 			RacerGUID& operator=(const unsigned int& Other);
@@ -70,6 +76,7 @@ namespace Game
 
 			Racer* Make(std::string Name = "");
 			Racer* Get(unsigned int GUID);
+			void Add(Racer*);
 
 			bool Contains(unsigned int GUID) { return Get(GUID) != nullptr; }
 		};

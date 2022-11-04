@@ -4,7 +4,7 @@
 using namespace std;
 using namespace Game::App;
 using namespace Game::Audio;
-using namespace Game::States;
+using namespace Game::Screens;
 using namespace Game::Render;
 using namespace Game::Renderer;
 using namespace Game::Race;
@@ -16,19 +16,19 @@ bool Game::Renderer::RankingScreenRendererData::Load(Render::BaseRenderer& Rende
 	return true;
 }
 
-Game::States::RankingScreenState::RankingScreenState(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay) :
-	AppState(_Machine, _IO, _Data),
+Game::Screens::RankingScreen::RankingScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay) :
+	AppScreen(_Machine, _IO, _Data),
 	ExitButton(_IO, "Exit", 800, 650, 210, 80)
 {
 	Type = AppStateType::RankingScreen;
 	RacerToDisplay = _RacerToDisplay;
 }
 
-Game::States::RankingScreenState::~RankingScreenState()
+Game::Screens::RankingScreen::~RankingScreen()
 {
 }
 
-AppState* Game::States::RankingScreenState::Update()
+AppScreen* Game::Screens::RankingScreen::Update()
 {
 	ExitButton.Update();
 	if (ExitButton.HasMouseClicked() || IO.Esc)
