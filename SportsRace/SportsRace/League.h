@@ -56,7 +56,7 @@ namespace Game
 
 		struct Rankings
 		{
-			std::vector<Ranking>
+			//std::vector<Ranking>
 
 		};
 	}

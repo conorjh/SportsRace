@@ -1,7 +1,7 @@
 #ifndef RACE_H
 #define RACE_H
 #include "Racer.h"
-#include "State.h"
+#include "Screens.h"
 #include <vector>
 #include <string>
 namespace Game
