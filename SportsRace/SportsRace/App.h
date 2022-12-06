@@ -95,7 +95,7 @@ namespace Game
 			Config Cfg;
 			AppIO IO;
 			AppData Data;
-			Screens::AppStateMachine StateMachine;
+			Screens::AppScreenStateMachine StateMachine;
 
 			Application(int argc, char* argv[]);
 

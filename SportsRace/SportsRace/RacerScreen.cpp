@@ -19,13 +19,13 @@ bool Game::Renderer::RacerScreenRendererData::Load(Render::BaseRenderer& Rendere
 	return true;
 }
 
-Game::Screens::RacerScreen::RacerScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay, RacerScreenStateInitType _InitType) :
+Game::Screens::RacerScreen::RacerScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay, RacerScreenStateInitType _InitType) :
 	AppScreen(_Machine, _IO, _Data),
 	RegenButton(_IO, "Regen", 400, 500, 210, 80),
 	ApplyButton(_IO, "Apply", 750, 650, 210, 80),
 	ExitButton(_IO, "Exit", 750, 650, 210, 80)
 {
-	Type = AppStateType::RacerScreen;
+	Type = AppScreenType::RacerScreen;
 	InitType = _InitType;
 	RacerToDisplay = _RacerToDisplay;
 
@@ -57,8 +57,8 @@ AppScreen* Game::Screens::RacerScreen::Update()
 		IO.Player.Play(BuiltInSounds::Click);
 
 		//go back to last screen
-		Machine.Pop();
-		return Machine.Top();
+		ParentMachine.Pop();
+		return ParentMachine.Top();
 	}
 
 	return this;

@@ -29,9 +29,9 @@ namespace Game
 				Game::Renderer::RankingScreenRenderer RankingScreenRen;
 
 			public:
-				Game::Screens::AppStateMachine* StateMachine;
+				Game::Screens::AppScreenStateMachine* StateMachine;
 
-				AppRenderer(AppData* _RenderData, Screens::AppStateMachine* _StateMachine);
+				AppRenderer(AppData* _RenderData, Screens::AppScreenStateMachine* _StateMachine);
 
 				unsigned int Render();
 			};

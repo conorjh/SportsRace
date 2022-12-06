@@ -28,24 +28,24 @@ bool Game::Renderer::RaceScreenRendererData::Load(Render::BaseRenderer& Renderer
 }
 
 
-Game::Screens::RaceScreen::RaceScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer) : 
+Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer) : 
 	AppScreen(_Machine, _IO, _Data), RaceSM(*new Race::Race())
 {
-	Type = AppStateType::RaceScreen;
+	Type = AppScreenType::RaceScreen;
 	LastFrameEnd = SDL_GetTicks();
 }
 
-Game::Screens::RaceScreen::RaceScreen(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun) : 
+Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun) : 
 	AppScreen(_Machine, _IO, _Data), RaceSM(RaceToRun)
 {
-	Type = AppStateType::RaceScreen;
+	Type = AppScreenType::RaceScreen;
 	LastFrameEnd = SDL_GetTicks();
 }
 
-Game::Screens::RaceScreen::RaceScreen(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun, RacerGUID PlayerRacer) : 
+Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun, RacerGUID PlayerRacer) : 
 	AppScreen(_Machine, _IO, _Data), RaceSM(RaceToRun)
 {
-	Type = AppStateType::RaceScreen;
+	Type = AppScreenType::RaceScreen;
 	LastFrameEnd = SDL_GetTicks();
 	PlayerGUID = PlayerRacer;
 }
@@ -105,8 +105,8 @@ AppScreen* Game::Screens::RaceScreen::Update()
 		}
 
 		//go back to main menu
-		Machine.Pop();
-		return Machine.Top();
+		ParentMachine.Pop();
+		return ParentMachine.Top();
 	}
 
 	return this;

@@ -24,7 +24,7 @@ bool Game::Renderer::CareerHubRendererData::Load(Render::BaseRenderer& Renderer)
 	return true;
 }
 
-Game::Screens::CareerHubScreen::CareerHubScreen(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data) :
+Game::Screens::CareerHubScreen::CareerHubScreen(AppScreenStateMachine& _Machine, AppIO& _IO, AppData& _Data) :
 	AppScreen(_Machine, _IO, _Data),
 	Orchestrator(_Data.Career, _Data.Profile),
 
@@ -33,7 +33,7 @@ Game::Screens::CareerHubScreen::CareerHubScreen(AppStateMachine& _Machine, AppIO
 	RankingIcon(_IO, IconButtonType::Ranking, 100, 450, 200, 200),
 	RacerIcon(_IO, IconButtonType::Racer, 100, 50, 200, 200)
 {
-	Type = AppStateType::CareerHub;
+	Type = AppScreenType::CareerHub;
 
 }
 
@@ -65,8 +65,8 @@ AppScreen* Game::Screens::CareerHubScreen::Update()
 		RaceBuffer->Financials = RaceFinancials(unsigned int(500 * (rand() % 10)), 50 * (rand() % 4));
 		
 		//actually run our race
-		Machine.Push(new RaceScreen(Machine, IO, Data, *RaceBuffer, Orchestrator.Profile->MainFella.GUID));
-		return Machine.Top();
+		ParentMachine.Push(new RaceScreen(ParentMachine, IO, Data, *RaceBuffer, Orchestrator.Profile->MainFella.GUID));
+		return ParentMachine.Top();
 	}
 
 	TrainingIcon.Update();
@@ -75,32 +75,32 @@ AppScreen* Game::Screens::CareerHubScreen::Update()
 		RacerDB* DB = new RacerDB();
 
 		//actually run our race
-		Machine.Push(new RaceScreen(Machine, IO, Data, &Orchestrator.Profile->MainFella));
-		return Machine.Top();
+		ParentMachine.Push(new RaceScreen(ParentMachine, IO, Data, &Orchestrator.Profile->MainFella));
+		return ParentMachine.Top();
 	}
 
 	RacerIcon.Update();
 	if (RacerIcon.HasMouseClicked())
 	{
 		//actually run our race
-		Machine.Push(new RacerScreen(Machine, IO, Data, &Orchestrator.Profile->MainFella, RacerScreenStateInitType::ViewOnly));
-		return Machine.Top();
+		ParentMachine.Push(new RacerScreen(ParentMachine, IO, Data, &Orchestrator.Profile->MainFella, RacerScreenStateInitType::ViewOnly));
+		return ParentMachine.Top();
 	}
 
 	RankingIcon.Update();
 	if (RankingIcon.HasMouseClicked())
 	{
 		//actually run our race
-		Machine.Push(new RankingScreen(Machine, IO, Data, &Orchestrator.Profile->MainFella));
-		return Machine.Top();
+		ParentMachine.Push(new RankingScreen(ParentMachine, IO, Data, &Orchestrator.Profile->MainFella));
+		return ParentMachine.Top();
 	}
 
 	if (IO.Esc)
 	{
 		IO.Player.Play(BuiltInSounds::Click);
 
-		Machine.Pop();
-		return Machine.Top();
+		ParentMachine.Pop();
+		return ParentMachine.Top();
 	}
 
 	

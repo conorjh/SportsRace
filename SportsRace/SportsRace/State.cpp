@@ -7,27 +7,27 @@ using namespace Game::Screens;
 using namespace Game::App;
 using namespace Game::Audio;
 
-std::string Game::Screens::AppStateTypeToString(AppStateType Type)
+std::string Game::Screens::AppStateTypeToString(AppScreenType Type)
 {
 	switch (Type)
 	{
-	case AppStateType::Null:
+	case AppScreenType::Null:
 		return "Null";
-	case AppStateType::RaceScreen:
+	case AppScreenType::RaceScreen:
 		return "RaceScreen";
-	case AppStateType::MainMenu:
+	case AppScreenType::MainMenu:
 		return "MainMenu";
-	case AppStateType::CareerHub:
+	case AppScreenType::CareerHub:
 		return "CareerHub";
-	case AppStateType::RacerScreen:
+	case AppScreenType::RacerScreen:
 		return "RacerScreen";
-	case AppStateType::RankingScreen:
+	case AppScreenType::RankingScreen:
 		return "RankingScreen";
 	}
 	return "";
 }
 
-Game::Screens::AppScreen::AppScreen(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data) : Machine(_Machine), IO(_IO), Data(_Data)
+Game::Screens::AppScreen::AppScreen(AppScreenStateMachine& _Machine, AppIO& _IO, AppData& _Data) : ParentMachine(_Machine), IO(_IO), Data(_Data)
 {
 
 }
@@ -54,23 +54,23 @@ AppScreen* Game::Screens::AppScreen::Update()
 }
 
 
-Game::Screens::AppStateMachine::AppStateMachine()
+Game::Screens::AppScreenStateMachine::AppScreenStateMachine()
 {
 
 }
 
-Game::Screens::AppStateMachine::AppStateMachine(AppScreen* StartingState)
+Game::Screens::AppScreenStateMachine::AppScreenStateMachine(AppScreen* StartingState)
 {
 	Push(StartingState);
 }
 
-void Game::Screens::AppStateMachine::Update()
+void Game::Screens::AppScreenStateMachine::Update()
 {
 	if (StateStack.size())
 		StateStack.top()->Update();
 }
 
-void Game::Screens::AppStateMachine::Pop()
+void Game::Screens::AppScreenStateMachine::Pop()
 {
 	StateStack.top()->Exit();
 	StateStack.pop();
@@ -78,12 +78,12 @@ void Game::Screens::AppStateMachine::Pop()
 		StateStack.top()->Entry();
 }
 
-AppScreen* Game::Screens::AppStateMachine::Top()
+AppScreen* Game::Screens::AppScreenStateMachine::Top()
 {
 	return StateStack.top();
 }
 
-void Game::Screens::AppStateMachine::Push(AppScreen* State)
+void Game::Screens::AppScreenStateMachine::Push(AppScreen* State)
 {
 	if (StateStack.size())
 		StateStack.top()->Exit();
@@ -91,7 +91,7 @@ void Game::Screens::AppStateMachine::Push(AppScreen* State)
 	State->Entry();
 }
 
-void Game::Screens::AppStateMachine::SwapTop(AppScreen* State)
+void Game::Screens::AppScreenStateMachine::SwapTop(AppScreen* State)
 {
 	Pop();
 	Push(State);

@@ -23,7 +23,7 @@ namespace Game
 			RacerScreenStateInitType InitType;
 
 			GUI::Button RegenButton, ApplyButton, ExitButton;
-			RacerScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay, RacerScreenStateInitType _Type);
+			RacerScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay, RacerScreenStateInitType _Type);
 
 			~RacerScreen();
 

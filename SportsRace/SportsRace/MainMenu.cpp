@@ -22,13 +22,13 @@ bool Game::Renderer::MainMenuRendererData::Load(Render::BaseRenderer& Renderer)
 
 	return true;
 }
-Game::Screens::MainMenuScreen::MainMenuScreen(AppStateMachine& _Machine, AppIO& _IO, AppData& _Data) : 
+Game::Screens::MainMenuScreen::MainMenuScreen(AppScreenStateMachine& _Machine, AppIO& _IO, AppData& _Data) : 
 	AppScreen(_Machine, _IO, _Data),
 	RaceButton(_IO, "Race", 100, 100, 210, 80),
 	CareerButton(_IO, "Career", 100, 200, 290, 80),
 	ExitButton(_IO, "Exit", 100, 400, 180, 80)
 {
-	Type = AppStateType::MainMenu;
+	Type = AppScreenType::MainMenu;
 
 	for (int t = 0; t < 6; ++t)
 		RaceBuffer.Racers.push_back(Racers.Make(RacerNameMaker().Make()));
@@ -47,8 +47,8 @@ AppScreen* Game::Screens::MainMenuScreen::Update()
 		RaceBuffer.Reset();
 
 		//actually run our race
-		Machine.Push(new RaceScreen(Machine, IO, Data, RaceBuffer));
-		return Machine.Top();
+		ParentMachine.Push(new RaceScreen(ParentMachine, IO, Data, RaceBuffer));
+		return ParentMachine.Top();
 	}
 
 	CareerButton.Update();
@@ -62,14 +62,14 @@ AppScreen* Game::Screens::MainMenuScreen::Update()
 			Data.Career = new CareerData();
 
 			//call character creation screen
-			Machine.Push(new CareerHubScreen(Machine, IO, Data));
-			Machine.Push(new RacerScreen(Machine, IO, Data, &Data.Profile->MainFella, RacerScreenStateInitType::RacerCreation));
-			return Machine.Top();
+			ParentMachine.Push(new CareerHubScreen(ParentMachine, IO, Data));
+			ParentMachine.Push(new RacerScreen(ParentMachine, IO, Data, &Data.Profile->MainFella, RacerScreenStateInitType::RacerCreation));
+			return ParentMachine.Top();
 		}
 
 		//run career hub with it
-		Machine.Push(new CareerHubScreen(Machine, IO, Data));
-		return Machine.Top();
+		ParentMachine.Push(new CareerHubScreen(ParentMachine, IO, Data));
+		return ParentMachine.Top();
 	}
 
 	ExitButton.Update();

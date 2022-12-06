@@ -13,40 +13,40 @@ namespace Game
 
 	namespace Screens
 	{
-		enum class AppStateType
+		enum class AppScreenType
 		{
 			Null, MainMenu, RaceScreen, RacerScreen, CareerHub, RankingScreen
 		};
 		
-		std::string AppStateTypeToString(AppStateType Type);
+		std::string AppStateTypeToString(AppScreenType Type);
 		
-		class AppStateMachine;
+		class AppScreenStateMachine;
 
 		class AppScreen
 		{
 		protected:
-			AppStateMachine& Machine;
+			AppScreenStateMachine& ParentMachine;
 			App::AppIO& IO;
 			App::AppData& Data;
 
 		public:
-			AppScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data);
+			AppScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data);
 			~AppScreen();
 
 			virtual void Entry(), Exit();
 
 			virtual AppScreen* Update();
 
-			AppStateType Type;
+			AppScreenType Type;
 		};
 
-		class AppStateMachine
+		class AppScreenStateMachine
 		{
 			std::stack<AppScreen*> StateStack; 
 			
 		public:
-			AppStateMachine();
-			AppStateMachine(AppScreen*);
+			AppScreenStateMachine();
+			AppScreenStateMachine(AppScreen*);
 
 			void Update();
 

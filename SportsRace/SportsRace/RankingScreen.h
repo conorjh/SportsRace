@@ -17,7 +17,7 @@ namespace Game
 		public:
 
 			GUI::Button ExitButton;
-			RankingScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay);
+			RankingScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay);
 
 			~RankingScreen();
 

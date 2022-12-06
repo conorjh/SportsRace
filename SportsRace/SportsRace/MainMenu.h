@@ -18,7 +18,7 @@ namespace Game
 		public:
 			GUI::Button RaceButton, CareerButton, ExitButton;
 
-			MainMenuScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data);
+			MainMenuScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data);
 			~MainMenuScreen();
 
 			AppScreen* Update();

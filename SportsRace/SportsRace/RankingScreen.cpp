@@ -16,11 +16,11 @@ bool Game::Renderer::RankingScreenRendererData::Load(Render::BaseRenderer& Rende
 	return true;
 }
 
-Game::Screens::RankingScreen::RankingScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay) :
+Game::Screens::RankingScreen::RankingScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay) :
 	AppScreen(_Machine, _IO, _Data),
 	ExitButton(_IO, "Exit", 800, 650, 210, 80)
 {
-	Type = AppStateType::RankingScreen;
+	Type = AppScreenType::RankingScreen;
 	RacerToDisplay = _RacerToDisplay;
 }
 
@@ -36,8 +36,8 @@ AppScreen* Game::Screens::RankingScreen::Update()
 		IO.Player.Play(BuiltInSounds::Click);
 
 		//go back to last screen
-		Machine.Pop();
-		return Machine.Top();
+		ParentMachine.Pop();
+		return ParentMachine.Top();
 	}
 
 	return this;

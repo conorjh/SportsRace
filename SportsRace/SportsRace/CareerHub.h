@@ -15,7 +15,7 @@ namespace Game
 		public:
 			GUI::IconButton RacerIcon, RaceIcon, TrainingIcon, RankingIcon;
 
-			CareerHubScreen(AppStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data);
+			CareerHubScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data);
 			~CareerHubScreen();
 
 			void Entry(), Exit();
