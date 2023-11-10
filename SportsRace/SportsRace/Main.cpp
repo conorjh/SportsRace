@@ -12,7 +12,7 @@ int main(int argc, char* argv[])
 	if (!App.Init())
 		return 0;	
 
-	AppRenderer Renderer(&App.Data, &App.StateMachine);
+	AppRenderer Renderer(&App.Data, &App.ScreenStack);
 	while (!App.Ended())
 	{
 		App.Update();

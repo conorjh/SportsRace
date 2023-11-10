@@ -36,8 +36,8 @@ AppScreen* Game::Screens::RankingScreen::Update()
 		IO.Player.Play(BuiltInSounds::Click);
 
 		//go back to last screen
-		ParentMachine.Pop();
-		return ParentMachine.Top();
+		ScreenStack.Pop();
+		return ScreenStack.Top();
 	}
 
 	return this;

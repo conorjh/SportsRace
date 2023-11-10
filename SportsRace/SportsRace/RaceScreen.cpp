@@ -105,8 +105,8 @@ AppScreen* Game::Screens::RaceScreen::Update()
 		}
 
 		//go back to main menu
-		ParentMachine.Pop();
-		return ParentMachine.Top();
+		ScreenStack.Pop();
+		return ScreenStack.Top();
 	}
 
 	return this;

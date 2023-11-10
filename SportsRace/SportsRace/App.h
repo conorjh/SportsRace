@@ -24,7 +24,7 @@ namespace Game
 
 		class ConfigParser
 		{
-			std::string Filepath;
+			std::string ConfigString;
 		public:
 			ConfigParser(std::string _Filepath);
 
@@ -95,7 +95,7 @@ namespace Game
 			Config Cfg;
 			AppIO IO;
 			AppData Data;
-			Screens::AppScreenStateMachine StateMachine;
+			Screens::AppScreenStateMachine ScreenStack;
 
 			Application(int argc, char* argv[]);
 

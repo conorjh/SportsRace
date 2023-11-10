@@ -47,8 +47,8 @@ AppScreen* Game::Screens::MainMenuScreen::Update()
 		RaceBuffer.Reset();
 
 		//actually run our race
-		ParentMachine.Push(new RaceScreen(ParentMachine, IO, Data, RaceBuffer));
-		return ParentMachine.Top();
+		ScreenStack.Push(new RaceScreen(ScreenStack, IO, Data, RaceBuffer));
+		return ScreenStack.Top();
 	}
 
 	CareerButton.Update();
@@ -62,14 +62,14 @@ AppScreen* Game::Screens::MainMenuScreen::Update()
 			Data.Career = new CareerData();
 
 			//call character creation screen
-			ParentMachine.Push(new CareerHubScreen(ParentMachine, IO, Data));
-			ParentMachine.Push(new RacerScreen(ParentMachine, IO, Data, &Data.Profile->MainFella, RacerScreenStateInitType::RacerCreation));
-			return ParentMachine.Top();
+			ScreenStack.Push(new CareerHubScreen(ScreenStack, IO, Data));
+			ScreenStack.Push(new RacerScreen(ScreenStack, IO, Data, &Data.Profile->MainFella, RacerScreenStateInitType::RacerCreation));
+			return ScreenStack.Top();
 		}
 
 		//run career hub with it
-		ParentMachine.Push(new CareerHubScreen(ParentMachine, IO, Data));
-		return ParentMachine.Top();
+		ScreenStack.Push(new CareerHubScreen(ScreenStack, IO, Data));
+		return ScreenStack.Top();
 	}
 
 	ExitButton.Update();

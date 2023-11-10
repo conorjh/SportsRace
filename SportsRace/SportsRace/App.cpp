@@ -75,15 +75,10 @@ CommandLineSettings ParseCommandLine(CommandLine CmdLine)
 	return Output;
 }
 
-Game::App::ConfigParser::ConfigParser(std::string _Filepath)
+Game::App::ConfigParser::ConfigParser(std::string _ConfigString)
 {
-	Filepath = _Filepath;
+	ConfigString = _ConfigString;
 	
-	if (!FileExists(Filepath))
-	{
-		Errors.AddError("Missing file @ " + Filepath);
-		return;
-	}
 }
 
 Config Game::App::ConfigParser::Parse()
@@ -92,13 +87,12 @@ Config Game::App::ConfigParser::Parse()
 		return Config();
 
 	Config Output;
-
-
 	
 	return Output;
 }
 
-Game::App::Application::Application(int argc, char* argv[]) : CmdLine(argc, argv), IO(Data)
+Game::App::Application::Application(int argc, char* argv[]) 
+	: CmdLine(argc, argv), IO(Data)
 {
 	spdlog::set_level(spdlog::level::level_enum::trace);
 	srand(time(0));
@@ -218,7 +212,7 @@ bool Game::App::Application::Init()
 	IO.Init();
 
 	spdlog::debug("Starting AppStateMachine: Pushing MainMenuScreen");
-	StateMachine.Push(new MainMenuScreen(StateMachine, IO, Data));
+	ScreenStack.Push(new MainMenuScreen(ScreenStack, IO, Data));
 
 	return true;
 }
@@ -227,7 +221,7 @@ void Game::App::Application::Update()
 {
 	IO.Update();
 
-	StateMachine.Update();
+	ScreenStack.Update();
 }
 
 Game::App::AppIO::AppIO(AppData& _Data) : Data(_Data)

@@ -65,8 +65,8 @@ AppScreen* Game::Screens::CareerHubScreen::Update()
 		RaceBuffer->Financials = RaceFinancials(unsigned int(500 * (rand() % 10)), 50 * (rand() % 4));
 		
 		//actually run our race
-		ParentMachine.Push(new RaceScreen(ParentMachine, IO, Data, *RaceBuffer, Orchestrator.Profile->MainFella.GUID));
-		return ParentMachine.Top();
+		ScreenStack.Push(new RaceScreen(ScreenStack, IO, Data, *RaceBuffer, Orchestrator.Profile->MainFella.GUID));
+		return ScreenStack.Top();
 	}
 
 	TrainingIcon.Update();
@@ -75,35 +75,33 @@ AppScreen* Game::Screens::CareerHubScreen::Update()
 		RacerDB* DB = new RacerDB();
 
 		//actually run our race
-		ParentMachine.Push(new RaceScreen(ParentMachine, IO, Data, &Orchestrator.Profile->MainFella));
-		return ParentMachine.Top();
+		ScreenStack.Push(new RaceScreen(ScreenStack, IO, Data, &Orchestrator.Profile->MainFella));
+		return ScreenStack.Top();
 	}
 
 	RacerIcon.Update();
 	if (RacerIcon.HasMouseClicked())
 	{
 		//actually run our race
-		ParentMachine.Push(new RacerScreen(ParentMachine, IO, Data, &Orchestrator.Profile->MainFella, RacerScreenStateInitType::ViewOnly));
-		return ParentMachine.Top();
+		ScreenStack.Push(new RacerScreen(ScreenStack, IO, Data, &Orchestrator.Profile->MainFella, RacerScreenStateInitType::ViewOnly));
+		return ScreenStack.Top();
 	}
 
 	RankingIcon.Update();
 	if (RankingIcon.HasMouseClicked())
 	{
 		//actually run our race
-		ParentMachine.Push(new RankingScreen(ParentMachine, IO, Data, &Orchestrator.Profile->MainFella));
-		return ParentMachine.Top();
+		ScreenStack.Push(new RankingScreen(ScreenStack, IO, Data, &Orchestrator.Profile->MainFella));
+		return ScreenStack.Top();
 	}
 
 	if (IO.Esc)
 	{
 		IO.Player.Play(BuiltInSounds::Click);
 
-		ParentMachine.Pop();
-		return ParentMachine.Top();
-	}
-
-	
+		ScreenStack.Pop();
+		return ScreenStack.Top();
+	}	
 
 	return this;
 }

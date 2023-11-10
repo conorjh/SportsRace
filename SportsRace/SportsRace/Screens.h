@@ -25,7 +25,7 @@ namespace Game
 		class AppScreen
 		{
 		protected:
-			AppScreenStateMachine& ParentMachine;
+			AppScreenStateMachine& ScreenStack;
 			App::AppIO& IO;
 			App::AppData& Data;
 

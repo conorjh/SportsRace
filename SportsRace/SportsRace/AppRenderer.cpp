@@ -13,7 +13,6 @@ Game::App::Renderer::AppRenderer::AppRenderer(AppData* _Data, Screens::AppScreen
 	RacerScreenRen(_Data, &RacerScreenRenData, &BaseRenData),
 	RankingScreenRen(_Data, &RankingScreenRenData, &BaseRenData),
 	CareerHubRen(_Data, &CareerHubRenData, &BaseRenData),
-
 	BaseRenderer(_Data, &BaseRenData)
 {
 	spdlog::debug("Starting AppRenderer");

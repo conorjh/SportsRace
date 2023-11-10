@@ -26,7 +26,6 @@ void Game::Race::Racer::Tick(unsigned int Ms)
 {
     CurrentTick += Ms;
 
-
     if (Pos.X < Skills.SprintCutoff && Pos.X < Skills.StandardCutoff)
     {
         if (rand() % 8 == 1)
