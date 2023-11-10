@@ -44,10 +44,10 @@ namespace Tournie
 
 	struct RoundRobinSchedule : public TournamentSchedule
 	{
-		RoundRobinSchedule(std::vector<Competitor> competitors);
+		RoundRobinSchedule();		
 
 	private:
-		tree<Competition> TournamentTree;
+
 	};
 
 	class TournamentScheduler
@@ -57,7 +57,7 @@ namespace Tournie
 
 	class RoundRobinScheduler : public TournamentScheduler
 	{
-		virtual RoundRobinSchedule CreateTournament(std::vector<Competitor> Competitors);
+		virtual RoundRobinSchedule CreateTournament(std::vector<Competitor> competitors, unsigned int matchesPerOpponent);
 	};
 }
 #endif

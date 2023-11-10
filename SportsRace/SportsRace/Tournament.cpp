@@ -17,3 +17,8 @@ tree<Competition> Tournie::RoundRobinScheduler::CreateTournament(std::vector<Com
 
     return tree<Competition>();
 }
+
+Tournie::RoundRobinSchedule::RoundRobinSchedule(std::vector<Competitor> competitors, unsigned int matchesPerOpponent)
+{
+
+}
