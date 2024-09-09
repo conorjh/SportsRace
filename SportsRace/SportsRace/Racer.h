@@ -32,8 +32,9 @@ namespace Game
 		{
 			RacerGUID() { GUID = 0; }
 			RacerGUID(unsigned int _GUID) { GUID = _GUID; }
-			
+
 			bool operator==(const RacerGUID& Other);
+			bool operator==(RacerGUID& Other);
 			RacerGUID& operator=(const RacerGUID& Other);
 			RacerGUID& operator=(const unsigned int& Other);
 			RacerGUID& operator=(const int& Other);

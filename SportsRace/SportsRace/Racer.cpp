@@ -133,6 +133,11 @@ bool Game::Race::RacerGUID::operator==(const RacerGUID& Other)
     return Other.GUID == GUID;
 }
 
+bool Game::Race::RacerGUID::operator==(RacerGUID& Other)
+{
+    return Other.GUID == GUID;
+}
+
 RacerGUID& Game::Race::RacerGUID::operator=(const RacerGUID& Other)
 {
     GUID = Other.GUID;
