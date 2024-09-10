@@ -2,7 +2,7 @@
 #define UTIL_H
 #include <vector>
 #include <string>
-#include "SDL2/SDL.h"
+#include "SDL3/SDL.h"
 
 namespace Game
 {

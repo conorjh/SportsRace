@@ -1,7 +1,7 @@
 #include "AppRenderer.h"
 #include "Util.h"
 
-#include "SDL2/SDL_image.h"
+#include "SDL3_image/SDL_image.h"
 #include "spdlog/spdlog.h"
 #include <iostream>
 

@@ -1,5 +1,5 @@
 #include "Race.h"
-#include "SDL2/SDL.h"
+#include "SDL3/SDL.h"
 #include "spdlog/spdlog.h"
 #include "Audio.h"
 #include "App.h"

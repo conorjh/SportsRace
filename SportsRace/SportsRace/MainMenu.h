@@ -3,7 +3,7 @@
 #include "Renderer.h"
 #include "Screens.h"
 #include "App.h"
-#include "SDL2/SDL_ttf.h"
+#include "SDL3_ttf/SDL_ttf.h"
 #include "League.h"
 
 namespace Game

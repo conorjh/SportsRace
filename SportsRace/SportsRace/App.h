@@ -1,6 +1,6 @@
 #ifndef APP_H
 #define APP_H
-#include "SDL2/SDL.h"
+#include "SDL3/SDL.h"
 #include "Audio.h"
 #include "CommandLine.h"
 #include "Util.h"

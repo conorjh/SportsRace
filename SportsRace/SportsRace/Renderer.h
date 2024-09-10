@@ -2,7 +2,7 @@
 #define RENDERER_H
 #include "Screens.h"
 #include "App.h"
-#include "SDL2/SDL_ttf.h"
+#include "SDL3_ttf/SDL_ttf.h"
 
 namespace Game
 {

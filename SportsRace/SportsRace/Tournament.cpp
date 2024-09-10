@@ -9,7 +9,7 @@ tree<Competition> Tournie::RoundRobinScheduler::CreateTournament(std::vector<Com
     while (TotalCompetitors < Competitors.size())
         TotalCompetitors *= 2;
 
-    tree<Competition> output()
+    tree<Competition> output();
     while (true)
     {
 
