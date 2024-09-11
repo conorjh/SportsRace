@@ -63,9 +63,11 @@ unsigned int Game::Renderer::RankingScreenRenderer::Render()
 
 
 	//exit
-	SDL_FillRect(Data->RenderData.MainSurface, &State->ExitButton.Rect, SDL_MapRGB(Data->RenderData.MainSurface->format, 255, 0, 0));
+	auto MappedRgb = SDL_MapRGB(SDL_GetPixelFormatDetails(Data->RenderData.MainSurface->format), SDL_GetSurfacePalette(Data->RenderData.MainSurface), 255, 0, 0);
+	SDL_FillSurfaceRect(Data->RenderData.MainSurface, &State->ExitButton.Rect, MappedRgb);
 	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
-	SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->ExitButton.Rect);
+	SDL_FRect RectF;	SDL_RectToFRect(&State->ExitButton.Rect, &RectF);
+	SDL_RenderRect(Data->RenderData.MainRenderer, &RectF);
 	RenderText(BaseData->BigFont, State->ExitButton.Text.c_str(), State->ExitButton.x + 5, State->ExitButton.y + 5, State->ExitButton.Color);
 
 

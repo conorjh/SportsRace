@@ -246,7 +246,9 @@ void Game::Renderer::RaceScreenRenderer::DrawProgressBar()
 	int X = (1024 / 2) - (W / 2), Y = 740;
 	SDL_Rect fillRect = { X ,Y , W,H };
 	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 0, 0, 0, 255);
-	SDL_RenderFillRect(Data->RenderData.MainRenderer, &fillRect);
+	SDL_FRect fillRectF;
+	SDL_RectToFRect(&fillRect, &fillRectF);
+	SDL_RenderFillRect(Data->RenderData.MainRenderer, &fillRectF);
 
 	auto& Race = State->RaceSM.Data.ThisRace;
 	for (int t = Race.Racers.size() - 1; t > -1 ; --t)

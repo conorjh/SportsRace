@@ -92,26 +92,33 @@ unsigned int Game::Renderer::RacerScreenRenderer::Render()
 
 	if (State->InitType == RacerScreenStateInitType::RacerCreation)
 	{
+		auto MappedRgb = SDL_MapRGB(SDL_GetPixelFormatDetails(Data->RenderData.MainSurface->format), SDL_GetSurfacePalette(Data->RenderData.MainSurface), 255,0,0);
+
 		//regen
-		SDL_FillRect(Data->RenderData.MainSurface, &State->RegenButton.Rect, SDL_MapRGB(Data->RenderData.MainSurface->format, 255, 0, 0));
+		SDL_FillSurfaceRect(Data->RenderData.MainSurface, &State->RegenButton.Rect, MappedRgb);
 		SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
-		SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->RegenButton.Rect);
+		SDL_FRect RegenButtonFRect; SDL_RectToFRect(&State->RegenButton.Rect, &RegenButtonFRect);
+		SDL_RenderRect(Data->RenderData.MainRenderer, &RegenButtonFRect);
 		RenderText(BaseData->BigFont, State->RegenButton.Text.c_str(), State->RegenButton.x + 5, State->RegenButton.y + 5, State->RegenButton.Color);
 
 		//apply
-		SDL_FillRect(Data->RenderData.MainSurface, &State->ApplyButton.Rect, SDL_MapRGB(Data->RenderData.MainSurface->format, 255, 0, 0));
+		SDL_FillSurfaceRect(Data->RenderData.MainSurface, &State->ApplyButton.Rect, MappedRgb);
 		SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
-		SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->ApplyButton.Rect);
-		SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->ApplyButton.Rect);
+
+		SDL_FRect ApplyButtonFRect; SDL_RectToFRect(&State->ApplyButton.Rect, &ApplyButtonFRect);
+		SDL_RenderRect(Data->RenderData.MainRenderer, &ApplyButtonFRect);
 		RenderText(BaseData->BigFont, State->ApplyButton.Text.c_str(), State->ApplyButton.x + 5, State->ApplyButton.y + 5, State->ApplyButton.Color);
 	}
 
 	if (State->InitType == RacerScreenStateInitType::ViewOnly)
 	{
+		auto MappedRgb = SDL_MapRGB(SDL_GetPixelFormatDetails(Data->RenderData.MainSurface->format), SDL_GetSurfacePalette(Data->RenderData.MainSurface), 255, 0, 0);
+		
 		//exit
-		SDL_FillRect(Data->RenderData.MainSurface, &State->ExitButton.Rect, SDL_MapRGB(Data->RenderData.MainSurface->format, 255, 0, 0));
+		SDL_FillSurfaceRect(Data->RenderData.MainSurface, &State->ExitButton.Rect, MappedRgb);
 		SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
-		SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->ExitButton.Rect);
+		SDL_FRect ExitButtonFRect; SDL_RectToFRect(&State->ExitButton.Rect, &ExitButtonFRect);
+		SDL_RenderRect(Data->RenderData.MainRenderer, &ExitButtonFRect);
 		RenderText(BaseData->BigFont, State->ExitButton.Text.c_str(), State->ExitButton.x + 5, State->ExitButton.y + 5, State->ExitButton.Color);
 	}
 

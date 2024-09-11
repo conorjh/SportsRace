@@ -127,15 +127,15 @@ bool SDLInit(AppData& Data, Config& Cfg)
 {
 	spdlog::info("SDL Init");
 
-	spdlog::debug("SDL Init - SDL_Init");
-	if (SDL_Init(SDL_INIT_VIDEO) < 0)
+	spdlog::debug("SDL Init - Video");
+	if (!SDL_Init(SDL_INIT_VIDEO))
 	{
 		spdlog::critical("SDL init error: {}", SDL_GetError());
 		return false;
 	}
 
 	spdlog::debug("SDL Init - Creating main window {}, {}", Cfg.ScreenWidth, Cfg.ScreenHeight);
-	Data.RenderData.MainWindow = SDL_CreateWindow("SportsRace", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, Cfg.ScreenWidth, Cfg.ScreenHeight, SDL_WINDOW_SHOWN);
+	Data.RenderData.MainWindow = SDL_CreateWindow("SportsRace", Cfg.ScreenWidth, Cfg.ScreenHeight, NULL);
 	if (Data.RenderData.MainWindow == nullptr)
 	{
 		spdlog::critical("SDL init error SDL_CreateWindow(): {}", SDL_GetError());
@@ -145,7 +145,7 @@ bool SDLInit(AppData& Data, Config& Cfg)
 
 	//Create renderer for window
 	spdlog::debug("SDL Init - Creating renderer");
-	if ((Data.RenderData.MainRenderer = SDL_CreateRenderer(Data.RenderData.MainWindow, -1, SDL_RENDERER_ACCELERATED)) == nullptr)
+	if ((Data.RenderData.MainRenderer = SDL_CreateRenderer(Data.RenderData.MainWindow, NULL)) == nullptr)
 	{
 		spdlog::critical("SDL init error SDL_CreateRenderer(): {}", SDL_GetError());
 		return false;
@@ -165,18 +165,24 @@ bool SDLInit(AppData& Data, Config& Cfg)
 
 	//init TTF
 	spdlog::debug("SDL Init - Init TTF");
-	if (TTF_Init() == -1)
+	if (!TTF_Init())
 	{
 		spdlog::critical("SDL init error TTF_Init(): {}", SDL_GetError());
 		return false;
 	}
 
 	spdlog::debug("SDL Init - Starting Audio {}hz, {}ch, ({})chunksize", 44100, 2, 2048);
-	if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
+	if (!SDL_Init(SDL_INIT_AUDIO))
+	{
+		spdlog::warn("SDL Audio init error: {}", SDL_GetError());
+	}
+	if (!Mix_OpenAudio(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL))
 	{
 		spdlog::warn("SDL Init - Warning, could not start audio: {}", SDL_GetError());
 	}
 
+
+	spdlog::debug("SDL Init complete", 44100, 2, 2048);
 	return true;
 }
 
@@ -244,18 +250,18 @@ void Game::App::AppIO::Update()
 	while (SDL_PollEvent(&Event))
 		switch (Event.type)
 		{
-		case SDL_KEYDOWN:
+		case SDL_EVENT_KEY_DOWN:
 			// Handle any key presses here.
-			if (Event.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
+			if (Event.key.scancode == SDL_SCANCODE_ESCAPE)
 				Esc = true;
 			break;
 
-		case SDL_MOUSEBUTTONDOWN:
+		case SDL_EVENT_MOUSE_BUTTON_DOWN:
 			// Handle mouse clicks here.
 			MouseButtons = Event.button.button;
 			break;
 
-		case SDL_QUIT:
+		case SDL_EVENT_QUIT:
 			Data.Halted = true;
 			break;
 		}

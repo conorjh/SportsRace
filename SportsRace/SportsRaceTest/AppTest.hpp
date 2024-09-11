@@ -5,7 +5,7 @@ namespace Test
 	{
 		int TestConfigParser()
 		{
-			Game::App::ConfigParser Parser;
+			//Game::App::ConfigParser Parser;
 
 
 			return 0;

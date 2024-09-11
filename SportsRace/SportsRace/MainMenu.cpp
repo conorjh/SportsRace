@@ -129,25 +129,30 @@ unsigned int Game::Renderer::MainMenuRenderer::Render()
 
 	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
 	SDL_RenderClear(Data->RenderData.MainRenderer);
+	auto MappedRgb = SDL_MapRGB(SDL_GetPixelFormatDetails(Data->RenderData.MainSurface->format), SDL_GetSurfacePalette(Data->RenderData.MainSurface), 255, 0, 0);
 
 	//draw de buttons
 
 	//race button
-	SDL_FillRect(Data->RenderData.MainSurface, &State->RaceButton.Rect, SDL_MapRGB(Data->RenderData.MainSurface->format, 255, 0, 0));
+
+	SDL_FillSurfaceRect(Data->RenderData.MainSurface, &State->RaceButton.Rect, MappedRgb);
 	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
-	SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->RaceButton.Rect);
+	SDL_FRect RaceButtonFRect; SDL_RectToFRect(&State->RaceButton.Rect, &RaceButtonFRect);
+	SDL_RenderRect(Data->RenderData.MainRenderer, &RaceButtonFRect);
 	RenderText(RendererData->MainFont, State->RaceButton.Text.c_str(), State->RaceButton.x + 5, State->RaceButton.y + 5, State->RaceButton.Color);
 
 	//career button
-	SDL_FillRect(Data->RenderData.MainSurface, &State->CareerButton.Rect, SDL_MapRGB(Data->RenderData.MainSurface->format, 255, 0, 0));
+	SDL_FillSurfaceRect(Data->RenderData.MainSurface, &State->CareerButton.Rect, MappedRgb);
 	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
-	SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->CareerButton.Rect);
+	SDL_FRect CareerButtonFRect; SDL_RectToFRect(&State->CareerButton.Rect, &CareerButtonFRect);
+	SDL_RenderRect(Data->RenderData.MainRenderer, &CareerButtonFRect);
 	RenderText(RendererData->MainFont, State->CareerButton.Text.c_str(), State->CareerButton.x + 5, State->CareerButton.y + 5, State->CareerButton.Color);
 
 	//exit button
-	SDL_FillRect(Data->RenderData.MainSurface, &State->ExitButton.Rect, SDL_MapRGB(Data->RenderData.MainSurface->format, 255, 0, 0));
+	SDL_FillSurfaceRect(Data->RenderData.MainSurface, &State->ExitButton.Rect, MappedRgb);
 	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
-	SDL_RenderDrawRect(Data->RenderData.MainRenderer, &State->ExitButton.Rect);
+	SDL_FRect ExitButtonFRect; SDL_RectToFRect(&State->ExitButton.Rect, &ExitButtonFRect);
+	SDL_RenderRect(Data->RenderData.MainRenderer, &ExitButtonFRect);
 	RenderText(RendererData->MainFont, State->ExitButton.Text.c_str(), State->ExitButton.x + 5, State->ExitButton.y + 5, State->ExitButton.Color);
 
 	//League standings

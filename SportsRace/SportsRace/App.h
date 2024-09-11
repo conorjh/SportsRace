@@ -84,7 +84,7 @@ namespace Game
 
 			bool Esc = false;
 			Audio::AudioPlayer Player;
-			SDL_Point MousePosition;
+			SDL_FPoint MousePosition;
 			Uint32 MouseButtons;
 		};
 
