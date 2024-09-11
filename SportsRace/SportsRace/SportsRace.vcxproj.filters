@@ -45,9 +45,6 @@
     <ClCompile Include="Audio.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="League.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="RaceState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -99,9 +96,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Audio.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="League.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TODO.h">

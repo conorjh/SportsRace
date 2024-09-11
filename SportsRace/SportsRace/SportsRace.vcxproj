@@ -166,7 +166,6 @@ xcopy $(SolutionDir)lib\$(Platform)\$(Configuration)\LICENSE.*.txt $(OutDir) /s 
     <ClCompile Include="CareerHub.cpp" />
     <ClCompile Include="CommandLine.cpp" />
     <ClCompile Include="Game.cpp" />
-    <ClCompile Include="League.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MainMenu.cpp" />
     <ClCompile Include="Race.cpp" />
@@ -188,7 +187,6 @@ xcopy $(SolutionDir)lib\$(Platform)\$(Configuration)\LICENSE.*.txt $(OutDir) /s 
     <ClInclude Include="CommandLine.h" />
     <ClInclude Include="Audio.h" />
     <ClInclude Include="RacerScreen.h" />
-    <ClInclude Include="League.h" />
     <ClInclude Include="MainMenu.h" />
     <ClInclude Include="Race.h" />
     <ClInclude Include="Racer.h" />
