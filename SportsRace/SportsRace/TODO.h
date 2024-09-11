@@ -27,6 +27,8 @@ Demo 2 Todo
 - settings screen
 	- audio
 	- graphics
+- SDL3 migration
+
 
 Demo 3 Todo
 - Better animation for runners
