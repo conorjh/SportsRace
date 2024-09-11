@@ -3,6 +3,12 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+# Whitelist our lib folder
+!lib/Debug
+!lib/Release
+!lib/*
+
+
 # User-specific files
 *.rsuser
 *.suo
