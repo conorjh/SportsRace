@@ -134,22 +134,17 @@ bool SDLInit(AppData& Data, Config& Cfg)
 		return false;
 	}
 
+	//graphics
 	spdlog::debug("SDL Init - Creating main window {}, {}", Cfg.ScreenWidth, Cfg.ScreenHeight);
-	Data.RenderData.MainWindow = SDL_CreateWindow("SportsRace", Cfg.ScreenWidth, Cfg.ScreenHeight, NULL);
-	if (Data.RenderData.MainWindow == nullptr)
+	if (!SDL_CreateWindowAndRenderer("SportsRace", Cfg.ScreenWidth, Cfg.ScreenHeight, NULL, &Data.RenderData.MainWindow, &Data.RenderData.MainRenderer))
 	{
-		spdlog::critical("SDL init error SDL_CreateWindow(): {}", SDL_GetError());
+		spdlog::critical("SDL init error SDL_CreateWindowAndRenderer(): {}", SDL_GetError());
 		return false;
 	}
-	Data.RenderData.MainSurface = SDL_GetWindowSurface(Data.RenderData.MainWindow);
+	Data.RenderData.MainSurface = SDL_CreateSurface(Cfg.ScreenWidth, Cfg.ScreenHeight, SDL_GetWindowPixelFormat(Data.RenderData.MainWindow));
 
-	//Create renderer for window
-	spdlog::debug("SDL Init - Creating renderer");
-	if ((Data.RenderData.MainRenderer = SDL_CreateRenderer(Data.RenderData.MainWindow, NULL)) == nullptr)
-	{
-		spdlog::critical("SDL init error SDL_CreateRenderer(): {}", SDL_GetError());
-		return false;
-	}
+	//spdlog::critical("SDL init error SDL_CreateSurface(): {}", SDL_GetError());
+	//return false;
 
 	//Initialize renderer color
 	SDL_SetRenderDrawColor(Data.RenderData.MainRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
