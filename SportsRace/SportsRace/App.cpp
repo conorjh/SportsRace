@@ -166,18 +166,15 @@ bool SDLInit(AppData& Data, Config& Cfg)
 		return false;
 	}
 
+	//init audio
 	spdlog::debug("SDL Init - Starting Audio {}hz, {}ch, ({})chunksize", 44100, 2, 2048);
 	if (!SDL_Init(SDL_INIT_AUDIO))
-	{
 		spdlog::warn("SDL Audio init error: {}", SDL_GetError());
-	}
+
 	if (!Mix_OpenAudio(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL))
-	{
-		spdlog::warn("SDL Init - Warning, could not start audio: {}", SDL_GetError());
-	}
+		spdlog::warn("SDL Init - Warning, could not start default audio device: {}", SDL_GetError());
 
-
-	spdlog::debug("SDL Init complete", 44100, 2, 2048);
+	spdlog::debug("SDL Init complete");
 	return true;
 }
 
@@ -192,6 +189,7 @@ bool SDLClose(AppData& Data)
 	Data.RenderData.MainWindow = nullptr;
 
 	//Quit SDL subsystems
+	Mix_Quit();
 	TTF_Quit();
 	IMG_Quit();
 	SDL_Quit();
