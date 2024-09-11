@@ -49,8 +49,8 @@ namespace Game
 		public:
 			BaseRenderer(App::AppData* _Data, Render::BaseRendererData* _BaseData);
 
-			void LoadImageFile(std::string File, Image&);
-			void LoadFontFile(std::string File, unsigned int Size, TTF_Font*);
+			bool LoadImageFile(std::string File, Image&);
+			bool LoadFontFile(std::string File, unsigned int Size, TTF_Font*);
 
 			virtual void RenderText(TTF_Font*, std::string Text, int x, int y, SDL_Color Color);
 			void RenderImage(SDL_Texture* Surface, SDL_Rect* SourceQuad, SDL_Rect* RenderQuad);

@@ -21,29 +21,32 @@ Game::Render::BaseRenderer::BaseRenderer(AppData* _Data, BaseRendererData* _Base
 	LastFrameEnd = 0;
 }
 
-void Game::Render::BaseRenderer::LoadImageFile(std::string File, Image& Img)
+bool Game::Render::BaseRenderer::LoadImageFile(std::string File, Image& Img)
 {
-	Img.Surface = IMG_Load(File.c_str());
-	Img.Texture = SDL_CreateTextureFromSurface(Data->RenderData.MainRenderer, Img.Surface);
+	if ((Img.Surface = IMG_Load(File.c_str())) == nullptr)
+		return false;
+
+	if ((Img.Texture = SDL_CreateTextureFromSurface(Data->RenderData.MainRenderer, Img.Surface)) == nullptr)
+		return false;
 }
 
-void Game::Render::BaseRenderer::LoadFontFile(std::string File, unsigned int Size, TTF_Font* Font)
+bool Game::Render::BaseRenderer::LoadFontFile(std::string File, unsigned int Size, TTF_Font* Font)
 {
-	Font = TTF_OpenFont(File.c_str(), Size);
+	return (Font = TTF_OpenFont(File.c_str(), Size)) != nullptr;
 }
 
 void Game::Render::BaseRenderer::RenderTextSingleLine(TTF_Font* Font, std::string Text, int x, int y, SDL_Color Color)
 {
 	SDL_Surface* surfaceMessage = TTF_RenderText_Blended(Font, Text.c_str(), Color);
 	SDL_Texture* Message = SDL_CreateTextureFromSurface(Data->RenderData.MainRenderer, surfaceMessage);
-	SDL_FPoint size; SDL_GetTextureSize(Message, &size.x, &size.y);
-	SDL_FRect r = { 0, 0, size.x, size.y };
+	
 	SDL_FRect Message_rect; //create a rect
 	Message_rect.x = x;  //controls the rect's x coordinate 
 	Message_rect.y = y; // controls the rect's y coordinte
+	SDL_FPoint size; SDL_GetTextureSize(Message, &size.x, &size.y);
 	Message_rect.w = size.x; // controls the width of the rect
 	Message_rect.h = size.y; // controls the height of the rect
-	SDL_RenderTexture(Data->RenderData.MainRenderer, Message, &r, &Message_rect);
+	SDL_RenderTexture(Data->RenderData.MainRenderer, Message, NULL, &Message_rect);
 
 	// Don't forget to free your surface and texture
 	SDL_DestroySurface(surfaceMessage);
@@ -85,7 +88,10 @@ void Game::Render::BaseRenderer::Display()
 void Game::Render::BaseRenderer::RenderImage(SDL_Texture* Texture, SDL_Rect* SourceQuad, SDL_Rect* RenderQuad)
 {
 	SDL_FRect SourceQuadF, RenderQuadF;
-	SDL_RectToFRect(SourceQuad, &SourceQuadF);
+	if (SourceQuad == nullptr)
+		SDL_GetTextureSize(Texture, &SourceQuadF.w, &SourceQuadF.h);
+	else
+		SDL_RectToFRect(SourceQuad, &SourceQuadF);
 	SDL_RectToFRect(RenderQuad, &RenderQuadF);
 	SDL_RenderTexture(Data->RenderData.MainRenderer, Texture, &SourceQuadF, &RenderQuadF);
 }
