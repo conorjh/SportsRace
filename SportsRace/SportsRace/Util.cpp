@@ -66,11 +66,10 @@ void Game::GUI::Button::Update()
 
 bool Game::GUI::Button::IsMouseOver()
 {
-	SDL_Point MousePositionInt
-	{
-		x = IO.MousePosition.x,
-		y = IO.MousePosition.y
-	};
+	SDL_Point MousePositionInt;
+
+	MousePositionInt.x = IO.MousePosition.x;
+	MousePositionInt.y = IO.MousePosition.y;
 
 	return SDL_PointInRect(&MousePositionInt, &Rect);
 }
@@ -109,11 +108,10 @@ void Game::GUI::IconButton::Update()
 
 bool Game::GUI::IconButton::IsMouseOver()
 {
-	SDL_Point MousePositionInt
-	{
-		x = IO.MousePosition.x,
-		y = IO.MousePosition.y
-	};
+	SDL_Point MousePositionInt;
+
+	MousePositionInt.x = IO.MousePosition.x;
+	MousePositionInt.y = IO.MousePosition.y;
 
 	return SDL_PointInRect(&MousePositionInt, &Rect);
 }
