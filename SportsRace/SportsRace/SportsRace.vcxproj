@@ -125,6 +125,11 @@
       <AdditionalLibraryDirectories>$(SolutionDir)lib\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>SDL3.lib;SDL3_image.lib;SDL3_ttf.lib;SDL3_mixer.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy $(SolutionDir)media\*.* $(OutDir) /s /e /h /r /y
+xcopy $(SolutionDir)lib\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
+xcopy $(SolutionDir)lib\$(Platform)\$(Configuration)\LICENSE.*.txt $(OutDir) /s /e /h /r /y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -147,6 +152,11 @@
       <Version>
       </Version>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy $(SolutionDir)media\*.* $(OutDir) /s /e /h /r /y
+xcopy $(SolutionDir)lib\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
+xcopy $(SolutionDir)lib\$(Platform)\$(Configuration)\LICENSE.*.txt $(OutDir) /s /e /h /r /y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="App.cpp" />
@@ -167,8 +177,6 @@
     <ClCompile Include="RankingScreen.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="State.cpp" />
-    <ClCompile Include="Tournament.cpp" />
-    <ClCompile Include="Tournament.hpp" />
     <ClCompile Include="Util.cpp" />
   </ItemGroup>
   <ItemGroup>
