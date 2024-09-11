@@ -142,10 +142,10 @@ bool SDLInit(AppData& Data, Config& Cfg)
 		return false;
 	}
 	Data.RenderData.MainSurface = SDL_CreateSurface(Cfg.ScreenWidth, Cfg.ScreenHeight, SDL_GetWindowPixelFormat(Data.RenderData.MainWindow));
-
+	
 	//spdlog::critical("SDL init error SDL_CreateSurface(): {}", SDL_GetError());
 	//return false;
-
+	
 	//Initialize renderer color
 	SDL_SetRenderDrawColor(Data.RenderData.MainRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
@@ -168,7 +168,7 @@ bool SDLInit(AppData& Data, Config& Cfg)
 
 	//init audio
 	spdlog::debug("SDL Init - Starting Audio {}hz, {}ch, ({})chunksize", 44100, 2, 2048);
-	if (!SDL_Init(SDL_INIT_AUDIO))
+	if (!SDL_Init(SDL_INIT_AUDIO))	
 		spdlog::warn("SDL Audio init error: {}", SDL_GetError());
 
 	if (!Mix_OpenAudio(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL))
