@@ -1,0 +1,1 @@
+C:\Users\Scusi\source\repos\SDL_image\VisualC\x64\Debug\SDL3_image.dll

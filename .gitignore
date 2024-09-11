@@ -3,14 +3,6 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
-# Whitelist our lib folder
-!SportsRace/lib
-!SportsRace/lib/x64/*
-!SportsRace/lib/Win32/*
-!SportsRace/lib/x64/Debug
-!SportsRace/lib/x64/Release
-!SportsRace/lib/Win32/Debug
-!SportsRace/lib/Win32/Release
 
 
 # User-specific files
@@ -41,6 +33,14 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+
+# Whitelist our lib folder
+!**/lib
+!**/lib/x64/Debug
+!**/lib/Win32/Debug
+!**/lib/*
+!**/lib/Win32/*
+!**/lib/Win32/Debug/*
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
