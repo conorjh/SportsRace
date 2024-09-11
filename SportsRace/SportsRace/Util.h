@@ -66,8 +66,7 @@ namespace Game
 		unsigned int RandomNumU(unsigned int Max);
 		bool FileExists(std::string Filepath);
 		std::string uitos(unsigned int i);
-		std::string itos(int i);
-		
+		std::string itos(int i);		
 	}
 }
 

@@ -26,6 +26,7 @@ Game::App::Renderer::AppRenderer::AppRenderer(AppData* _Data, Screens::AppScreen
 	RacerScreenRenData.Load(*this);
 	CareerHubRenData.Load(*this);
 	RankingScreenRenData.Load(*this);
+	spdlog::debug("Loaded renderer data");
 
 }
 

@@ -4,7 +4,6 @@
 #include "Screens.h"
 #include "App.h"
 #include "SDL3_ttf/SDL_ttf.h"
-#include "League.h"
 
 namespace Game
 {

@@ -22,8 +22,8 @@ bool Game::Renderer::MainMenuRendererData::Load(Render::BaseRenderer& Renderer)
 
 	return true;
 }
-Game::Screens::MainMenuScreen::MainMenuScreen(AppScreenStateMachine& _Machine, AppIO& _IO, AppData& _Data) : 
-	AppScreen(_Machine, _IO, _Data),
+Game::Screens::MainMenuScreen::MainMenuScreen(AppScreenStateMachine& _Machine, AppIO& _IO, AppData& _Data) 
+	: AppScreen(_Machine, _IO, _Data),
 	RaceButton(_IO, "Race", 100, 100, 210, 80),
 	CareerButton(_IO, "Career", 100, 200, 290, 80),
 	ExitButton(_IO, "Exit", 100, 400, 180, 80)
@@ -81,12 +81,14 @@ AppScreen* Game::Screens::MainMenuScreen::Update()
 
 
 
-Game::Renderer::MainMenuRenderer::MainMenuRenderer(AppData* _Data, MainMenuRendererData* _RenData, Render::BaseRendererData* _BaseData) : RendererData(_RenData), BaseRenderer(_Data, _BaseData)
+Game::Renderer::MainMenuRenderer::MainMenuRenderer(AppData* _Data, MainMenuRendererData* _RenData, Render::BaseRendererData* _BaseData) 
+	: RendererData(_RenData), BaseRenderer(_Data, _BaseData)
 {
 	State = nullptr;
 }
 
-Game::Renderer::MainMenuRenderer::MainMenuRenderer(AppData* _Data, MainMenuScreen* _State, MainMenuRendererData* _RenData, Render::BaseRendererData* _BaseData) : State(_State), RendererData(_RenData), BaseRenderer(_Data, _BaseData)
+Game::Renderer::MainMenuRenderer::MainMenuRenderer(AppData* _Data, MainMenuScreen* _State, MainMenuRendererData* _RenData, Render::BaseRendererData* _BaseData) 
+	: State(_State), RendererData(_RenData), BaseRenderer(_Data, _BaseData)
 {
 
 }
@@ -134,7 +136,6 @@ unsigned int Game::Renderer::MainMenuRenderer::Render()
 	//draw de buttons
 
 	//race button
-
 	SDL_FillSurfaceRect(Data->RenderData.MainSurface, &State->RaceButton.Rect, MappedRgb);
 	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
 	SDL_FRect RaceButtonFRect; SDL_RectToFRect(&State->RaceButton.Rect, &RaceButtonFRect);
