@@ -4,9 +4,13 @@
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
 # Whitelist our lib folder
-!lib/Debug
-!lib/Release
 !lib/*
+!lib/x64/*
+!lib/Win32/*
+!lib/x64/Debug
+!lib/x64/Release
+!lib/Win32/Debug
+!lib/Win32/Release
 
 
 # User-specific files
