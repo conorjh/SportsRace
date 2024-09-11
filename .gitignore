@@ -4,13 +4,13 @@
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
 # Whitelist our lib folder
-!Sportsrace/lib/*
-!Sportsrace/lib/x64/*
-!Sportsrace/lib/Win32/*
-!Sportsrace/lib/x64/Debug
-!Sportsrace/lib/x64/Release
-!Sportsrace/lib/Win32/Debug
-!Sportsrace/lib/Win32/Release
+!SportsRace/lib
+!SportsRace/lib/x64/*
+!SportsRace/lib/Win32/*
+!SportsRace/lib/x64/Debug
+!SportsRace/lib/x64/Release
+!SportsRace/lib/Win32/Debug
+!SportsRace/lib/Win32/Release
 
 
 # User-specific files
