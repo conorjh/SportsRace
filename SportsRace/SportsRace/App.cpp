@@ -208,7 +208,9 @@ bool Game::App::Application::Init()
 	srand(time(0));
 
 	spdlog::debug("IO Init");
-	IO.Init();
+
+	if (!IO.Init())
+		return false;
 
 	spdlog::debug("Starting AppStateMachine: Pushing MainMenuScreen");
 	ScreenStack.Push(new MainMenuScreen(ScreenStack, IO, Data));
