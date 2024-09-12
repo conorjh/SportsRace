@@ -11,7 +11,7 @@ using namespace Game::Race;
 
 bool Game::Renderer::RankingScreenRendererData::Load(Render::BaseRenderer& Renderer)
 {
-	Renderer.LoadImageFile("screen.png", Screen);
+	Renderer.LoadImageFile("screen.png", Background);
 
 	return true;
 }
@@ -59,7 +59,7 @@ unsigned int Game::Renderer::RankingScreenRenderer::Render()
 	SDL_RenderClear(Data->RenderData.MainRenderer);
 
 	SDL_Rect RenderQuad1 = { 120 , 50 , 378 * 2 , 359 };
-	RenderImage(RendererData->Screen.Texture, NULL, &RenderQuad1);
+	RenderImage(RendererData->Background.Texture, NULL, &RenderQuad1);
 
 
 	//exit

@@ -33,7 +33,7 @@ namespace Game
 			bool Load(Render::BaseRenderer& Renderer);
 
 
-			Render::Image Screen;
+			Render::Image Background;
 			SDL_Texture* InfoFontT, * DebugFontT, * WinningFontT;
 			SDL_Texture* RacerTexture;
 

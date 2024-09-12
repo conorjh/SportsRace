@@ -20,7 +20,7 @@ bool Game::Renderer::RaceScreenRendererData::Load(Render::BaseRenderer& Renderer
 	Renderer.LoadImageFile("mountains.png", MountainsGraphic);
 	Renderer.LoadImageFile("fellarun.png", FellaRun);
 	Renderer.LoadImageFile("fellawait.png", FellaWait);
-	Renderer.LoadImageFile("screen.png", Screen);
+	Renderer.LoadImageFile("screen.png", Background);
 
 	return true;
 }
@@ -181,7 +181,7 @@ void Game::Renderer::RaceScreenRenderer::DrawWinners()
 	if (State->RaceSM.Data.ThisRace.Result.RacerResults.size() > 0)
 	{
 		SDL_Rect RenderQuad2 = { 280, 220 , 378 , 359 };
-		RenderImage(RendererData->Screen.Texture, NULL, &RenderQuad2);
+		RenderImage(RendererData->Background.Texture, NULL, &RenderQuad2);
 		for (int t = 0; t < State->RaceSM.Data.ThisRace.Result.RacerResults.size() && t < 3; ++t)
 		{
 			auto& Result = State->RaceSM.Data.ThisRace.Result.RacerResults[t];

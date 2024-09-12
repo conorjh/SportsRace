@@ -79,7 +79,8 @@ bool Game::GUI::Button::HasMouseClicked()
 	return IsMouseOver() && SDL_BUTTON(IO.MouseButtons) == 1;
 }
 
-Game::GUI::IconButton::IconButton(App::AppIO& _IO, IconButtonType _Type, int _x, int _y, int _w, int _h) : IO(_IO), Type(_Type)
+Game::GUI::IconButton::IconButton(App::AppIO& _IO, IconButtonType _Type, int _x, int _y, int _w, int _h) 
+	: IO(_IO), Type(_Type)
 {
 	x = _x;
 	y = _y;

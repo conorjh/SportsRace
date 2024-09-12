@@ -27,7 +27,6 @@ bool Game::Renderer::CareerHubRendererData::Load(Render::BaseRenderer& Renderer)
 Game::Screens::CareerHubScreen::CareerHubScreen(AppScreenStateMachine& _Machine, AppIO& _IO, AppData& _Data) :
 	AppScreen(_Machine, _IO, _Data),
 	Orchestrator(_Data.Career, _Data.Profile),
-
 	RaceIcon(_IO, IconButtonType::Race, 700, 450, 200, 200),
 	TrainingIcon(_IO, IconButtonType::Training, 700, 50, 200, 200),
 	RankingIcon(_IO, IconButtonType::Ranking, 100, 450, 200, 200),

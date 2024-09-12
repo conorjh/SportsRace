@@ -31,7 +31,7 @@ namespace Game
 		{
 			bool Load(Render::BaseRenderer& Renderer);
 
-			Render::Image Screen;
+			Render::Image Background;
 
 			TTF_Font* MainFont;
 		};

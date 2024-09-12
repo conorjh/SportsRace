@@ -14,7 +14,7 @@ bool Game::Renderer::RacerScreenRendererData::Load(Render::BaseRenderer& Rendere
 	Renderer.LoadImageFile("track.png", TrackGraphic);
 	Renderer.LoadImageFile("fellarun.png", FellaRun);
 	Renderer.LoadImageFile("fellawait.png", FellaWait);
-	Renderer.LoadImageFile("screen.png", Screen);
+	Renderer.LoadImageFile("screen.png", Background);
 
 	return true;
 }
@@ -75,10 +75,10 @@ unsigned int Game::Renderer::RacerScreenRenderer::Render()
 	SDL_RenderClear(Data->RenderData.MainRenderer);
 
 	SDL_Rect RenderQuad1 = { 100 , 100 , 378 , 359 };
-	RenderImage(RendererData->Screen.Texture, NULL, &RenderQuad1);
+	RenderImage(RendererData->Background.Texture, NULL, &RenderQuad1);
 
 	SDL_Rect RenderQuad2 = { 500 , 100 , 378 , 359 };
-	RenderImage(RendererData->Screen.Texture, NULL, &RenderQuad2);
+	RenderImage(RendererData->Background.Texture, NULL, &RenderQuad2);
 
 
 	std::string SecondScreen = "Name: " + Data->Profile->MainFella.Name + "\n" + "\n" +

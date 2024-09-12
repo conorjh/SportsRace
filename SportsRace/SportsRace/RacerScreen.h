@@ -39,7 +39,7 @@ namespace Game
 			bool Load(Render::BaseRenderer& Renderer);
 
 
-			Render::Image RacerGraphic, Head, TrackGraphic, FellaRun, FellaWait, Screen;
+			Render::Image RacerGraphic, Head, TrackGraphic, FellaRun, FellaWait, Background;
 			SDL_Texture* InfoFontT, * DebugFontT, * WinningFontT;
 			SDL_Texture* RacerTexture;
 
