@@ -1,5 +1,6 @@
 #include "App.h"
 #include "AppRenderer.h"
+#include "SDL3/SDL_main.h"
 
 using namespace Game;
 using namespace Game::App;
