@@ -17,10 +17,11 @@ using namespace Game::Career;
 
 bool Game::Renderer::MainMenuRendererData::Load(Render::BaseRenderer& Renderer)
 {
-	Renderer.LoadImageFile("screen.png", Background);
-	MainFont = TTF_OpenFont("menu_font.ttf", 96);
-
-	return true;
+	if ( !Renderer.LoadImageFile("screen.png", Background) ||		
+		((MainFont = TTF_OpenFont("menu_font.ttf", 96)) == nullptr) )	
+		return false;
+	
+return true;
 }
 
 Game::Screens::MainMenuScreen::MainMenuScreen(AppScreenStateMachine& _Machine, AppIO& _IO, AppData& _Data) 

@@ -11,17 +11,17 @@ using namespace std;
 
 bool Game::Renderer::RaceScreenRendererData::Load(Render::BaseRenderer& Renderer)
 {
-	Renderer.LoadFontFile("menu_font.ttf", 16, WinningFont);
-	Renderer.LoadImageFile("reido.png", Head);
-	Renderer.LoadImageFile("track.png", TrackGraphic);
-	Renderer.LoadImageFile("stadium.png", StadiumGraphic);
-	Renderer.LoadImageFile("startingblock.png", StartingBlocksGraphic);
-	Renderer.LoadImageFile("clouds.png", CloudsGraphic);
-	Renderer.LoadImageFile("mountains.png", MountainsGraphic);
-	Renderer.LoadImageFile("fellarun.png", FellaRun);
-	Renderer.LoadImageFile("fellawait.png", FellaWait);
-	Renderer.LoadImageFile("screen.png", Background);
-
+	if (!Renderer.LoadFontFile("menu_font.ttf", 16, WinningFont) ||
+		!Renderer.LoadImageFile("reido.png", Head) ||
+		!Renderer.LoadImageFile("track.png", TrackGraphic) ||
+		!Renderer.LoadImageFile("stadium.png", StadiumGraphic) ||
+		!Renderer.LoadImageFile("startingblock.png", StartingBlocksGraphic) ||
+		!Renderer.LoadImageFile("clouds.png", CloudsGraphic) ||
+		!Renderer.LoadImageFile("mountains.png", MountainsGraphic) ||
+		!Renderer.LoadImageFile("fellarun.png", FellaRun) ||
+		!Renderer.LoadImageFile("fellawait.png", FellaWait) ||
+		!Renderer.LoadImageFile("screen.png", Background))
+		return false;
 	return true;
 }
 

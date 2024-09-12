@@ -10,12 +10,12 @@ using namespace Game::Race;
 
 bool Game::Renderer::RacerScreenRendererData::Load(Render::BaseRenderer& Renderer)
 {
-	Renderer.LoadImageFile("reido.png", Head);
-	Renderer.LoadImageFile("track.png", TrackGraphic);
-	Renderer.LoadImageFile("fellarun.png", FellaRun);
-	Renderer.LoadImageFile("fellawait.png", FellaWait);
-	Renderer.LoadImageFile("screen.png", Background);
-
+	if (!Renderer.LoadImageFile("reido.png", Head) ||
+		!Renderer.LoadImageFile("track.png", TrackGraphic) ||
+		!Renderer.LoadImageFile("fellarun.png", FellaRun) ||
+		!Renderer.LoadImageFile("fellawait.png", FellaWait) ||
+		!Renderer.LoadImageFile("screen.png", Background))
+		return false;
 	return true;
 }
 
