@@ -103,7 +103,7 @@ Game::App::Application::Application(int argc, char* argv[])
 	spdlog::debug("Parsing command line");
 	auto Settings = ParseCommandLine(CmdLine);
 	if(Settings.Errors.HasErrored())
-		spdlog::debug("Parsing command line");
+		spdlog::debug("Parsing command line failed");
 	
 	/*
 	* Config parser - TODO
@@ -134,17 +134,14 @@ bool SDLInit(AppData& Data, Config& Cfg)
 		return false;
 	}
 
-	//graphics
+	//graphics - main window
 	spdlog::debug("SDL Init - Creating main window {}, {}", Cfg.ScreenWidth, Cfg.ScreenHeight);
 	if (!SDL_CreateWindowAndRenderer("SportsRace", Cfg.ScreenWidth, Cfg.ScreenHeight, NULL, &Data.RenderData.MainWindow, &Data.RenderData.MainRenderer))
 	{
-		spdlog::critical("SDL init error SDL_CreateWindowAndRenderer(): {}", SDL_GetError());
+		spdlog::critical("SDL init error, SDL_CreateWindowAndRenderer(): {}", SDL_GetError());
 		return false;
 	}
 	Data.RenderData.MainSurface = SDL_CreateSurface(Cfg.ScreenWidth, Cfg.ScreenHeight, SDL_GetWindowPixelFormat(Data.RenderData.MainWindow));
-	
-	//spdlog::critical("SDL init error SDL_CreateSurface(): {}", SDL_GetError());
-	//return false;
 	
 	//Initialize renderer color
 	SDL_SetRenderDrawColor(Data.RenderData.MainRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
