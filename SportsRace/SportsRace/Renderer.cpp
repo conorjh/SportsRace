@@ -10,10 +10,7 @@ using namespace Game;
 using namespace Game::App;
 using namespace Game::Screens;
 using namespace Game::Render;
-
 using namespace Game::Race;
-
-
 
 Game::Render::BaseRenderer::BaseRenderer(AppData* _Data, BaseRendererData* _BaseData) : BaseData(_BaseData)
 {
@@ -23,16 +20,28 @@ Game::Render::BaseRenderer::BaseRenderer(AppData* _Data, BaseRendererData* _Base
 
 bool Game::Render::BaseRenderer::LoadImageFile(std::string File, Image& Img)
 {
+	spdlog::trace("Loading image: " + File);
 	if ((Img.Surface = IMG_Load(File.c_str())) == nullptr)
+	{
+		spdlog::error("Failed to load image: " + string(SDL_GetError()));
 		return false;
+	}
 
 	if ((Img.Texture = SDL_CreateTextureFromSurface(Data->RenderData.MainRenderer, Img.Surface)) == nullptr)
+	{
+		spdlog::error("Failed to create texture: " + string(SDL_GetError()));
 		return false;
+	}
 }
 
 bool Game::Render::BaseRenderer::LoadFontFile(std::string File, unsigned int Size, TTF_Font* Font)
 {
-	return (Font = TTF_OpenFont(File.c_str(), Size)) != nullptr;
+	if ((Font = TTF_OpenFont(File.c_str(), Size)) == nullptr)
+	{
+		spdlog::error("Failed to load font " + File + ": " + SDL_GetError());
+		return false;
+	}
+	return true;
 }
 
 void Game::Render::BaseRenderer::RenderTextSingleLine(TTF_Font* Font, std::string Text, int x, int y, SDL_Color Color)
@@ -89,7 +98,10 @@ void Game::Render::BaseRenderer::RenderImage(SDL_Texture* Texture, SDL_Rect* Sou
 {
 	SDL_FRect SourceQuadF, RenderQuadF;
 	if (SourceQuad == nullptr)
+	{
+		SourceQuadF.x = SourceQuadF.y = 0;
 		SDL_GetTextureSize(Texture, &SourceQuadF.w, &SourceQuadF.h);
+	}
 	else
 		SDL_RectToFRect(SourceQuad, &SourceQuadF);
 	SDL_RectToFRect(RenderQuad, &RenderQuadF);
