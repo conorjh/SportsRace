@@ -15,17 +15,20 @@ Game::App::Renderer::AppRenderer::AppRenderer(AppData* _Data, Screens::AppScreen
 	CareerHubRen(_Data, &CareerHubRenData, &BaseRenData),
 	BaseRenderer(_Data, &BaseRenData)
 {
+	using namespace std;
+
 	spdlog::debug("Starting AppRenderer");
 	StateMachine = _StateMachine;
 
-	//Load datas
+	//Load datas -  constructing strings to allow for one line concatenation because C++ still 
+	//				makes you jump through hoops to do the most common tasks
 	spdlog::debug("Loading renderer data...");
-	BaseData->Load(*this);
-	MainMenuRenData.Load(*this);
-	InRaceRenData.Load(*this);
-	RacerScreenRenData.Load(*this);
-	CareerHubRenData.Load(*this);
-	RankingScreenRenData.Load(*this);
+	spdlog::debug(string("Loading BaseData...")				+ string(BaseData->Load(*this) ? "success" : "failed"));
+	spdlog::debug(string("Loading MainMenuRenData...")		+ string(MainMenuRenData.Load(*this) ? "success" : "failed"));
+	spdlog::debug(string("Loading InRaceRenData...")		+ string(InRaceRenData.Load(*this) ? "success" : "failed"));
+	spdlog::debug(string("Loading RacerScreenRenData...")	+ string(RacerScreenRenData.Load(*this) ? "success" : "failed"));
+	spdlog::debug(string("Loading CareerHubRenData...")		+ string(CareerHubRenData.Load(*this) ? "success" : "failed"));
+	spdlog::debug(string("Loading RankingScreenRenData...") + string(RankingScreenRenData.Load(*this) ? "success" : "failed"));
 	spdlog::debug("Loaded renderer data");
 
 }
