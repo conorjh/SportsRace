@@ -23,7 +23,6 @@ Game::App::CommandLineSettings::CommandLineSettings()
 	LogLevel = 0;
 }
 
-
 CommandLineSettings ParseCommandLine(CommandLine CmdLine)
 {
 	CommandLineSettings Output;

@@ -159,42 +159,40 @@ xcopy $(SolutionDir)lib\$(Platform)\$(Configuration)\LICENSE.*.txt $(OutDir) /s 
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="App.cpp" />
-    <ClCompile Include="AppRenderer.cpp" />
+    <ClCompile Include="app\App.cpp" />
+    <ClCompile Include="render\AppRenderer.cpp" />
     <ClCompile Include="Audio.cpp" />
     <ClCompile Include="Career.cpp" />
-    <ClCompile Include="CareerHub.cpp" />
-    <ClCompile Include="CommandLine.cpp" />
-    <ClCompile Include="Game.cpp" />
+    <ClCompile Include="screens\CareerHub.cpp" />
+    <ClCompile Include="app\CommandLine.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="MainMenu.cpp" />
+    <ClCompile Include="screens\MainMenu.cpp" />
     <ClCompile Include="Race.cpp" />
     <ClCompile Include="Racer.cpp" />
-    <ClCompile Include="RacerScreen.cpp" />
-    <ClCompile Include="RaceScreen.cpp" />
+    <ClCompile Include="screens\RacerScreen.cpp" />
+    <ClCompile Include="screens\RaceScreen.cpp" />
     <ClCompile Include="RaceState.cpp" />
-    <ClCompile Include="RankingScreen.cpp" />
-    <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="screens\RankingScreen.cpp" />
+    <ClCompile Include="render\Renderer.cpp" />
     <ClCompile Include="State.cpp" />
     <ClCompile Include="Util.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="App.h" />
-    <ClInclude Include="AppRenderer.h" />
+    <ClInclude Include="app\App.h" />
+    <ClInclude Include="render\AppRenderer.h" />
     <ClInclude Include="Career.h" />
-    <ClInclude Include="CareerHub.h" />
-    <ClInclude Include="Game.h" />
-    <ClInclude Include="CommandLine.h" />
+    <ClInclude Include="screens\CareerHub.h" />
+    <ClInclude Include="app\CommandLine.h" />
     <ClInclude Include="Audio.h" />
-    <ClInclude Include="RacerScreen.h" />
-    <ClInclude Include="MainMenu.h" />
+    <ClInclude Include="screens\RacerScreen.h" />
+    <ClInclude Include="screens\MainMenu.h" />
     <ClInclude Include="Race.h" />
     <ClInclude Include="Racer.h" />
-    <ClInclude Include="RaceScreen.h" />
+    <ClInclude Include="screens\RaceScreen.h" />
     <ClInclude Include="RaceState.h" />
-    <ClInclude Include="RankingScreen.h" />
-    <ClInclude Include="Renderer.h" />
-    <ClInclude Include="Screens.h" />
+    <ClInclude Include="screens\RankingScreen.h" />
+    <ClInclude Include="render\Renderer.h" />
+    <ClInclude Include="screens\screens.h" />
     <ClInclude Include="TODO.h" />
     <ClInclude Include="Util.h" />
   </ItemGroup>
