@@ -3,46 +3,36 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35222.181
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL3_image", "SDL_image-main\VisualC\SDL_image.vcxproj", "{2BD5534E-00E2-4BEA-AC96-D9A92EA24696}"
-	ProjectSection(ProjectDependencies) = postProject
-		{0F3282CC-BD75-4A67-B718-B258B6E0EFF8} = {0F3282CC-BD75-4A67-B718-B258B6E0EFF8}
-	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL3_mixer", "SDL_mixer-main\VisualC\SDL_mixer.vcxproj", "{F7E944B3-0815-40CD-B3E4-90B2A15B0E33}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL3_mixer", "SDL_mixer\VisualC\SDL_mixer.vcxproj", "{F7E944B3-0815-40CD-B3E4-90B2A15B0E33}"
 	ProjectSection(ProjectDependencies) = postProject
 		{81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68} = {81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL3_net", "SDL_net-main\VisualC\SDL_net.vcxproj", "{8AB3504F-5E58-4910-AFE8-7A1E595AC3F4}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL3_net", "SDL_net\VisualC\SDL_net.vcxproj", "{8AB3504F-5E58-4910-AFE8-7A1E595AC3F4}"
 	ProjectSection(ProjectDependencies) = postProject
-		{0F3282CC-BD75-4A67-B718-B258B6E0EFF8} = {0F3282CC-BD75-4A67-B718-B258B6E0EFF8}
 		{81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68} = {81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL3_ttf", "SDL_ttf-main\VisualC\SDL_ttf.vcxproj", "{DDDBD07D-DC76-4AF6-8D02-3E2DEB6EE255}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL3_ttf", "SDL_ttf\VisualC\SDL_ttf.vcxproj", "{DDDBD07D-DC76-4AF6-8D02-3E2DEB6EE255}"
 	ProjectSection(ProjectDependencies) = postProject
-		{0F3282CC-BD75-4A67-B718-B258B6E0EFF8} = {0F3282CC-BD75-4A67-B718-B258B6E0EFF8}
 		{81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68} = {81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68}
 	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PreBuildSetup", "PreBuildSetup\PreBuildSetup.vcxproj", "{0F3282CC-BD75-4A67-B718-B258B6E0EFF8}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL3", "SDL\VisualC\SDL\SDL.vcxproj", "{81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68}"
-	ProjectSection(ProjectDependencies) = postProject
-		{0F3282CC-BD75-4A67-B718-B258B6E0EFF8} = {0F3282CC-BD75-4A67-B718-B258B6E0EFF8}
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SDL_Mixer dependencies", "SDL_Mixer dependencies", "{7831AEC3-87E5-4B6E-BA7E-41987AB51B09}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "playmus", "SDL_mixer-main\VisualC\playmus\playmus.vcxproj", "{72CB0DD4-051D-486C-9CB3-75FE16F7D87A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "playmus", "SDL_mixer\VisualC\playmus\playmus.vcxproj", "{72CB0DD4-051D-486C-9CB3-75FE16F7D87A}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "playwave", "SDL_mixer-main\VisualC\playwave\playwave.vcxproj", "{AC86CEAA-9908-476F-B15F-C7193CEF81BD}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "playwave", "SDL_mixer\VisualC\playwave\playwave.vcxproj", "{AC86CEAA-9908-476F-B15F-C7193CEF81BD}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "timidity", "SDL_mixer-main\VisualC\timidity\timidity.vcxproj", "{B162B6F1-E876-4D5F-A1F6-E3A6DC2F4A2C}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "timidity", "SDL_mixer\VisualC\timidity\timidity.vcxproj", "{B162B6F1-E876-4D5F-A1F6-E3A6DC2F4A2C}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "native_midi", "SDL_mixer-main\VisualC\native_midi\native_midi.vcxproj", "{EBDA67CA-4A23-4F22-BFBC-B8DBE0580D4F}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "native_midi", "SDL_mixer\VisualC\native_midi\native_midi.vcxproj", "{EBDA67CA-4A23-4F22-BFBC-B8DBE0580D4F}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL3_test", "SDL\VisualC\SDL_test\SDL_test.vcxproj", "{DA956FD3-E143-46F2-9FE5-C77BEBC56B1A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL3_image", "..\..\..\..\..\source\repos\SDL_image\VisualC\SDL_image.vcxproj", "{2BD5534E-00E2-4BEA-AC96-D9A92EA24696}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -52,14 +42,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{2BD5534E-00E2-4BEA-AC96-D9A92EA24696}.Debug|x64.ActiveCfg = Debug|x64
-		{2BD5534E-00E2-4BEA-AC96-D9A92EA24696}.Debug|x64.Build.0 = Debug|x64
-		{2BD5534E-00E2-4BEA-AC96-D9A92EA24696}.Debug|x86.ActiveCfg = Debug|Win32
-		{2BD5534E-00E2-4BEA-AC96-D9A92EA24696}.Debug|x86.Build.0 = Debug|Win32
-		{2BD5534E-00E2-4BEA-AC96-D9A92EA24696}.Release|x64.ActiveCfg = Release|x64
-		{2BD5534E-00E2-4BEA-AC96-D9A92EA24696}.Release|x64.Build.0 = Release|x64
-		{2BD5534E-00E2-4BEA-AC96-D9A92EA24696}.Release|x86.ActiveCfg = Release|Win32
-		{2BD5534E-00E2-4BEA-AC96-D9A92EA24696}.Release|x86.Build.0 = Release|Win32
 		{F7E944B3-0815-40CD-B3E4-90B2A15B0E33}.Debug|x64.ActiveCfg = Debug|x64
 		{F7E944B3-0815-40CD-B3E4-90B2A15B0E33}.Debug|x64.Build.0 = Debug|x64
 		{F7E944B3-0815-40CD-B3E4-90B2A15B0E33}.Debug|x86.ActiveCfg = Debug|Win32
@@ -84,14 +66,6 @@ Global
 		{DDDBD07D-DC76-4AF6-8D02-3E2DEB6EE255}.Release|x64.Build.0 = Release|x64
 		{DDDBD07D-DC76-4AF6-8D02-3E2DEB6EE255}.Release|x86.ActiveCfg = Release|Win32
 		{DDDBD07D-DC76-4AF6-8D02-3E2DEB6EE255}.Release|x86.Build.0 = Release|Win32
-		{0F3282CC-BD75-4A67-B718-B258B6E0EFF8}.Debug|x64.ActiveCfg = Debug|x64
-		{0F3282CC-BD75-4A67-B718-B258B6E0EFF8}.Debug|x64.Build.0 = Debug|x64
-		{0F3282CC-BD75-4A67-B718-B258B6E0EFF8}.Debug|x86.ActiveCfg = Debug|Win32
-		{0F3282CC-BD75-4A67-B718-B258B6E0EFF8}.Debug|x86.Build.0 = Debug|Win32
-		{0F3282CC-BD75-4A67-B718-B258B6E0EFF8}.Release|x64.ActiveCfg = Release|x64
-		{0F3282CC-BD75-4A67-B718-B258B6E0EFF8}.Release|x64.Build.0 = Release|x64
-		{0F3282CC-BD75-4A67-B718-B258B6E0EFF8}.Release|x86.ActiveCfg = Release|Win32
-		{0F3282CC-BD75-4A67-B718-B258B6E0EFF8}.Release|x86.Build.0 = Release|Win32
 		{81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68}.Debug|x64.ActiveCfg = Debug|x64
 		{81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68}.Debug|x64.Build.0 = Debug|x64
 		{81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68}.Debug|x86.ActiveCfg = Debug|Win32
@@ -140,6 +114,14 @@ Global
 		{DA956FD3-E143-46F2-9FE5-C77BEBC56B1A}.Release|x64.Build.0 = Release|x64
 		{DA956FD3-E143-46F2-9FE5-C77BEBC56B1A}.Release|x86.ActiveCfg = Release|Win32
 		{DA956FD3-E143-46F2-9FE5-C77BEBC56B1A}.Release|x86.Build.0 = Release|Win32
+		{2BD5534E-00E2-4BEA-AC96-D9A92EA24696}.Debug|x64.ActiveCfg = Debug|x64
+		{2BD5534E-00E2-4BEA-AC96-D9A92EA24696}.Debug|x64.Build.0 = Debug|x64
+		{2BD5534E-00E2-4BEA-AC96-D9A92EA24696}.Debug|x86.ActiveCfg = Debug|Win32
+		{2BD5534E-00E2-4BEA-AC96-D9A92EA24696}.Debug|x86.Build.0 = Debug|Win32
+		{2BD5534E-00E2-4BEA-AC96-D9A92EA24696}.Release|x64.ActiveCfg = Release|x64
+		{2BD5534E-00E2-4BEA-AC96-D9A92EA24696}.Release|x64.Build.0 = Release|x64
+		{2BD5534E-00E2-4BEA-AC96-D9A92EA24696}.Release|x86.ActiveCfg = Release|Win32
+		{2BD5534E-00E2-4BEA-AC96-D9A92EA24696}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

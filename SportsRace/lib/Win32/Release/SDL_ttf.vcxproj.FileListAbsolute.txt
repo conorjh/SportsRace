@@ -1,1 +1,0 @@
-C:\Users\Scusi\source\repos\SDL_ttf\VisualC\Win32\Release\SDL3_ttf.dll

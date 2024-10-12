@@ -5,6 +5,11 @@ Demo 2 Todo
 + Race sounds
 + varying speeds
 - scroll bars
+- curve based racing
+	- curves
+	- race generator
+	- race player
+		- play/pause/rewind controls
 + racer view screen
 	+ creation 
 	+ view
