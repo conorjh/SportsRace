@@ -12,33 +12,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Screens\CareerHub.cpp">
-      <Filter>Screens</Filter>
-    </ClCompile>
-    <ClCompile Include="Screens\MainMenu.cpp">
-      <Filter>Screens</Filter>
-    </ClCompile>
-    <ClCompile Include="Screens\RacerScreen.cpp">
-      <Filter>Screens</Filter>
-    </ClCompile>
-    <ClCompile Include="Screens\RaceScreen.cpp">
-      <Filter>Screens</Filter>
-    </ClCompile>
-    <ClCompile Include="Screens\RankingScreen.cpp">
-      <Filter>Screens</Filter>
-    </ClCompile>
-    <ClCompile Include="app\App.cpp">
-      <Filter>App</Filter>
-    </ClCompile>
-    <ClCompile Include="app\CommandLine.cpp">
-      <Filter>App</Filter>
-    </ClCompile>
-    <ClCompile Include="render\AppRenderer.cpp">
-      <Filter>Render</Filter>
-    </ClCompile>
-    <ClCompile Include="render\Renderer.cpp">
-      <Filter>Render</Filter>
-    </ClCompile>
     <ClCompile Include="Audio.cpp" />
     <ClCompile Include="Career.cpp" />
     <ClCompile Include="Main.cpp" />
@@ -47,38 +20,33 @@
     <ClCompile Include="RaceState.cpp" />
     <ClCompile Include="State.cpp" />
     <ClCompile Include="Util.cpp" />
+    <ClCompile Include="CommandLine.cpp" />
+    <ClCompile Include="App.cpp">
+      <Filter>App</Filter>
+    </ClCompile>
+    <ClCompile Include="AppRenderer.cpp">
+      <Filter>App</Filter>
+    </ClCompile>
+    <ClCompile Include="RacerScreen.cpp">
+      <Filter>Screens</Filter>
+    </ClCompile>
+    <ClCompile Include="RaceScreen.cpp">
+      <Filter>Screens</Filter>
+    </ClCompile>
+    <ClCompile Include="MainMenu.cpp">
+      <Filter>Screens</Filter>
+    </ClCompile>
+    <ClCompile Include="CareerHub.cpp">
+      <Filter>Screens</Filter>
+    </ClCompile>
+    <ClCompile Include="RankingScreen.cpp">
+      <Filter>Screens</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Screens\CareerHub.h">
-      <Filter>Screens</Filter>
-    </ClInclude>
-    <ClInclude Include="Screens\MainMenu.h">
-      <Filter>Screens</Filter>
-    </ClInclude>
-    <ClInclude Include="Screens\RacerScreen.h">
-      <Filter>Screens</Filter>
-    </ClInclude>
-    <ClInclude Include="Screens\RaceScreen.h">
-      <Filter>Screens</Filter>
-    </ClInclude>
-    <ClInclude Include="Screens\RankingScreen.h">
-      <Filter>Screens</Filter>
-    </ClInclude>
-    <ClInclude Include="Screens\Screens.h">
-      <Filter>Screens</Filter>
-    </ClInclude>
-    <ClInclude Include="app\App.h">
-      <Filter>App</Filter>
-    </ClInclude>
-    <ClInclude Include="app\CommandLine.h">
-      <Filter>App</Filter>
-    </ClInclude>
-    <ClInclude Include="render\AppRenderer.h">
-      <Filter>Render</Filter>
-    </ClInclude>
-    <ClInclude Include="render\Renderer.h">
-      <Filter>Render</Filter>
-    </ClInclude>
     <ClInclude Include="Audio.h" />
     <ClInclude Include="Career.h" />
     <ClInclude Include="Race.h" />
@@ -86,5 +54,33 @@
     <ClInclude Include="RaceState.h" />
     <ClInclude Include="TODO.h" />
     <ClInclude Include="Util.h" />
+    <ClInclude Include="CommandLine.h" />
+    <ClInclude Include="App.h">
+      <Filter>App</Filter>
+    </ClInclude>
+    <ClInclude Include="AppRenderer.h">
+      <Filter>App</Filter>
+    </ClInclude>
+    <ClInclude Include="RacerScreen.h">
+      <Filter>Screens</Filter>
+    </ClInclude>
+    <ClInclude Include="RaceScreen.h">
+      <Filter>Screens</Filter>
+    </ClInclude>
+    <ClInclude Include="MainMenu.h">
+      <Filter>Screens</Filter>
+    </ClInclude>
+    <ClInclude Include="CareerHub.h">
+      <Filter>Screens</Filter>
+    </ClInclude>
+    <ClInclude Include="RankingScreen.h">
+      <Filter>Screens</Filter>
+    </ClInclude>
+    <ClInclude Include="screens.h">
+      <Filter>Screens</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer.h">
+      <Filter>Render</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
