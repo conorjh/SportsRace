@@ -1,0 +1,85 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Screens">
+      <UniqueIdentifier>{f78690a0-57ee-46a8-906b-aee84a9c9db5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="App">
+      <UniqueIdentifier>{f03b027a-4a2d-47ff-a985-9793f549ab2f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Render">
+      <UniqueIdentifier>{2b07a2b1-98cb-4036-81cb-c0ef3b9effef}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\Audio.cpp" />
+    <ClCompile Include="..\..\src\Career.cpp" />
+    <ClCompile Include="..\..\src\Main.cpp" />
+    <ClCompile Include="..\..\src\Race.cpp" />
+    <ClCompile Include="..\..\src\Racer.cpp" />
+    <ClCompile Include="..\..\src\RaceState.cpp" />
+    <ClCompile Include="..\..\src\State.cpp" />
+    <ClCompile Include="..\..\src\Util.cpp" />
+    <ClCompile Include="..\..\src\App\App.cpp">
+      <Filter>App</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Render\AppRenderer.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Render\Renderer.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Screens\RacerScreen.cpp">
+      <Filter>Screens</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Screens\RankingScreen.cpp">
+      <Filter>Screens</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Screens\CareerHub.cpp">
+      <Filter>Screens</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Screens\MainMenu.cpp">
+      <Filter>Screens</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Screens\RaceScreen.cpp">
+      <Filter>Screens</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\Career.h" />
+    <ClInclude Include="..\..\src\Audio.h" />
+    <ClInclude Include="..\..\src\Race.h" />
+    <ClInclude Include="..\..\src\Racer.h" />
+    <ClInclude Include="..\..\src\RaceState.h" />
+    <ClInclude Include="..\..\src\TODO.h" />
+    <ClInclude Include="..\..\src\Util.h" />
+    <ClInclude Include="..\..\src\App\CommandLine.hpp">
+      <Filter>App</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\App\App.h">
+      <Filter>App</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Render\AppRenderer.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Render\Renderer.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Screens\CareerHub.h">
+      <Filter>Screens</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Screens\MainMenu.h">
+      <Filter>Screens</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Screens\RacerScreen.h">
+      <Filter>Screens</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\screens.h" />
+    <ClInclude Include="..\..\src\Screens\RankingScreen.h">
+      <Filter>Screens</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Screens\RaceScreen.h">
+      <Filter>Screens</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
