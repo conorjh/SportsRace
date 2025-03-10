@@ -132,7 +132,7 @@ bool Game::App::Application::Init()
 	spdlog::trace("Application init");
 
 	//Init SDL
-	if (!SDLInit(Data, Configuration))
+	if (!SDLInit())
 		return false;
 
 	spdlog::debug("IO Init");
@@ -158,7 +158,7 @@ void Game::App::Application::Halt(int _ReturnCode)
 	Data.Halted = true;
 }
 
-bool SDLInit(AppData& Data, Config& Cfg)
+bool Game::App::Application::SDLInit()
 {
 	spdlog::debug("SDL Init - Video");
 	if (!SDL_Init(SDL_INIT_VIDEO))
@@ -167,13 +167,13 @@ bool SDLInit(AppData& Data, Config& Cfg)
 		return false;
 	}
 
-	spdlog::debug("SDL Init - Creating main window {}, {}", Cfg.ScreenWidth, Cfg.ScreenHeight);
-	if (!SDL_CreateWindowAndRenderer("SportsRace", Cfg.ScreenWidth, Cfg.ScreenHeight, NULL, &Data.RenderData.MainWindow, &Data.RenderData.MainRenderer))
+	spdlog::debug("SDL Init - Creating main window {}, {}", Configuration.ScreenWidth, Configuration.ScreenHeight);
+	if (!SDL_CreateWindowAndRenderer("SportsRace", Configuration.ScreenWidth, Configuration.ScreenHeight, NULL, &Data.RenderData.MainWindow, &Data.RenderData.MainRenderer))
 	{
 		spdlog::critical("SDL init error, SDL_CreateWindowAndRenderer(): {}", SDL_GetError());
 		return false;
 	}
-	Data.RenderData.MainSurface = SDL_CreateSurface(Cfg.ScreenWidth, Cfg.ScreenHeight, SDL_GetWindowPixelFormat(Data.RenderData.MainWindow));
+	Data.RenderData.MainSurface = SDL_CreateSurface(Configuration.ScreenWidth, Configuration.ScreenHeight, SDL_GetWindowPixelFormat(Data.RenderData.MainWindow));
 	SDL_SetRenderDrawColor(Data.RenderData.MainRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
 	spdlog::debug("SDL Init - Init TTF");
@@ -193,7 +193,7 @@ bool SDLInit(AppData& Data, Config& Cfg)
 	return true;
 }
 
-bool SDLClose(AppData& Data)
+bool Game::App::Application::SDLClose()
 {
 	spdlog::debug("SDL Close");
 

@@ -1,6 +1,6 @@
 #include "CareerHub.h"
-#include "Audio.h"
-#include "RaceState.h"
+#include "..\Audio.h"
+#include "..\RaceState.h"
 #include "RaceScreen.h"
 #include "RacerScreen.h"
 #include "RankingScreen.h"

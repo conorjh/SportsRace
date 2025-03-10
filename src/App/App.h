@@ -79,7 +79,6 @@ namespace Game
 		class AppIO
 		{
 			AppData& Data;
-
 		public:
 			AppIO(AppData& _Data);
 
@@ -95,6 +94,7 @@ namespace Game
 
 		class Application
 		{
+			bool SDLInit(), SDLClose();
 		public:
 			ParsedCommandLineArguments Arguments;
 			Config Configuration;

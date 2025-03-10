@@ -2,8 +2,8 @@
 #include "SDL3/SDL.h"
 #include "spdlog/spdlog.h"
 #include "Audio.h"
-#include "App.h"
-#include "MainMenu.h"
+#include "App\App.h"
+#include "Screens\MainMenu.h"
 #include <string>
 
 using namespace Game;
