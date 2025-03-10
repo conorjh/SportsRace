@@ -1,2 +1,2 @@
-powershell.exe ".\DownloadGit.ps1"
+git submodule update --init
 powershell.exe ".\BuildDependencies.ps1"
