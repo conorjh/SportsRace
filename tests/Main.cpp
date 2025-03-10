@@ -1,5 +1,5 @@
-#include "App.h"
-#include "AppRenderer.h"
+#include "App/App.h"
+#include "Render/AppRenderer.h"
 
 using namespace Game;
 using namespace Game::App;
