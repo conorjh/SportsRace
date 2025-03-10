@@ -26,3 +26,21 @@
 	path = external/tree.hh
 	url = https://github.com/kpeeters/tree.hh.git
 
+[submodule "external/SDL"]
+	path = external/SDL
+	url = https://github.com/libsdl-org/SDL.git
+[submodule "external/SDL_ttf"]
+	path = external/SDL_ttf
+	url = https://github.com/libsdl-org/SDL_ttf.git
+[submodule "external/SDL_image"]
+	path = external/SDL_image
+	url = https://github.com/libsdl-org/SDL_image.git
+[submodule "external/SDL_net"]
+	path = external/SDL_net
+	url = https://github.com/libsdl-org/SDL_net.git
+[submodule "external/tree.hh"]
+	path = external/tree.hh
+	url = https://github.com/kpeeters/tree.hh.git
+[submodule "external/spdlog"]
+	path = external/spdlog
+	url = https://github.com/gabime/spdlog.git
