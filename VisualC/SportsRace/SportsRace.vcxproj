@@ -131,9 +131,8 @@ $(SolutionDir)..\external\sdl_net\visualc\$(Platform)\$(Configuration)</Addition
       <AdditionalDependencies>SDL3.lib;SDL3_image.lib;SDL3_ttf.lib;SDL3_mixer.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy $(SolutionDir)media\*.* $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)lib\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)lib\$(Platform)\$(Configuration)\LICENSE.*.txt $(OutDir) /s /e /h /r /y</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -163,9 +162,8 @@ $(SolutionDir)..\external\sdl_net\visualc\$(Platform)\$(Configuration)</Addition
       </Version>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy $(SolutionDir)media\*.* $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)lib\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)lib\$(Platform)\$(Configuration)\LICENSE.*.txt $(OutDir) /s /e /h /r /y</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -183,7 +181,7 @@ xcopy $(SolutionDir)lib\$(Platform)\$(Configuration)\LICENSE.*.txt $(OutDir) /s 
     <ClCompile Include="..\..\src\RaceState.cpp" />
     <ClCompile Include="..\..\src\Screens\RankingScreen.cpp" />
     <ClCompile Include="..\..\src\Render\Renderer.cpp" />
-    <ClCompile Include="..\..\src\State.cpp" />
+    <ClCompile Include="..\..\src\Screens.cpp" />
     <ClCompile Include="..\..\src\Util.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -201,7 +199,7 @@ xcopy $(SolutionDir)lib\$(Platform)\$(Configuration)\LICENSE.*.txt $(OutDir) /s 
     <ClInclude Include="..\..\src\RaceState.h" />
     <ClInclude Include="..\..\src\Screens\RankingScreen.h" />
     <ClInclude Include="..\..\src\Render\Renderer.h" />
-    <ClInclude Include="..\..\src\screens.h" />
+    <ClInclude Include="..\..\src\Screens.h" />
     <ClInclude Include="..\..\src\TODO.h" />
     <ClInclude Include="..\..\src\Util.h" />
   </ItemGroup>

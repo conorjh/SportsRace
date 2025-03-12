@@ -18,7 +18,7 @@
     <ClCompile Include="..\..\src\Race.cpp" />
     <ClCompile Include="..\..\src\Racer.cpp" />
     <ClCompile Include="..\..\src\RaceState.cpp" />
-    <ClCompile Include="..\..\src\State.cpp" />
+    <ClCompile Include="..\..\src\Screens.cpp" />
     <ClCompile Include="..\..\src\Util.cpp" />
     <ClCompile Include="..\..\src\App\App.cpp">
       <Filter>App</Filter>
@@ -74,7 +74,7 @@
     <ClInclude Include="..\..\src\Screens\RacerScreen.h">
       <Filter>Screens</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\screens.h" />
+    <ClInclude Include="..\..\src\Screens.h" />
     <ClInclude Include="..\..\src\Screens\RankingScreen.h">
       <Filter>Screens</Filter>
     </ClInclude>

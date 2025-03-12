@@ -42,7 +42,7 @@ namespace Game
 
 		class AppScreenStateMachine
 		{
-			std::stack<AppScreen*> StateStack; 
+			std::stack<AppScreen*> ScreenStack; 
 			
 		public:
 			AppScreenStateMachine();

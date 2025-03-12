@@ -123,8 +123,6 @@ Game::App::Application::Application(int argc, char* argv[])
 	spdlog::debug("Config file: " + Settings.ConfigPath);
 	spdlog::debug(" - - - - - - - - - - -");
 	spdlog::debug("Queried running dir " + std::filesystem::current_path().string());
-
-
 }
 
 bool Game::App::Application::Init()

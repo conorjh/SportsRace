@@ -66,28 +66,28 @@ Game::Screens::AppScreenStateMachine::AppScreenStateMachine(AppScreen* StartingS
 
 void Game::Screens::AppScreenStateMachine::Update()
 {
-	if (StateStack.size())
-		StateStack.top()->Update();
+	if (ScreenStack.size())
+		ScreenStack.top()->Update();
 }
 
 void Game::Screens::AppScreenStateMachine::Pop()
 {
-	StateStack.top()->Exit();
-	StateStack.pop();
-	if(StateStack.size())
-		StateStack.top()->Entry();
+	ScreenStack.top()->Exit();
+	ScreenStack.pop();
+	if(ScreenStack.size())
+		ScreenStack.top()->Entry();
 }
 
 AppScreen* Game::Screens::AppScreenStateMachine::Top()
 {
-	return StateStack.top();
+	return ScreenStack.top();
 }
 
 void Game::Screens::AppScreenStateMachine::Push(AppScreen* State)
 {
-	if (StateStack.size())
-		StateStack.top()->Exit();
-	StateStack.push(State);
+	if (ScreenStack.size())
+		ScreenStack.top()->Exit();
+	ScreenStack.push(State);
 	State->Entry();
 }
 
