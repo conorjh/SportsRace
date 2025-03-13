@@ -131,8 +131,11 @@ $(SolutionDir)..\external\sdl_net\visualc\$(Platform)\$(Configuration)</Addition
       <AdditionalDependencies>SDL3.lib;SDL3_image.lib;SDL3_ttf.lib;SDL3_mixer.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>xcopy $(SolutionDir)..\external\SDL\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
+xcopy $(SolutionDir)..\external\SDL_image\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
+xcopy $(SolutionDir)..\external\SDL_mixer\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
+xcopy $(SolutionDir)..\external\SDL_net\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
+xcopy $(SolutionDir)..\external\SDL_ttf\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -162,8 +165,11 @@ $(SolutionDir)..\external\sdl_net\visualc\$(Platform)\$(Configuration)</Addition
       </Version>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>xcopy $(SolutionDir)..\external\SDL\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
+xcopy $(SolutionDir)..\external\SDL_image\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
+xcopy $(SolutionDir)..\external\SDL_mixer\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
+xcopy $(SolutionDir)..\external\SDL_net\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
+xcopy $(SolutionDir)..\external\SDL_ttf\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
