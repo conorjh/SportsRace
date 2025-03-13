@@ -88,10 +88,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\sdl_net\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>SDL3.lib;SDL3_image.lib;SDL3_ttf.lib;SDL3_mixer.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\external\sdl\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_image\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_ttf\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_mixer\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_net\visualc\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>xcopy $(SolutionDir)..\external\SDL\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
@@ -110,12 +115,17 @@ xcopy $(SolutionDir)..\media\*.* $(OutDir) /s /e /h /r /y</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\sdl_net\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>SDL3.lib;SDL3_image.lib;SDL3_ttf.lib;SDL3_mixer.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\external\sdl\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_image\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_ttf\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_mixer\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_net\visualc\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>xcopy $(SolutionDir)..\external\SDL\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
@@ -132,19 +142,15 @@ xcopy $(SolutionDir)..\media\*.* $(OutDir) /s /e /h /r /y</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\sdl_net\include;$(SolutionDir)..\external\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\sdl_net\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\external\sdl\visualc\$(Platform)\$(Configuration);
-$(SolutionDir)..\external\sdl_image\visualc\$(Platform)\$(Configuration);
-$(SolutionDir)..\external\sdl_ttf\visualc\$(Platform)\$(Configuration);
-$(SolutionDir)..\external\sdl_mixer\visualc\$(Platform)\$(Configuration);
-$(SolutionDir)..\external\sdl_net\visualc\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL3.lib;SDL3_image.lib;SDL3_ttf.lib;SDL3_mixer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\external\sdl\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_image\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_ttf\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_mixer\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_net\visualc\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL3.lib;SDL3_image.lib;SDL3_ttf.lib;SDL3_mixer.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy $(SolutionDir)..\external\SDL\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
@@ -163,7 +169,7 @@ xcopy $(SolutionDir)..\media\*.* $(OutDir) /s /e /h /r /y</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\sdl_net\include;$(SolutionDir)..\external\spdlog\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\sdl_net\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -172,12 +178,8 @@ xcopy $(SolutionDir)..\media\*.* $(OutDir) /s /e /h /r /y</Command>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\external\sdl\visualc\$(Platform)\$(Configuration);
-$(SolutionDir)..\external\sdl_image\visualc\$(Platform)\$(Configuration);
-$(SolutionDir)..\external\sdl_ttf\visualc\$(Platform)\$(Configuration);
-$(SolutionDir)..\external\sdl_mixer\visualc\$(Platform)\$(Configuration);
-$(SolutionDir)..\external\sdl_net\visualc\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL3.lib;SDL3_image.lib;SDL3_ttf.lib;SDL3_mixer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\external\sdl\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_image\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_ttf\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_mixer\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_net\visualc\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL3.lib;SDL3_image.lib;SDL3_ttf.lib;SDL3_mixer.lib</AdditionalDependencies>
       <Version>
       </Version>
     </Link>
