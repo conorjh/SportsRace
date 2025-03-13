@@ -19,6 +19,6 @@
 [submodule "external/SDL_mixer"]
 	path = external/SDL_mixer
 	url = https://github.com/libsdl-org/SDL_mixer.git
-[submodule "VisualC/external/boost/math"]
-	path = VisualC/external/boost/math
+[submodule "external/boost/math"]
+	path = external/boost/math
 	url = https://github.com/boostorg/math.git
