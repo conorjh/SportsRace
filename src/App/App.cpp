@@ -111,17 +111,6 @@ Game::App::Application::Application(int argc, char* argv[])
 	//use command line value or default
 	spdlog::set_level((spdlog::level::level_enum)Arguments.LogLevel);
 
-	//load config file
-	if (std::filesystem::exists(Arguments.ConfigPath))
-	{
-		
-	}
-	else
-	{
-		spdlog::warn("Config file missing (" + Arguments.ConfigPath +")");
-		spdlog::warn("Using defaults");
-	}
-
 	//set the rng seed
 	srand(time(0));
 

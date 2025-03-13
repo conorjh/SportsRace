@@ -149,10 +149,10 @@ unsigned int Game::Render::FPSCounter::GetFPS()
 }
 bool Game::Render::BaseRendererData::Load(BaseRenderer& Renderer)
 {
-	Renderer.BaseData->BigFont = TTF_OpenFont("menu_font.ttf", 96);
-	Renderer.BaseData->MainFont = TTF_OpenFont("PIXELLARI.ttf", 16);
-	Renderer.BaseData->InfoFont = TTF_OpenFont("OpenSans.ttf", 14);
-	Renderer.BaseData->DebugFont = TTF_OpenFont("OpenSans.ttf", 12);
+	Renderer.BaseData->BigFont = TTF_OpenFont("media/menu_font.ttf", 96);
+	Renderer.BaseData->MainFont = TTF_OpenFont("media/PIXELLARI.ttf", 16);
+	Renderer.BaseData->InfoFont = TTF_OpenFont("media/OpenSans.ttf", 14);
+	Renderer.BaseData->DebugFont = TTF_OpenFont("media/OpenSans.ttf", 12);
 
 	return true;
 }
