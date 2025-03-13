@@ -16,6 +16,13 @@ using namespace Game::Screens;
 using namespace Game::Util;
 using enum CommandLineArgumentType;
 
+std::string CommandLineToString(int argc, char* argv[])
+{
+	std::string FullCommandLine;
+	for (int i = 0; i < argc; i++)
+		FullCommandLine += argv[i];
+	return FullCommandLine;
+}
 
 ParsedCommandLineArguments ParseCommandLine(int argc, char* argv[])
 {
@@ -87,29 +94,31 @@ Game::App::Application::Application(int argc, char* argv[])
 	spdlog::set_level(spdlog::level::level_enum::trace);
 	spdlog::trace("Application launch");
 
+	//command line
 	spdlog::trace("Parsing command line");
-	auto Settings = ParseCommandLine(argc, argv);
-	if (Settings.Errors.HasErrored())
+	spdlog::trace("CMD = " + CommandLineToString(argc,argv));
+	ParsedCommandLineArguments Arguments = ParseCommandLine(argc, argv);
+	if (Arguments.Errors.HasErrored())
 	{
-		for (auto& Error : Settings.Errors.Errors)
+		for (auto& Error : Arguments.Errors.Errors)
 			spdlog::critical(Error);
 
 		//TODO: error code = command line error
-		Halt(Settings.Errors.GetErrorCode());
+		Halt(Arguments.Errors.GetErrorCode());
 		return;
 	}
 
 	//use command line value or default
-	spdlog::set_level((spdlog::level::level_enum)Settings.LogLevel);
+	spdlog::set_level((spdlog::level::level_enum)Arguments.LogLevel);
 
 	//load config file
-	if (std::filesystem::exists(Settings.ConfigPath))
+	if (std::filesystem::exists(Arguments.ConfigPath))
 	{
 		
 	}
 	else
 	{
-		spdlog::warn("Config file missing (" + Settings.ConfigPath +")");
+		spdlog::warn("Config file missing (" + Arguments.ConfigPath +")");
 		spdlog::warn("Using defaults");
 	}
 
@@ -118,9 +127,9 @@ Game::App::Application::Application(int argc, char* argv[])
 
 	//splash info
 	spdlog::debug(" - - - Settings - - - ");
-	spdlog::debug("Filepath: " + Settings.Filepath);
-	spdlog::debug("Log level: " + Settings.LogLevel);
-	spdlog::debug("Config file: " + Settings.ConfigPath);
+	spdlog::debug("Filepath: " + Arguments.Filepath);
+	spdlog::debug("Log level: " + Arguments.LogLevel);
+	spdlog::debug("Config file: " + Arguments.ConfigPath);
 	spdlog::debug(" - - - - - - - - - - -");
 	spdlog::debug("Queried running dir " + std::filesystem::current_path().string());
 }
@@ -140,7 +149,7 @@ bool Game::App::Application::Init()
 		return false;
 	}
 
-	spdlog::debug("Starting AppStateMachine: Pushing MainMenuScreen");
+	spdlog::trace("Starting AppStateMachine: Pushing MainMenuScreen");
 	ScreenStack.Push(new MainMenuScreen(ScreenStack, IO, Data));
 
 	return true;

@@ -11,16 +11,16 @@ using namespace std;
 
 bool Game::Renderer::RaceScreenRendererData::Load(Render::BaseRenderer& Renderer)
 {
-	if (!Renderer.LoadFontFile("menu_font.ttf", 16, WinningFont) ||
-		!Renderer.LoadImageFile("reido.png", Head) ||
-		!Renderer.LoadImageFile("track.png", TrackGraphic) ||
-		!Renderer.LoadImageFile("stadium.png", StadiumGraphic) ||
-		!Renderer.LoadImageFile("startingblock.png", StartingBlocksGraphic) ||
-		!Renderer.LoadImageFile("clouds.png", CloudsGraphic) ||
-		!Renderer.LoadImageFile("mountains.png", MountainsGraphic) ||
-		!Renderer.LoadImageFile("fellarun.png", FellaRun) ||
-		!Renderer.LoadImageFile("fellawait.png", FellaWait) ||
-		!Renderer.LoadImageFile("screen.png", Background))
+	if (!Renderer.LoadFontFile("media/menu_font.ttf", 16, WinningFont) ||
+		!Renderer.LoadImageFile("media/reido.png", Head) ||
+		!Renderer.LoadImageFile("media/track.png", TrackGraphic) ||
+		!Renderer.LoadImageFile("media/stadium.png", StadiumGraphic) ||
+		!Renderer.LoadImageFile("media/startingblock.png", StartingBlocksGraphic) ||
+		!Renderer.LoadImageFile("media/clouds.png", CloudsGraphic) ||
+		!Renderer.LoadImageFile("media/mountains.png", MountainsGraphic) ||
+		!Renderer.LoadImageFile("media/fellarun.png", FellaRun) ||
+		!Renderer.LoadImageFile("media/fellawait.png", FellaWait) ||
+		!Renderer.LoadImageFile("media/screen.png", Background))
 		return false;
 	return true;
 }
@@ -187,8 +187,9 @@ void Game::Renderer::RaceScreenRenderer::DrawWinners()
 			auto& Result = State->RaceSM.Data.ThisRace.Result.RacerResults[t];
 			auto& Racer = State->RaceSM.Data.ThisRace.Result.RacerResults[t].Racer;
 
-			auto WinAmount = t == 0 ? State->RaceSM.Data.ThisRace.Financials.FirstPlacePrize :
-				t == 1 ? State->RaceSM.Data.ThisRace.Financials.SecondPlacePrize : State->RaceSM.Data.ThisRace.Financials.ThirdPlacePrize;
+			auto WinAmount =	t == 0	? State->RaceSM.Data.ThisRace.Financials.FirstPlacePrize :
+								t == 1	? State->RaceSM.Data.ThisRace.Financials.SecondPlacePrize 
+										: State->RaceSM.Data.ThisRace.Financials.ThirdPlacePrize;
 
 			RenderText(BaseData->MainFont, "Wins " + to_string(WinAmount), 290, 290 + (t * 60) + 20, { 255,255,255 });
 			RenderText(BaseData->MainFont, "#: " + Racer->Name, 470, 290 + (t * 60) + 20, { 255,255,255 });

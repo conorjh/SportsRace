@@ -39,7 +39,7 @@ namespace Game
 			{
 				Filepath = "";
 				ConfigPath = "config.cfg";
-				LogLevel = 0;
+				LogLevel = 6;
 			};
 
 			//settings
@@ -96,7 +96,6 @@ namespace Game
 		{
 			bool SDLInit(), SDLClose();
 		public:
-			ParsedCommandLineArguments Arguments;
 			Config Configuration;
 			AppIO IO;
 			AppData Data;

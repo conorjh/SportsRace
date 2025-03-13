@@ -11,7 +11,7 @@ using namespace Game::Race;
 
 bool Game::Renderer::RankingScreenRendererData::Load(Render::BaseRenderer& Renderer)
 {
-	if(!Renderer.LoadImageFile("screen.png", Background))
+	if(!Renderer.LoadImageFile("media/screen.png", Background))
 		return false;
 	return true;
 }

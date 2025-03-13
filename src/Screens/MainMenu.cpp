@@ -17,8 +17,8 @@ using namespace Game::Career;
 
 bool Game::Renderer::MainMenuRendererData::Load(Render::BaseRenderer& Renderer)
 {
-	if ( !Renderer.LoadImageFile("screen.png", Background) ||		
-		((MainFont = TTF_OpenFont("menu_font.ttf", 96)) == nullptr) )	
+	if ( !Renderer.LoadImageFile("media/screen.png", Background) ||		
+		((MainFont = TTF_OpenFont("media/menu_font.ttf", 96)) == nullptr) )	
 		return false;
 	
 return true;

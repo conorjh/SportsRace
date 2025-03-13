@@ -16,10 +16,10 @@ using namespace Game::Career;
 
 bool Game::Renderer::CareerHubRendererData::Load(Render::BaseRenderer& Renderer)
 {
-	Renderer.LoadImageFile("race_icon.png", RaceIconGraphic);
-	Renderer.LoadImageFile("racer_icon.png", RacerIconGraphic);
-	Renderer.LoadImageFile("training_icon.png", TrainingIconGraphic);
-	Renderer.LoadImageFile("ranking_icon.png", RankingIconGraphic);
+	Renderer.LoadImageFile("media/race_icon.png", RaceIconGraphic);
+	Renderer.LoadImageFile("media/racer_icon.png", RacerIconGraphic);
+	Renderer.LoadImageFile("media/training_icon.png", TrainingIconGraphic);
+	Renderer.LoadImageFile("media/ranking_icon.png", RankingIconGraphic);
 
 	return true;
 }

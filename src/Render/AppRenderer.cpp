@@ -20,8 +20,7 @@ Game::App::Renderer::AppRenderer::AppRenderer(AppData* _Data, Screens::AppScreen
 	spdlog::debug("Starting AppRenderer");
 	StateMachine = _StateMachine;
 
-	//Load datas -  constructing strings to allow for one line concatenation because C++ still 
-	//				makes you jump through hoops to do the most common tasks
+	//Load datas
 	spdlog::debug("Loading renderer data...");
 	spdlog::debug(string("Loading BaseData...")				+ string(BaseData->Load(*this) ? "success" : "failed"));
 	spdlog::debug(string("Loading MainMenuRenData...")		+ string(MainMenuRenData.Load(*this) ? "success" : "failed"));
