@@ -95,8 +95,7 @@ Game::App::Application::Application(int argc, char* argv[])
 	spdlog::trace("Application launch");
 
 	//command line
-	spdlog::trace("Parsing command line");
-	spdlog::trace("CMD = " + CommandLineToString(argc,argv));
+	spdlog::trace("Parsing command line: " + CommandLineToString(argc,argv));
 	ParsedCommandLineArguments Arguments = ParseCommandLine(argc, argv);
 	if (Arguments.Errors.HasErrored())
 	{
@@ -131,16 +130,12 @@ bool Game::App::Application::Init()
 	if (!SDLInit())
 		return false;
 
-	spdlog::debug("IO Init");
 	if (!IO.Init())
-	{
-		spdlog::critical("IO Init error");
 		return false;
-	}
 
-	spdlog::trace("Starting AppStateMachine: Pushing MainMenuScreen");
 	ScreenStack.Push(new MainMenuScreen(ScreenStack, IO, Data));
 
+	spdlog::trace("Application init complete");
 	return true;
 }
 bool Game::App::Application::Ended() const
@@ -222,7 +217,15 @@ Game::App::AppIO::AppIO(AppData& _Data) : Data(_Data)
 
 bool Game::App::AppIO::Init()
 {
-	return Player.Init();
+	spdlog::debug("IO Init");
+	if(!Player.Init())
+	{
+		spdlog::critical("IO Init error");
+		return false;
+	}
+
+	spdlog::debug("IO Init complete");
+	return true;
 }
 
 void Game::App::AppIO::Update()
