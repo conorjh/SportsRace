@@ -126,7 +126,6 @@ bool Game::App::Application::Init()
 {
 	spdlog::trace("Application init");
 
-	//Init SDL
 	if (!SDLInit())
 		return false;
 
@@ -218,9 +217,10 @@ Game::App::AppIO::AppIO(AppData& _Data) : Data(_Data)
 bool Game::App::AppIO::Init()
 {
 	spdlog::debug("IO Init");
+
 	if(!Player.Init())
 	{
-		spdlog::critical("IO Init error");
+		spdlog::critical("AudioPlayer init error");
 		return false;
 	}
 
