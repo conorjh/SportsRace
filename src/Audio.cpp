@@ -9,13 +9,12 @@ Game::Audio::AudioPlayer::AudioPlayer()
 bool Game::Audio::AudioPlayer::Init()
 {
 
-	//load audio here for now
-	this->Hover = Mix_LoadWAV("hover.wav");
-	this->Click = Mix_LoadWAV("click.wav");
-	this->StartersPistol = Mix_LoadWAV("starter_pistol.mp3");
+	this->Hover = Mix_LoadWAV("media/hover.wav");
+	this->Click = Mix_LoadWAV("media/click.wav");
+	this->StartersPistol = Mix_LoadWAV("media/starter_pistol.mp3");
 
-	this->Catering = Mix_LoadMUS("catering.mp3");
-	this->Race = Mix_LoadMUS("race.mp3");
+	this->Catering = Mix_LoadMUS("media/catering.mp3");
+	this->Race = Mix_LoadMUS("media/race.mp3");
 
 	return true;
 }
