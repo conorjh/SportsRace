@@ -33,6 +33,7 @@ Demo 2 Todo
 	- audio
 	- graphics
 + SDL3 migration
+- assets in single zip file
 
 
 Demo 3 Todo

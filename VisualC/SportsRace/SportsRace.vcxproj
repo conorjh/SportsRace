@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -104,7 +104,7 @@ xcopy $(SolutionDir)..\external\SDL_image\VisualC\$(Platform)\$(Configuration)\*
 xcopy $(SolutionDir)..\external\SDL_mixer\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
 xcopy $(SolutionDir)..\external\SDL_net\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
 xcopy $(SolutionDir)..\external\SDL_ttf\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\media\ $(OutDir)media\ /s /e /h /r /y</Command>
+xcopy $(SolutionDir)..\media\media.zip $(OutDir)media.zip /s /e /h /r /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -133,7 +133,7 @@ xcopy $(SolutionDir)..\external\SDL_image\VisualC\$(Platform)\$(Configuration)\*
 xcopy $(SolutionDir)..\external\SDL_mixer\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
 xcopy $(SolutionDir)..\external\SDL_net\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
 xcopy $(SolutionDir)..\external\SDL_ttf\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\media\ $(OutDir)media\ /s /e /h /r /y</Command>
+xcopy $(SolutionDir)..\media\media.zip $(OutDir)media.zip /s /e /h /r /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -158,7 +158,7 @@ xcopy $(SolutionDir)..\external\SDL_image\VisualC\$(Platform)\$(Configuration)\*
 xcopy $(SolutionDir)..\external\SDL_mixer\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
 xcopy $(SolutionDir)..\external\SDL_net\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
 xcopy $(SolutionDir)..\external\SDL_ttf\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\media\ $(OutDir)media\ /s /e /h /r /y</Command>
+xcopy $(SolutionDir)..\media\media.zip $(OutDir)media.zip /s /e /h /r /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -189,7 +189,7 @@ xcopy $(SolutionDir)..\external\SDL_image\VisualC\$(Platform)\$(Configuration)\*
 xcopy $(SolutionDir)..\external\SDL_mixer\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
 xcopy $(SolutionDir)..\external\SDL_net\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
 xcopy $(SolutionDir)..\external\SDL_ttf\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\media\ $(OutDir)media\ /s /e /h /r /y</Command>
+xcopy $(SolutionDir)..\media\media.zip $(OutDir)media.zip /s /e /h /r /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -228,6 +228,7 @@ xcopy $(SolutionDir)..\media\ $(OutDir)media\ /s /e /h /r /y</Command>
     <ClInclude Include="..\..\src\Screens.h" />
     <ClInclude Include="..\..\src\TODO.h" />
     <ClInclude Include="..\..\src\Util.h" />
+    <ClInclude Include="..\..\src\Assets.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

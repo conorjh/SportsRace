@@ -81,5 +81,6 @@
     <ClInclude Include="..\..\src\Screens\RaceScreen.h">
       <Filter>Screens</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\Assets.h" />
   </ItemGroup>
 </Project>
