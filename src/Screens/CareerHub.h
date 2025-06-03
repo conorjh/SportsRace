@@ -1,9 +1,9 @@
 #ifndef CAREERHUB_H
 #define CAREERHUB_H
 #include "..\Screens.h"
-#include "..\App\App.h"
 #include "..\Career.h"
 #include "..\Render\Renderer.h"
+#include "..\Util.h"
 
 namespace Game
 {
@@ -24,25 +24,16 @@ namespace Game
 		};
 	}
 
-	namespace Renderer
+	namespace Render
 	{
-		struct CareerHubRendererData
-		{
-			bool Load(Render::BaseRenderer& Renderer);
-
-
-			Render::Image RacerIconGraphic, RaceIconGraphic, TrainingIconGraphic, RankingIconGraphic;
-		};
 
 		class CareerHubRenderer : public Render::BaseRenderer
 		{
-			CareerHubRendererData* RendererData;
-
 		public:
 			Screens::CareerHubScreen* State;
 
-			CareerHubRenderer(App::AppData*, CareerHubRendererData* _Data, Render::BaseRendererData* _BaseData);
-			CareerHubRenderer(App::AppData*, Screens::CareerHubScreen* State, CareerHubRendererData* _Data, Render::BaseRendererData* _BaseData);
+			CareerHubRenderer(Game::Render::AppRenderContext* Context);
+			CareerHubRenderer(Game::Render::AppRenderContext* Context, Screens::CareerHubScreen* State);
 
 			unsigned int Render();
 

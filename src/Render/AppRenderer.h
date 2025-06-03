@@ -1,7 +1,8 @@
 #ifndef APPRENDERER_H
 #define APPRENDERER_H
-#include "..\Screens.h"
+#include "Renderer.h"
 #include "..\App\App.h"
+#include "..\Screens.h"
 #include "..\Screens\MainMenu.h"
 #include "..\Screens\RaceScreen.h"
 #include "..\Screens\CareerHub.h"
@@ -12,26 +13,21 @@ namespace Game
 {
 	namespace App
 	{
-		namespace Renderer
+		namespace Render
 		{
-			class AppRenderer : public Render::BaseRenderer
+			class AppRenderer : public Game::Render::BaseRenderer
 			{
-				Render::BaseRendererData BaseRenData;
-				Game::Renderer::MainMenuRendererData MainMenuRenData;
-				Game::Renderer::MainMenuRenderer MainMenuRen;
-				Game::Renderer::RaceScreenRendererData InRaceRenData;
-				Game::Renderer::RaceScreenRenderer InRaceRen;
-				Game::Renderer::CareerHubRendererData CareerHubRenData;
-				Game::Renderer::CareerHubRenderer CareerHubRen;
-				Game::Renderer::RacerScreenRendererData RacerScreenRenData;
-				Game::Renderer::RacerScreenRenderer RacerScreenRen;
-				Game::Renderer::RankingScreenRendererData RankingScreenRenData;
-				Game::Renderer::RankingScreenRenderer RankingScreenRen;
+				Game::Render::MainMenuRenderer MainMenuRen;
+				Game::Render::RaceScreenRenderer InRaceRen;
+				Game::Render::CareerHubRenderer CareerHubRen;
+				Game::Render::RacerScreenRenderer RacerScreenRen;
+				Game::Render::RankingScreenRenderer RankingScreenRen;
 
+				Game::App::AppData* Data;
 			public:
 				Game::Screens::AppScreenStateMachine* StateMachine;
 
-				AppRenderer(AppData* _RenderData, Screens::AppScreenStateMachine* _StateMachine);
+				AppRenderer(Game::App::AppData* Data, Screens::AppScreenStateMachine* _StateMachine);
 
 				unsigned int Render();
 			};

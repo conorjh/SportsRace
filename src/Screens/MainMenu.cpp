@@ -5,6 +5,7 @@
 #include "RacerScreen.h"
 #include "SDL3/SDL.h"
 #include "SDL3_mixer/SDL_mixer.h"
+#include "..\App\App.h"
 
 using namespace std;
 using namespace Game;
@@ -14,15 +15,6 @@ using namespace Game::Audio;
 using namespace Game::Race;
 using namespace Game::Career;
 
-
-bool Game::Renderer::MainMenuRendererData::Load(Render::BaseRenderer& Renderer)
-{
-	if ( !Renderer.LoadImageFile("media/screen.png", Background) ||		
-		((MainFont = TTF_OpenFont("media/menu_font.ttf", 96)) == nullptr) )	
-		return false;
-	
-return true;
-}
 
 Game::Screens::MainMenuScreen::MainMenuScreen(AppScreenStateMachine& _Machine, AppIO& _IO, AppData& _Data) 
 	: AppScreen(_Machine, _IO, _Data),
@@ -83,24 +75,20 @@ AppScreen* Game::Screens::MainMenuScreen::Update()
 
 
 
-Game::Renderer::MainMenuRenderer::MainMenuRenderer(AppData* _Data, MainMenuRendererData* _RenData, Render::BaseRendererData* _BaseData) 
-	: RendererData(_RenData), BaseRenderer(_Data, _BaseData)
-{
-	State = nullptr;
-}
+Game::Render::MainMenuRenderer::MainMenuRenderer(Game::Render::AppRenderContext* RenderContext)
+	: BaseRenderer(RenderContext), State()
+{}
 
-Game::Renderer::MainMenuRenderer::MainMenuRenderer(AppData* _Data, MainMenuScreen* _State, MainMenuRendererData* _RenData, Render::BaseRendererData* _BaseData) 
-	: State(_State), RendererData(_RenData), BaseRenderer(_Data, _BaseData)
-{
-
-}
+Game::Render::MainMenuRenderer::MainMenuRenderer(Game::Render::AppRenderContext* RenderContext, MainMenuScreen* State)
+	: BaseRenderer(RenderContext), State(State)
+{}
 
 
-void Game::Renderer::MainMenuRenderer::DrawLeague()
+void Game::Render::MainMenuRenderer::DrawLeague()
 {
 	SDL_Color White = { 255, 255, 255 };
 	SDL_Rect RenderQuad2 = { 500 , 100 , 378 , 359 };
-	RenderImage(RendererData->Background.Texture, NULL, &RenderQuad2);
+	RenderImage(Context->Store.GetImage(Assets::ImageAssetMainMenuBackground)->Texture, NULL, &RenderQuad2);
 
 	unsigned int OtherStandings = 4;
 
@@ -126,42 +114,41 @@ void Game::Renderer::MainMenuRenderer::DrawLeague()
 	*/
 }
 
-unsigned int Game::Renderer::MainMenuRenderer::Render()
+unsigned int Game::Render::MainMenuRenderer::Render()
 {
 	//start timer
 	auto StartTime = SDL_GetTicks();
 
-	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
-	SDL_RenderClear(Data->RenderData.MainRenderer);
-	auto RedColor = SDL_MapRGB(SDL_GetPixelFormatDetails(Data->RenderData.MainSurface->format), SDL_GetSurfacePalette(Data->RenderData.MainSurface), 255, 0, 0);
+	SDL_SetRenderDrawColor(Context->MainRenderer, 255, 255, 255, 255);
+	SDL_RenderClear(Context->MainRenderer);
+	auto RedColor = SDL_MapRGB(SDL_GetPixelFormatDetails(Context->MainSurface->format), SDL_GetSurfacePalette(Context->MainSurface), 255, 0, 0);
 
 	//race button
-	SDL_FillSurfaceRect(Data->RenderData.MainSurface, &State->RaceButton.Rect, RedColor);
-	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
+	SDL_FillSurfaceRect(Context->MainSurface, &State->RaceButton.Rect, RedColor);
+	SDL_SetRenderDrawColor(Context->MainRenderer, 255, 255, 255, 255);
 	SDL_FRect RaceButtonFRect; SDL_RectToFRect(&State->RaceButton.Rect, &RaceButtonFRect);
-	SDL_RenderRect(Data->RenderData.MainRenderer, &RaceButtonFRect);
-	RenderText(RendererData->MainFont, State->RaceButton.Text.c_str(), State->RaceButton.x + 5, State->RaceButton.y + 5, State->RaceButton.Color);
+	SDL_RenderRect(Context->MainRenderer, &RaceButtonFRect);
+	RenderText(Context->Store.GetFont(Assets::FontAssetMainMenuFont), State->RaceButton.Text.c_str(), State->RaceButton.x + 5, State->RaceButton.y + 5, State->RaceButton.Color);
 
 	//career button
-	SDL_FillSurfaceRect(Data->RenderData.MainSurface, &State->CareerButton.Rect, RedColor);
-	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
+	SDL_FillSurfaceRect(Context->MainSurface, &State->CareerButton.Rect, RedColor);
+	SDL_SetRenderDrawColor(Context->MainRenderer, 255, 255, 255, 255);
 	SDL_FRect CareerButtonFRect; SDL_RectToFRect(&State->CareerButton.Rect, &CareerButtonFRect);
-	SDL_RenderRect(Data->RenderData.MainRenderer, &CareerButtonFRect);
-	RenderText(RendererData->MainFont, State->CareerButton.Text.c_str(), State->CareerButton.x + 5, State->CareerButton.y + 5, State->CareerButton.Color);
+	SDL_RenderRect(Context->MainRenderer, &CareerButtonFRect);
+	RenderText(Context->Store.GetFont(Assets::FontAssetMainMenuFont), State->CareerButton.Text.c_str(), State->CareerButton.x + 5, State->CareerButton.y + 5, State->CareerButton.Color);
 
 	//exit button
-	SDL_FillSurfaceRect(Data->RenderData.MainSurface, &State->ExitButton.Rect, RedColor);
-	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
+	SDL_FillSurfaceRect(Context->MainSurface, &State->ExitButton.Rect, RedColor);
+	SDL_SetRenderDrawColor(Context->MainRenderer, 255, 255, 255, 255);
 	SDL_FRect ExitButtonFRect; SDL_RectToFRect(&State->ExitButton.Rect, &ExitButtonFRect);
-	SDL_RenderRect(Data->RenderData.MainRenderer, &ExitButtonFRect);
-	RenderText(RendererData->MainFont, State->ExitButton.Text.c_str(), State->ExitButton.x + 5, State->ExitButton.y + 5, State->ExitButton.Color);
+	SDL_RenderRect(Context->MainRenderer, &ExitButtonFRect);
+	RenderText(Context->Store.GetFont(Assets::FontAssetMainMenuFont), State->ExitButton.Text.c_str(), State->ExitButton.x + 5, State->ExitButton.y + 5, State->ExitButton.Color);
 
 	//League standings
 	DrawLeague();
 
 	//fps
-	if (Data->ShowFPS)
-		RenderText(BaseData->DebugFont, "FPS: " + to_string(FPS.GetFrameTime()), 975, 5, { 255,255,255 });
+	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "FPS: " + to_string(FPS.GetFrameTime()), 975, 5, { 255,255,255 });
 
 	Display();
 

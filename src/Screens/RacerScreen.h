@@ -2,8 +2,9 @@
 #define RACERSCREEN_H
 #include "..\Render/Renderer.h"
 #include "..\Screens.h"
-#include "..\App/App.h"
 #include "..\Race.h"
+#include "..\Career.h"
+#include "..\Util.h"
 
 namespace Game
 {
@@ -32,27 +33,17 @@ namespace Game
 
 	}
 
-	namespace Renderer
+	namespace Render
 	{
-		struct RacerScreenRendererData
-		{
-			bool Load(Render::BaseRenderer& Renderer);
-
-
-			Render::Image RacerGraphic, Head, TrackGraphic, FellaRun, FellaWait, Background;
-			SDL_Texture* InfoFontT, * DebugFontT, * WinningFontT;
-			SDL_Texture* RacerTexture;
-
-		};
 
 		class RacerScreenRenderer : public Render::BaseRenderer
 		{
-			RacerScreenRendererData* RendererData;
+			Game::Career::CareerProfile* RacerProfile;
 
 		public:
 			Screens::RacerScreen* State;
 
-			RacerScreenRenderer(App::AppData*, RacerScreenRendererData* _Data, Render::BaseRendererData* _BaseData);
+			RacerScreenRenderer(Game::Render::AppRenderContext* Context, Game::Career::CareerProfile* RacerProfile);
 
 			unsigned int Render();
 

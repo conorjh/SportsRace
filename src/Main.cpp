@@ -4,7 +4,7 @@
 
 using namespace Game;
 using namespace Game::App;
-using namespace Game::App::Renderer;
+using namespace Game::App::Render;
 
 int main(int argc, char* argv[])
 {
@@ -13,7 +13,7 @@ int main(int argc, char* argv[])
 	if (!App.Init())
 		return App.ReturnCode;	
 
-	AppRenderer Renderer(&App.Data, &App.ScreenStack);
+	AppRenderer Renderer(&App.Data, &App.Data.ScreenStack);
 	while (!App.Ended())
 	{
 		App.Update();

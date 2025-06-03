@@ -106,7 +106,9 @@ std::string Game::Race::RacerNameMaker::Make()
 
 Racer* Game::Race::RacerDB::Make(std::string Name)
 {
-	Racer* R = Name == "" ? new Racer(RacerNameMaker().Make()) : new Racer(Name);
+	Racer* R = Name == "" 
+				? new Racer(RacerNameMaker().Make()) 
+				: new Racer(Name);
 
 	//while loop until we randomly generate an unused GUID
 	while (Container.find((R->GUID.GUID = rand())) != Container.end())

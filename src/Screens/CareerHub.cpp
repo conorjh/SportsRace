@@ -5,6 +5,7 @@
 #include "RacerScreen.h"
 #include "RankingScreen.h"
 #include "SDL3\SDL.h"
+#include "..\App\App.h"
 
 using namespace std;
 using namespace Game::App;
@@ -14,15 +15,6 @@ using namespace Game::GUI;
 using namespace Game::Race;
 using namespace Game::Career;
 
-bool Game::Renderer::CareerHubRendererData::Load(Render::BaseRenderer& Renderer)
-{
-	Renderer.LoadImageFile("media/race_icon.png", RaceIconGraphic);
-	Renderer.LoadImageFile("media/racer_icon.png", RacerIconGraphic);
-	Renderer.LoadImageFile("media/training_icon.png", TrainingIconGraphic);
-	Renderer.LoadImageFile("media/ranking_icon.png", RankingIconGraphic);
-
-	return true;
-}
 
 Game::Screens::CareerHubScreen::CareerHubScreen(AppScreenStateMachine& _Machine, AppIO& _IO, AppData& _Data) :
 	AppScreen(_Machine, _IO, _Data),
@@ -106,72 +98,67 @@ AppScreen* Game::Screens::CareerHubScreen::Update()
 }
 
 
-Game::Renderer::RacerScreenRenderer::RacerScreenRenderer(AppData* _Data, RacerScreenRendererData* _RendererData, Render::BaseRendererData* _BaseData) :
-	RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
-{
 
-}
-
-
-Game::Renderer::CareerHubRenderer::CareerHubRenderer(AppData* _Data, CareerHubScreen* _State, CareerHubRendererData* _RendererData, Render::BaseRendererData* _BaseData) :
-	State(_State), RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
+Game::Render::CareerHubRenderer::CareerHubRenderer(Game::Render::AppRenderContext* Context, CareerHubScreen* _State) :
+	State(_State), BaseRenderer(Context)
 {
 }
 
-Game::Renderer::CareerHubRenderer::CareerHubRenderer(AppData* _Data, CareerHubRendererData* _RendererData, Render::BaseRendererData* _BaseData) :
-	RendererData(_RendererData), BaseRenderer(_Data, _BaseData)
+Game::Render::CareerHubRenderer::CareerHubRenderer(Game::Render::AppRenderContext* Context) :
+	State(), BaseRenderer(Context)
 {
 }
 
-unsigned int Game::Renderer::CareerHubRenderer::Render()
+unsigned int Game::Render::CareerHubRenderer::Render()
 {
 	//start timerv=
 	auto StartTime = SDL_GetTicks();
 
-	SDL_SetRenderDrawColor(Data->RenderData.MainRenderer, 255, 255, 255, 255);
-	SDL_RenderClear(Data->RenderData.MainRenderer);
+	SDL_SetRenderDrawColor(Context->MainRenderer, 255, 255, 255, 255);
+	SDL_RenderClear(Context->MainRenderer);
 
 	if (State->RacerIcon.IsMouseOver())
 	{
 		SDL_Rect RenderQuad1 = State->RacerIcon.Rect;
 		RenderQuad1.x += 7;
 		RenderQuad1.y -= 7;
-		RenderImage(RendererData->RacerIconGraphic.Texture, NULL, &RenderQuad1);
+		RenderImage(Context->Store.GetImage(Assets::ImageAssetRacerIcon)->Texture, NULL, &RenderQuad1);
 	}
 	else
-		RenderImage(RendererData->RacerIconGraphic.Texture, NULL, &State->RacerIcon.Rect);
+		RenderImage(Context->Store.GetImage(Assets::ImageAssetRacerIcon)->Texture, NULL, &State->RacerIcon.Rect);
 
 	if (State->TrainingIcon.IsMouseOver())
 	{
 		SDL_Rect RenderQuad2 = State->TrainingIcon.Rect;
 		RenderQuad2.x += 7;
 		RenderQuad2.y -= 7;
-		RenderImage(RendererData->TrainingIconGraphic.Texture, NULL, &RenderQuad2);
+		RenderImage(Context->Store.GetImage(Assets::ImageAssetTrainingIcon)->Texture, NULL, &RenderQuad2);
 	}
 	else
-		RenderImage(RendererData->TrainingIconGraphic.Texture, NULL, &State->TrainingIcon.Rect);
+		RenderImage(Context->Store.GetImage(Assets::ImageAssetTrainingIcon)->Texture, NULL, &State->TrainingIcon.Rect);
 
 	if (State->RaceIcon.IsMouseOver())
 	{
 		SDL_Rect RenderQuad3 = State->RaceIcon.Rect;
 		RenderQuad3.x += 7;
 		RenderQuad3.y -= 7;
-		RenderImage(RendererData->RaceIconGraphic.Texture, NULL, &RenderQuad3);
+		RenderImage(Context->Store.GetImage(Assets::ImageAssetRaceIcon)->Texture, NULL, &RenderQuad3);
 	}
 	else
-		RenderImage(RendererData->RaceIconGraphic.Texture, NULL, &State->RaceIcon.Rect);
+		RenderImage(Context->Store.GetImage(Assets::ImageAssetRaceIcon)->Texture, NULL, &State->RaceIcon.Rect);
 
 	if (State->RankingIcon.IsMouseOver())
 	{
 		SDL_Rect RenderQuad3 = State->RankingIcon.Rect;
 		RenderQuad3.x += 7;
 		RenderQuad3.y -= 7;
-		RenderImage(RendererData->RankingIconGraphic.Texture, NULL, &RenderQuad3);
+		RenderImage(Context->Store.GetImage(Assets::ImageAssetRankingIcon)->Texture, NULL, &RenderQuad3);
 	}
 	else
-		RenderImage(RendererData->RankingIconGraphic.Texture, NULL, &State->RankingIcon.Rect);
+		RenderImage(Context->Store.GetImage(Assets::ImageAssetRankingIcon)->Texture, NULL, &State->RankingIcon.Rect);
 
-	RenderText(BaseData->MainFont, "Cash: $" + to_string(Data->Profile->Financials.Cash), 450,720, {0,0,0});
+	//TODO make financials accessible from here
+	//RenderText(Context->Store.GetFont(Assets::FontAssetMainFont), "Cash: $" + to_string(Financials.Cash), 450,720, {0,0,0});
 
 	Display();
 	auto EndTime = SDL_GetTicks();

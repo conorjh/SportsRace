@@ -9,6 +9,7 @@
 #include "SDL3_mixer/SDL_mixer.h"
 #include "spdlog/spdlog.h"
 #include <filesystem>
+
 using namespace std;
 using namespace Game;
 using namespace Game::App;
@@ -132,7 +133,7 @@ bool Game::App::Application::Init()
 	if (!IO.Init())
 		return false;
 
-	ScreenStack.Push(new MainMenuScreen(ScreenStack, IO, Data));
+	Data.ScreenStack.Push(new MainMenuScreen(Data.ScreenStack, IO, Data));
 
 	spdlog::trace("Application init complete");
 	return true;
@@ -158,13 +159,13 @@ bool Game::App::Application::SDLInit()
 	}
 
 	spdlog::debug("SDL Init - Creating main window {}, {}", Configuration.ScreenWidth, Configuration.ScreenHeight);
-	if (!SDL_CreateWindowAndRenderer("SportsRace", Configuration.ScreenWidth, Configuration.ScreenHeight, NULL, &Data.RenderData.MainWindow, &Data.RenderData.MainRenderer))
+	if (!SDL_CreateWindowAndRenderer("SportsRace", Configuration.ScreenWidth, Configuration.ScreenHeight, NULL, &Data.RenderContext->MainWindow, &Data.RenderContext->MainRenderer))
 	{
 		spdlog::critical("SDL init error, SDL_CreateWindowAndRenderer(): {}", SDL_GetError());
 		return false;
 	}
-	Data.RenderData.MainSurface = SDL_CreateSurface(Configuration.ScreenWidth, Configuration.ScreenHeight, SDL_GetWindowPixelFormat(Data.RenderData.MainWindow));
-	SDL_SetRenderDrawColor(Data.RenderData.MainRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+	Data.RenderContext->MainSurface = SDL_CreateSurface(Configuration.ScreenWidth, Configuration.ScreenHeight, SDL_GetWindowPixelFormat(Data.RenderContext->MainWindow));
+	SDL_SetRenderDrawColor(Data.RenderContext->MainRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
 	spdlog::debug("SDL Init - Init TTF");
 	if (!TTF_Init())
@@ -188,10 +189,10 @@ bool Game::App::Application::SDLClose()
 	spdlog::debug("SDL Close");
 
 	//Destroy window and renderer
-	SDL_DestroyRenderer(Data.RenderData.MainRenderer);
-	SDL_DestroyWindow(Data.RenderData.MainWindow);
-	Data.RenderData.MainRenderer = nullptr;
-	Data.RenderData.MainWindow = nullptr;
+	SDL_DestroyRenderer(Data.RenderContext->MainRenderer);
+	SDL_DestroyWindow(Data.RenderContext->MainWindow);
+	Data.RenderContext->MainRenderer = nullptr;
+	Data.RenderContext->MainWindow = nullptr;
 
 	//Quit SDL subsystems
 	Mix_Quit();
@@ -206,7 +207,7 @@ void Game::App::Application::Update()
 {
 	IO.Update();
 
-	ScreenStack.Update();
+	Data.ScreenStack.Update();
 }
 
 Game::App::AppIO::AppIO(AppData& _Data) : Data(_Data)
@@ -259,7 +260,13 @@ void Game::App::AppIO::Update()
 }
 
 Game::App::AppData::AppData()
+	:	ScreenStack(),
+	RaceStateOutput(),
+	RenderContext(new Game::Render::AppRenderContext()),
+	Profile(new Game::Career::CareerProfile()),
+	Career(new Game::Career::CareerData())
 {
+
 }
 
 void Game::App::AppData::UpdateFromConfig(Config Cfg)

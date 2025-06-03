@@ -2,8 +2,8 @@
 #define RANKINGSCREEN_H
 #include "..\Render\Renderer.h"
 #include "..\Screens.h"
-#include "..\App\App.h"
 #include "..\Race.h"
+#include "..\Util.h"
 
 namespace Game
 {
@@ -23,30 +23,17 @@ namespace Game
 
 			AppScreen* Update();
 		};
-
 	}
 
-	namespace Renderer
+	namespace Render
 	{
-		struct RankingScreenRendererData
-		{
-			bool Load(Render::BaseRenderer& Renderer);
-
-
-			Render::Image Background;
-			SDL_Texture* InfoFontT, * DebugFontT, * WinningFontT;
-			SDL_Texture* RacerTexture;
-
-		};
 
 		class RankingScreenRenderer : public Render::BaseRenderer
 		{
-			RankingScreenRendererData* RendererData;
-
 		public:
 			Screens::RankingScreen* State;
 
-			RankingScreenRenderer(App::AppData*, RankingScreenRendererData* _Data, Render::BaseRendererData* _BaseData);
+			RankingScreenRenderer(Game::Render::AppRenderContext* Context);
 
 			unsigned int Render();
 

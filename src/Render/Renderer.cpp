@@ -5,33 +5,84 @@
 #include "spdlog/spdlog.h"
 #include <iostream>
 
-using namespace std;
-using namespace Game;
-using namespace Game::App;
-using namespace Game::Screens;
-using namespace Game::Render;
-using namespace Game::Race;
-
-Game::Render::BaseRenderer::BaseRenderer(AppData* _Data, BaseRendererData* _BaseData) : BaseData(_BaseData)
+bool Game::Assets::AssetStore::LoadAll(Game::Render::BaseRenderer& Renderer)
 {
-	Data = _Data;
+	using namespace Game::Assets;
+
+	RegisterFont(FontAssetBigFont, TTF_OpenFont("media/menu_font.ttf", 96));
+	RegisterFont(FontAssetMainFont, TTF_OpenFont("media/PIXELLARI.ttf", 16));
+	RegisterFont(FontAssetInfoFont, TTF_OpenFont("media/OpenSans.ttf", 14));
+	RegisterFont(FontAssetDebugFont, TTF_OpenFont("media/OpenSans.ttf", 12));
+	RegisterFont(FontAssetWinningFont, TTF_OpenFont("media/menu_font.ttf", 16));
+	RegisterFont(FontAssetMainMenuFont, TTF_OpenFont("media/menu_font.ttf", 96));
+
+	RegisterImage(ImageAssetMainMenuBackground, Renderer.LoadImageFile("media/screen.png"));
+	RegisterImage(ImageAssetRaceBackground, Renderer.LoadImageFile("media/screen.png"));
+	RegisterImage(ImageAssetRaceIcon, Renderer.LoadImageFile("media/race_icon.png"));
+	RegisterImage(ImageAssetRacerIcon, Renderer.LoadImageFile("media/racer_icon.png"));
+	RegisterImage(ImageAssetTrainingIcon, Renderer.LoadImageFile("media/training_icon.png"));
+	RegisterImage(ImageAssetRankingIcon, Renderer.LoadImageFile("media/ranking_icon.png"));
+	RegisterImage(ImageAssetHead, Renderer.LoadImageFile("media/reido.png"));
+	RegisterImage(ImageAssetTrack, Renderer.LoadImageFile("media/track.png"));
+	RegisterImage(ImageAssetStadium, Renderer.LoadImageFile("media/stadium.png"));
+	RegisterImage(ImageAssetStartingBlock, Renderer.LoadImageFile("media/startingblock.png"));
+	RegisterImage(ImageAssetClouds, Renderer.LoadImageFile("media/clouds.png"));
+	RegisterImage(ImageAssetMountains, Renderer.LoadImageFile("media/mountains.png"));
+	RegisterImage(ImageAssetFellaRun, Renderer.LoadImageFile("media/fellarun.png"));
+	RegisterImage(ImageAssetFellaWait, Renderer.LoadImageFile("media/fellawait.png"));
+	RegisterImage(ImageAssetScreen, Renderer.LoadImageFile("media/screen.png"));
+
+	return true;
+}
+
+void Game::Assets::AssetStore::RegisterFont(Game::Assets::FontAssetId FontId, TTF_Font* LoadedFont)
+{
+	Fonts.insert(std::make_pair(FontId, LoadedFont));
+}
+
+void Game::Assets::AssetStore::RegisterImage(Game::Assets::ImageAssetId ImageId, Game::Render::Image* LoadedImage)
+{
+	Images.insert(std::make_pair(ImageId, LoadedImage));
+}
+
+TTF_Font* Game::Assets::AssetStore::GetFont(Game::Assets::FontAssetId Id)
+{
+	return Fonts[Id];
+}
+
+Game::Render::Image* Game::Assets::AssetStore::GetImage(Game::Assets::ImageAssetId Id)
+{
+	return Images[Id];
+}
+
+Game::Render::BaseRenderer::BaseRenderer(AppRenderContext* Context)
+	:Context(Context)
+{
+
+
 	LastFrameEnd = 0;
 }
 
-bool Game::Render::BaseRenderer::LoadImageFile(std::string File, Image& Img)
+Game::Render::Image* Game::Render::BaseRenderer::LoadImageFile(const std::string File)
 {
+	using namespace std;
+	using namespace	Game::Render;
+
+	Image* Img = new Image();
+
 	spdlog::trace("Loading image: " + File);
-	if ((Img.Surface = IMG_Load(File.c_str())) == nullptr)
+	if ((Img->Surface = IMG_Load(File.c_str())) == nullptr)
 	{
 		spdlog::error("Failed to load image: " + string(SDL_GetError()));
-		return false;
+		return nullptr;
 	}
 
-	if ((Img.Texture = SDL_CreateTextureFromSurface(Data->RenderData.MainRenderer, Img.Surface)) == nullptr)
+	if ((Img->Texture = SDL_CreateTextureFromSurface(Context->MainRenderer, Img->Surface)) == nullptr)
 	{
 		spdlog::error("Failed to create texture: " + string(SDL_GetError()));
-		return false;
+		return nullptr;
 	}
+	return Img;
 }
 
 bool Game::Render::BaseRenderer::LoadFontFile(std::string File, unsigned int Size, TTF_Font* Font)
@@ -47,7 +98,7 @@ bool Game::Render::BaseRenderer::LoadFontFile(std::string File, unsigned int Siz
 void Game::Render::BaseRenderer::RenderTextSingleLine(TTF_Font* Font, std::string Text, int x, int y, SDL_Color Color)
 {
 	SDL_Surface* surfaceMessage = TTF_RenderText_Blended(Font, Text.c_str(), Text.size(), Color);
-	SDL_Texture* Message = SDL_CreateTextureFromSurface(Data->RenderData.MainRenderer, surfaceMessage);
+	SDL_Texture* Message = SDL_CreateTextureFromSurface(Context->MainRenderer, surfaceMessage);
 	
 	SDL_FRect Message_rect; //create a rect
 	Message_rect.x = x;  //controls the rect's x coordinate 
@@ -55,7 +106,7 @@ void Game::Render::BaseRenderer::RenderTextSingleLine(TTF_Font* Font, std::strin
 	SDL_FPoint size; SDL_GetTextureSize(Message, &size.x, &size.y);
 	Message_rect.w = size.x; // controls the width of the rect
 	Message_rect.h = size.y; // controls the height of the rect
-	SDL_RenderTexture(Data->RenderData.MainRenderer, Message, NULL, &Message_rect);
+	SDL_RenderTexture(Context->MainRenderer, Message, NULL, &Message_rect);
 
 	// Don't forget to free your surface and texture
 	SDL_DestroySurface(surfaceMessage);
@@ -82,17 +133,15 @@ void Game::Render::BaseRenderer::RenderText(TTF_Font* Font, std::string Text, in
 	RenderTextSingleLine(Font, buffer, x, y + offset, Color);
 }
 
-
 void Game::Render::BaseRenderer::Display()
 {
 	auto FrameTime = SDL_GetTicks();
 
 	FPS.AddFrame(FrameTime - LastFrameEnd);
-	SDL_RenderPresent(Data->RenderData.MainRenderer);
+	SDL_RenderPresent(Context->MainRenderer);
 
 	LastFrameEnd = FrameTime;
 }
-
 
 void Game::Render::BaseRenderer::RenderImage(SDL_Texture* Texture, SDL_Rect* SourceQuad, SDL_Rect* RenderQuad)
 {
@@ -105,10 +154,8 @@ void Game::Render::BaseRenderer::RenderImage(SDL_Texture* Texture, SDL_Rect* Sou
 	else
 		SDL_RectToFRect(SourceQuad, &SourceQuadF);
 	SDL_RectToFRect(RenderQuad, &RenderQuadF);
-	SDL_RenderTexture(Data->RenderData.MainRenderer, Texture, &SourceQuadF, &RenderQuadF);
+	SDL_RenderTexture(Context->MainRenderer, Texture, &SourceQuadF, &RenderQuadF);
 }
-
-
 
 void Game::Render::FPSCounter::AddFrame(unsigned int TimeTakenMs)
 {
@@ -147,12 +194,4 @@ unsigned int Game::Render::FPSCounter::GetFPS()
 
 	return 1000 / GetFrameTime();
 }
-bool Game::Render::BaseRendererData::Load(BaseRenderer& Renderer)
-{
-	Renderer.BaseData->BigFont = TTF_OpenFont("media/menu_font.ttf", 96);
-	Renderer.BaseData->MainFont = TTF_OpenFont("media/PIXELLARI.ttf", 16);
-	Renderer.BaseData->InfoFont = TTF_OpenFont("media/OpenSans.ttf", 14);
-	Renderer.BaseData->DebugFont = TTF_OpenFont("media/OpenSans.ttf", 12);
 
-	return true;
-}

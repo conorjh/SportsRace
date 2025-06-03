@@ -2,8 +2,9 @@
 #define MAINMENU_H
 #include "..\Render/Renderer.h"
 #include "..\Screens.h"
-#include "..\App\App.h"
-#include "SDL3_ttf/SDL_ttf.h"
+#include "..\Util.h"
+#include "..\Race.h"
+#include "..\Racer.h"
 
 namespace Game
 {
@@ -25,28 +26,16 @@ namespace Game
 
 	}
 
-	namespace Renderer
+	namespace Render
 	{
-		struct MainMenuRendererData
-		{
-			bool Load(Render::BaseRenderer& Renderer);
-
-			Render::Image Background;
-
-			TTF_Font* MainFont;
-		};
-
 		class MainMenuRenderer : public Render::BaseRenderer
 		{
-			MainMenuRendererData* RendererData;
-
 			void DrawLeague();
 
 		public:
 			Screens::MainMenuScreen* State;
-			MainMenuRenderer(App::AppData*, MainMenuRendererData* _Data, Render::BaseRendererData* _BaseData);
-			MainMenuRenderer(App::AppData*, Screens::MainMenuScreen* _State, MainMenuRendererData* _Data, Render::BaseRendererData* _BaseData);
-
+			MainMenuRenderer(Game::Render::AppRenderContext* RenderContext);
+			MainMenuRenderer(Game::Render::AppRenderContext* RenderContext, Screens::MainMenuScreen* _State);
 
 			unsigned int Render();
 		};

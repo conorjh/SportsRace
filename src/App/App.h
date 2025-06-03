@@ -9,6 +9,11 @@
 
 namespace Game
 {
+	namespace Render
+	{
+		struct AppRenderContext;
+	}
+
 	namespace App
 	{
 		struct Config
@@ -50,30 +55,20 @@ namespace Game
 			ErrorData Errors;
 		};
 
-		struct AppRenderData
-		{
-			SDL_Window* MainWindow = nullptr;
-			SDL_Renderer* MainRenderer = nullptr;
-			SDL_Surface* MainSurface = nullptr;
-		};
-
 		struct AppData
 		{
 			AppData();
 
 			void UpdateFromConfig(Config Cfg);
 
-			AppRenderData RenderData;
-
 			unsigned int ScreenWidth = 1024, ScreenHeight = 768;
-			bool ShowFPS = false;
-			bool Halted = false;
+			bool ShowFPS = false, Halted = false;
 
-
+			Screens::AppScreenStateMachine ScreenStack;
 			Race::RaceResult RaceStateOutput;
-
 			Career::CareerData* Career;
 			Career::CareerProfile* Profile;
+			Game::Render::AppRenderContext* RenderContext;
 		};
 
 		class AppIO
@@ -99,8 +94,7 @@ namespace Game
 			Config Configuration;
 			AppIO IO;
 			AppData Data;
-			int ReturnCode;
-			Screens::AppScreenStateMachine ScreenStack;			
+			int ReturnCode;	
 
 			Application(int argc, char* argv[]);
 

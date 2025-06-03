@@ -3,36 +3,24 @@
 
 using namespace Game;
 using namespace Game::App;
-using namespace Game::Renderer;
+using namespace Game::Render;
 using namespace Game::Screens;
-using namespace Game::Screens;
+using namespace Game::Render;
 
-Game::App::Renderer::AppRenderer::AppRenderer(AppData* _Data, Screens::AppScreenStateMachine* _StateMachine) :
-	MainMenuRen(_Data, &MainMenuRenData, &BaseRenData),
-	InRaceRen(_Data, &InRaceRenData, &BaseRenData),
-	RacerScreenRen(_Data, &RacerScreenRenData, &BaseRenData),
-	RankingScreenRen(_Data, &RankingScreenRenData, &BaseRenData),
-	CareerHubRen(_Data, &CareerHubRenData, &BaseRenData),
-	BaseRenderer(_Data, &BaseRenData)
+Game::App::Render::AppRenderer::AppRenderer(Game::App::AppData* Data, Screens::AppScreenStateMachine* _StateMachine) :
+	MainMenuRen(Data->RenderContext),
+	InRaceRen(Data->RenderContext),
+	RacerScreenRen(Data->RenderContext, Data->Profile),
+	RankingScreenRen(Data->RenderContext),
+	CareerHubRen(Data->RenderContext),
+	BaseRenderer(Data->RenderContext),
+	Data(Data),
+	StateMachine(_StateMachine)
 {
-	using namespace std;
-
-	spdlog::debug("Starting AppRenderer");
-	StateMachine = _StateMachine;
-
-	//Load datas
-	spdlog::debug("Loading renderer data...");
-	spdlog::debug(string("Loading BaseData...")				+ string(BaseData->Load(*this) ? "success" : "failed"));
-	spdlog::debug(string("Loading MainMenuRenData...")		+ string(MainMenuRenData.Load(*this) ? "success" : "failed"));
-	spdlog::debug(string("Loading InRaceRenData...")		+ string(InRaceRenData.Load(*this) ? "success" : "failed"));
-	spdlog::debug(string("Loading RacerScreenRenData...")	+ string(RacerScreenRenData.Load(*this) ? "success" : "failed"));
-	spdlog::debug(string("Loading CareerHubRenData...")		+ string(CareerHubRenData.Load(*this) ? "success" : "failed"));
-	spdlog::debug(string("Loading RankingScreenRenData...") + string(RankingScreenRenData.Load(*this) ? "success" : "failed"));
-	spdlog::debug("Loaded renderer data");
-
+	Context->Store.LoadAll(*this);
 }
 
-unsigned int Game::App::Renderer::AppRenderer::Render()
+unsigned int Game::App::Render::AppRenderer::Render()
 {
 	if (StateMachine->Top() == nullptr)
 		return 0;

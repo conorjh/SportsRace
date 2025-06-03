@@ -1,13 +1,69 @@
 #ifndef RENDERER_H
 #define RENDERER_H
-#include "..\Screens.h"
-#include "..\App\App.h"
+#include <vector>
+#include <string>
+#include <unordered_map>
 #include "SDL3_ttf/SDL_ttf.h"
 
 namespace Game
 {
 	namespace Render
 	{
+		class BaseRenderer;
+		struct Image;
+	}
+
+	namespace Assets
+	{
+		enum FontAssetId
+		{
+			FontAssetMainFont, FontAssetInfoFont, FontAssetDebugFont, FontAssetWinningFont, FontAssetBigFont, FontAssetMainMenuFont
+		};
+
+		enum ImageAssetId
+		{
+			ImageAssetMainMenuBackground,
+
+			ImageAssetRaceIcon,
+			ImageAssetRacerIcon,
+			ImageAssetTrainingIcon,
+			ImageAssetRankingIcon,
+
+			ImageAssetTrack, ImageAssetHead, ImageAssetFellaRun, ImageAssetFellaWait, ImageAssetScreen,
+
+			ImageAssetRacer, ImageAssetStadium, ImageAssetStartingBlock, ImageAssetClouds, ImageAssetMountains,
+			ImageAssetRaceBackground
+		};
+
+		class AssetStore
+		{
+			std::unordered_map<FontAssetId, TTF_Font*> Fonts;
+			std::unordered_map<ImageAssetId, Game::Render::Image*> Images;
+
+		public:
+			bool LoadAll(Game::Render::BaseRenderer& Renderer);
+
+			void RegisterFont(FontAssetId FontId, TTF_Font* LoadedFont);
+			void RegisterImage(ImageAssetId ImageId, Game::Render::Image* LoadedImage);
+
+			TTF_Font* GetFont(FontAssetId Id);
+			Game::Render::Image* GetImage(ImageAssetId Id);
+		};
+	}
+
+	namespace Render
+	{
+		struct AppRenderContext
+		{
+			unsigned int ScreenWidth = 800;
+			unsigned int ScreenHeight = 600;
+
+			SDL_Window* MainWindow = nullptr;
+			SDL_Renderer* MainRenderer = nullptr;
+			SDL_Surface* MainSurface = nullptr;
+			Game::Assets::AssetStore Store;
+		};
+
 		class FPSCounter
 		{
 			std::vector<unsigned int> FrameTimes;
@@ -25,31 +81,19 @@ namespace Game
 			SDL_Surface* Surface;
 			SDL_Texture* Texture;
 		};
-
-		class BaseRenderer;
-
-		struct BaseRendererData
-		{
-			bool Load(BaseRenderer& Renderer);
-
-			TTF_Font* MainFont, * InfoFont, * DebugFont, * WinningFont, *BigFont;
-		};
-
+		
 		class BaseRenderer
 		{
-			friend struct BaseRendererData;
-
 			unsigned int LastFrameEnd;
 		protected:
-			BaseRendererData* BaseData;
-			App::AppData* Data;
+			AppRenderContext* Context;
 			FPSCounter FPS;
 
 			virtual void RenderTextSingleLine(TTF_Font*, std::string Text, int x, int y, SDL_Color Color);
 		public:
-			BaseRenderer(App::AppData* _Data, Render::BaseRendererData* _BaseData);
+			BaseRenderer(AppRenderContext* Context);
 
-			bool LoadImageFile(std::string File, Image&);
+			Image* LoadImageFile(const std::string File);
 			bool LoadFontFile(std::string File, unsigned int Size, TTF_Font*);
 
 			virtual void RenderText(TTF_Font*, std::string Text, int x, int y, SDL_Color Color);

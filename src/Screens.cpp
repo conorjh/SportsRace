@@ -27,7 +27,8 @@ std::string Game::Screens::AppStateTypeToString(AppScreenType Type)
 	return "";
 }
 
-Game::Screens::AppScreen::AppScreen(AppScreenStateMachine& _Machine, AppIO& _IO, AppData& _Data) : ScreenStack(_Machine), IO(_IO), Data(_Data)
+Game::Screens::AppScreen::AppScreen(AppScreenStateMachine& _Machine, AppIO& _IO, AppData& _Data) 
+	: ScreenStack(_Machine), IO(_IO), Data(_Data)
 {
 
 }

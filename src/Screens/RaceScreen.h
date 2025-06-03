@@ -1,6 +1,5 @@
 #ifndef RACESCREEN_H
 #define RACESCREEN_H
-#include "..\App\App.h"
 #include "..\Render\Renderer.h"
 #include "..\Race.h"
 #include "..\RaceState.h"
@@ -31,20 +30,8 @@ namespace Game
 		};
 	}
 	
-	namespace Renderer
+	namespace Render
 	{
-		struct RaceScreenRendererData
-		{
-			bool Load(Render::BaseRenderer& Renderer);
-
-			TTF_Font* MainFont, * InfoFont, * DebugFont, * WinningFont;
-
-			Game::Render::Image RacerGraphic, Head, TrackGraphic, StadiumGraphic, StartingBlocksGraphic, CloudsGraphic, MountainsGraphic, FellaRun, FellaWait, Background;
-
-			SDL_Texture* MainFontT, * InfoFontT, * DebugFontT, * WinningFontT;
-			SDL_Texture* RacerTexture;
-
-		};
 
 		struct RaceScreenRendererCamera
 		{
@@ -58,7 +45,6 @@ namespace Game
 
 		class RaceScreenRenderer : public Render::BaseRenderer
 		{
-			RaceScreenRendererData* RendererData;
 			void RenderDebugText();
 			void DrawBackground();
 			void DrawProgressBar();
@@ -66,8 +52,8 @@ namespace Game
 
 		public:
 			Screens::RaceScreen* State;
-			RaceScreenRenderer(App::AppData*, RaceScreenRendererData* _Data, Render::BaseRendererData* _BaseData);
-			RaceScreenRenderer(App::AppData*, Screens::RaceScreen* _State, RaceScreenRendererData* _Data, Render::BaseRendererData* _BaseData);
+			RaceScreenRenderer(Game::Render::AppRenderContext* Context);
+			RaceScreenRenderer(Game::Render::AppRenderContext* Context, Screens::RaceScreen* _State);
 
 			void DrawRacer(Race::Racer, unsigned int Track);
 			void DrawWinners();
