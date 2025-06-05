@@ -7,25 +7,16 @@
 #include "SDL3\SDL.h"
 #include "..\App\App.h"
 
-using namespace std;
-using namespace Game::App;
-using namespace Game::Audio;
-using namespace Game::Screens;
-using namespace Game::GUI;
-using namespace Game::Race;
-using namespace Game::Career;
 
-
-Game::Screens::CareerHubScreen::CareerHubScreen(AppScreenStateMachine& _Machine, AppIO& _IO, AppData& _Data) :
-	AppScreen(_Machine, _IO, _Data),
+Game::Screens::CareerHubScreen::CareerHubScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data)
+	: AppScreen(_Machine, _IO, _Data),
 	Orchestrator(_Data.Career, _Data.Profile),
-	RaceIcon(_IO, IconButtonType::Race, 700, 450, 200, 200),
-	TrainingIcon(_IO, IconButtonType::Training, 700, 50, 200, 200),
-	RankingIcon(_IO, IconButtonType::Ranking, 100, 450, 200, 200),
-	RacerIcon(_IO, IconButtonType::Racer, 100, 50, 200, 200)
+	RaceIcon(_IO, GUI::IconButtonType::Race, 700, 450, 200, 200),
+	TrainingIcon(_IO, GUI::IconButtonType::Training, 700, 50, 200, 200),
+	RankingIcon(_IO, GUI::IconButtonType::Ranking, 100, 450, 200, 200),
+	RacerIcon(_IO, GUI::IconButtonType::Racer, 100, 50, 200, 200)
 {
 	Type = AppScreenType::CareerHub;
-
 }
 
 Game::Screens::CareerHubScreen::~CareerHubScreen()
@@ -35,7 +26,7 @@ Game::Screens::CareerHubScreen::~CareerHubScreen()
 
 void Game::Screens::CareerHubScreen::Entry()
 {
-	IO.Player.Play(Soundtrack::Catering);
+	IO.Player.Play(Audio::Soundtrack::Catering);
 }
 
 void Game::Screens::CareerHubScreen::Exit()
@@ -44,12 +35,14 @@ void Game::Screens::CareerHubScreen::Exit()
 }
 
 
-AppScreen* Game::Screens::CareerHubScreen::Update()
+Game::Screens::AppScreen* Game::Screens::CareerHubScreen::Update()
 {
+	using namespace Game::Race;
+
 	RaceIcon.Update();
 	if (RaceIcon.HasMouseClicked())
 	{
-		Race::Race* RaceBuffer = new Race::Race();
+		Game::Race::Race* RaceBuffer = new Game::Race::Race();
 		RaceBuffer->Racers.push_back(&Orchestrator.Profile->MainFella);
 		for (int t = 0; t < 5; ++t)
 			RaceBuffer->Racers.push_back(Orchestrator.Data->Racers.Make(RacerNameMaker().Make()));
@@ -88,7 +81,7 @@ AppScreen* Game::Screens::CareerHubScreen::Update()
 
 	if (IO.Esc)
 	{
-		IO.Player.Play(BuiltInSounds::Click);
+		IO.Player.Play(Audio::BuiltInSounds::Click);
 
 		ScreenStack.Pop();
 		return ScreenStack.Top();
@@ -99,13 +92,15 @@ AppScreen* Game::Screens::CareerHubScreen::Update()
 
 
 
-Game::Render::CareerHubRenderer::CareerHubRenderer(Game::Render::AppRenderContext* Context, CareerHubScreen* _State) :
-	State(_State), BaseRenderer(Context)
+Game::Render::CareerHubRenderer::CareerHubRenderer(Game::Render::AppRenderContext* Context, Screens::CareerHubScreen* _State) 
+	: Screen(_State), 
+	BaseRenderer(Context)
 {
 }
 
-Game::Render::CareerHubRenderer::CareerHubRenderer(Game::Render::AppRenderContext* Context) :
-	State(), BaseRenderer(Context)
+Game::Render::CareerHubRenderer::CareerHubRenderer(Game::Render::AppRenderContext* Context) 
+	: Screen(), 
+	BaseRenderer(Context)
 {
 }
 
@@ -117,45 +112,45 @@ unsigned int Game::Render::CareerHubRenderer::Render()
 	SDL_SetRenderDrawColor(Context->MainRenderer, 255, 255, 255, 255);
 	SDL_RenderClear(Context->MainRenderer);
 
-	if (State->RacerIcon.IsMouseOver())
+	if (Screen->RacerIcon.IsMouseOver())
 	{
-		SDL_Rect RenderQuad1 = State->RacerIcon.Rect;
+		SDL_Rect RenderQuad1 = Screen->RacerIcon.Rect;
 		RenderQuad1.x += 7;
 		RenderQuad1.y -= 7;
 		RenderImage(Context->Store.GetImage(Assets::ImageAssetRacerIcon)->Texture, NULL, &RenderQuad1);
 	}
 	else
-		RenderImage(Context->Store.GetImage(Assets::ImageAssetRacerIcon)->Texture, NULL, &State->RacerIcon.Rect);
+		RenderImage(Context->Store.GetImage(Assets::ImageAssetRacerIcon)->Texture, NULL, &Screen->RacerIcon.Rect);
 
-	if (State->TrainingIcon.IsMouseOver())
+	if (Screen->TrainingIcon.IsMouseOver())
 	{
-		SDL_Rect RenderQuad2 = State->TrainingIcon.Rect;
+		SDL_Rect RenderQuad2 = Screen->TrainingIcon.Rect;
 		RenderQuad2.x += 7;
 		RenderQuad2.y -= 7;
 		RenderImage(Context->Store.GetImage(Assets::ImageAssetTrainingIcon)->Texture, NULL, &RenderQuad2);
 	}
 	else
-		RenderImage(Context->Store.GetImage(Assets::ImageAssetTrainingIcon)->Texture, NULL, &State->TrainingIcon.Rect);
+		RenderImage(Context->Store.GetImage(Assets::ImageAssetTrainingIcon)->Texture, NULL, &Screen->TrainingIcon.Rect);
 
-	if (State->RaceIcon.IsMouseOver())
+	if (Screen->RaceIcon.IsMouseOver())
 	{
-		SDL_Rect RenderQuad3 = State->RaceIcon.Rect;
+		SDL_Rect RenderQuad3 = Screen->RaceIcon.Rect;
 		RenderQuad3.x += 7;
 		RenderQuad3.y -= 7;
 		RenderImage(Context->Store.GetImage(Assets::ImageAssetRaceIcon)->Texture, NULL, &RenderQuad3);
 	}
 	else
-		RenderImage(Context->Store.GetImage(Assets::ImageAssetRaceIcon)->Texture, NULL, &State->RaceIcon.Rect);
+		RenderImage(Context->Store.GetImage(Assets::ImageAssetRaceIcon)->Texture, NULL, &Screen->RaceIcon.Rect);
 
-	if (State->RankingIcon.IsMouseOver())
+	if (Screen->RankingIcon.IsMouseOver())
 	{
-		SDL_Rect RenderQuad3 = State->RankingIcon.Rect;
+		SDL_Rect RenderQuad3 = Screen->RankingIcon.Rect;
 		RenderQuad3.x += 7;
 		RenderQuad3.y -= 7;
 		RenderImage(Context->Store.GetImage(Assets::ImageAssetRankingIcon)->Texture, NULL, &RenderQuad3);
 	}
 	else
-		RenderImage(Context->Store.GetImage(Assets::ImageAssetRankingIcon)->Texture, NULL, &State->RankingIcon.Rect);
+		RenderImage(Context->Store.GetImage(Assets::ImageAssetRankingIcon)->Texture, NULL, &Screen->RankingIcon.Rect);
 
 	//TODO make financials accessible from here
 	//RenderText(Context->Store.GetFont(Assets::FontAssetMainFont), "Cash: $" + to_string(Financials.Cash), 450,720, {0,0,0});

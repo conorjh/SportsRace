@@ -33,7 +33,7 @@ namespace Game
 			void DrawLeague();
 
 		public:
-			Screens::MainMenuScreen* State;
+			Screens::MainMenuScreen* Screen;
 			MainMenuRenderer(Game::Render::AppRenderContext* RenderContext);
 			MainMenuRenderer(Game::Render::AppRenderContext* RenderContext, Screens::MainMenuScreen* _State);
 

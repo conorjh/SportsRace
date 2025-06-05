@@ -2,11 +2,6 @@
 #include "App\App.h"
 #include "spdlog/spdlog.h"
 
-using namespace Game;
-using namespace Game::Screens;
-using namespace Game::App;
-using namespace Game::Audio;
-
 std::string Game::Screens::AppStateTypeToString(AppScreenType Type)
 {
 	switch (Type)
@@ -27,8 +22,11 @@ std::string Game::Screens::AppStateTypeToString(AppScreenType Type)
 	return "";
 }
 
-Game::Screens::AppScreen::AppScreen(AppScreenStateMachine& _Machine, AppIO& _IO, AppData& _Data) 
-	: ScreenStack(_Machine), IO(_IO), Data(_Data)
+Game::Screens::AppScreen::AppScreen(AppScreenStateMachine& _Machine, Game::App::AppIO& _IO, Game::App::AppData& _Data)
+	: ScreenStack(_Machine), 
+	IO(_IO), 
+	Data(_Data),
+	Type()
 {
 
 }
@@ -49,7 +47,7 @@ void Game::Screens::AppScreen::Exit()
 	spdlog::trace("AppScreen::Exit({})", AppStateTypeToString(Type));
 }
 
-AppScreen* Game::Screens::AppScreen::Update()
+Game::Screens::AppScreen* Game::Screens::AppScreen::Update()
 {
 	return nullptr;
 }
@@ -79,7 +77,7 @@ void Game::Screens::AppScreenStateMachine::Pop()
 		ScreenStack.top()->Entry();
 }
 
-AppScreen* Game::Screens::AppScreenStateMachine::Top()
+Game::Screens::AppScreen* Game::Screens::AppScreenStateMachine::Top()
 {
 	return ScreenStack.top();
 }

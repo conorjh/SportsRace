@@ -17,7 +17,7 @@ Game::App::Render::AppRenderer::AppRenderer(Game::App::AppData* Data, Screens::A
 	Data(Data),
 	StateMachine(_StateMachine)
 {
-	Context->Store.LoadAll(*this);
+	Context->Store.RegisterAll(*this);
 }
 
 unsigned int Game::App::Render::AppRenderer::Render()
@@ -30,32 +30,32 @@ unsigned int Game::App::Render::AppRenderer::Render()
 	case AppScreenType::RaceScreen:
 	{
 		RaceScreen* RaceState = reinterpret_cast<RaceScreen*>(StateMachine->Top());
-		InRaceRen.State = RaceState;
+		InRaceRen.Screen = RaceState;
 		return InRaceRen.Render();
 	}
 
 	case AppScreenType::MainMenu:
 	{
 		MainMenuScreen* MenuState = reinterpret_cast<MainMenuScreen*>(StateMachine->Top());
-		MainMenuRen.State = MenuState;
+		MainMenuRen.Screen = MenuState;
 		return MainMenuRen.Render();
 	}
 	case AppScreenType::CareerHub:
 	{
 		CareerHubScreen* CareerHState = reinterpret_cast<CareerHubScreen*>(StateMachine->Top());
-		CareerHubRen.State = CareerHState;
+		CareerHubRen.Screen = CareerHState;
 		return CareerHubRen.Render();
 	}
 	case AppScreenType::RacerScreen:
 	{
 		RacerScreen* RacerScreenRenSt = reinterpret_cast<RacerScreen*>(StateMachine->Top());
-		RacerScreenRen.State = RacerScreenRenSt;
+		RacerScreenRen.Screen = RacerScreenRenSt;
 		return RacerScreenRen.Render();
 	}
 	case AppScreenType::RankingScreen:
 	{
 		RankingScreen* RankingScreenStt = reinterpret_cast<RankingScreen*>(StateMachine->Top());
-		RankingScreenRen.State = RankingScreenStt;
+		RankingScreenRen.Screen = RankingScreenStt;
 		return RankingScreenRen.Render();
 	}
 	}

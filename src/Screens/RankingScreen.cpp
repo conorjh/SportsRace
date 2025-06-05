@@ -2,14 +2,6 @@
 #include "..\Audio.h"
 #include "..\App\App.h"
 
-using namespace std;
-using namespace Game::App;
-using namespace Game::Audio;
-using namespace Game::Screens;
-using namespace Game::Render;
-using namespace Game::Render;
-using namespace Game::Race;
-
 Game::Screens::RankingScreen::RankingScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay) :
 	AppScreen(_Machine, _IO, _Data),
 	ExitButton(_IO, "Exit", 800, 650, 210, 80)
@@ -22,12 +14,12 @@ Game::Screens::RankingScreen::~RankingScreen()
 {
 }
 
-AppScreen* Game::Screens::RankingScreen::Update()
+Game::Screens::AppScreen* Game::Screens::RankingScreen::Update()
 {
 	ExitButton.Update();
 	if (ExitButton.HasMouseClicked() || IO.Esc)
 	{
-		IO.Player.Play(BuiltInSounds::Click);
+		IO.Player.Play(Audio::BuiltInSounds::Click);
 
 		//go back to last screen
 		ScreenStack.Pop();
@@ -39,8 +31,9 @@ AppScreen* Game::Screens::RankingScreen::Update()
 
 
 
-Game::Render::RankingScreenRenderer::RankingScreenRenderer(Game::Render::AppRenderContext* Context) :
-	State(nullptr), BaseRenderer(Context)
+Game::Render::RankingScreenRenderer::RankingScreenRenderer(Game::Render::AppRenderContext* Context) 
+	: Screen(nullptr), 
+	BaseRenderer(Context)
 {
 }
 
@@ -58,11 +51,11 @@ unsigned int Game::Render::RankingScreenRenderer::Render()
 
 	//exit
 	auto MappedRgb = SDL_MapRGB(SDL_GetPixelFormatDetails(Context->MainSurface->format), SDL_GetSurfacePalette(Context->MainSurface), 255, 0, 0);
-	SDL_FillSurfaceRect(Context->MainSurface, &State->ExitButton.Rect, MappedRgb);
+	SDL_FillSurfaceRect(Context->MainSurface, &Screen->ExitButton.Rect, MappedRgb);
 	SDL_SetRenderDrawColor(Context->MainRenderer, 255, 255, 255, 255);
-	SDL_FRect RectF;	SDL_RectToFRect(&State->ExitButton.Rect, &RectF);
+	SDL_FRect RectF;	SDL_RectToFRect(&Screen->ExitButton.Rect, &RectF);
 	SDL_RenderRect(Context->MainRenderer, &RectF);
-	RenderText(Context->Store.GetFont(Assets::FontAssetBigFont), State->ExitButton.Text.c_str(), State->ExitButton.x + 5, State->ExitButton.y + 5, State->ExitButton.Color);
+	RenderText(Context->Store.GetFont(Assets::FontAssetBigFont), Screen->ExitButton.Text.c_str(), Screen->ExitButton.x + 5, Screen->ExitButton.y + 5, Screen->ExitButton.Color);
 
 
 	Display();

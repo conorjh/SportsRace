@@ -6,21 +6,13 @@
 #include "Screens\MainMenu.h"
 #include <string>
 
-using namespace Game;
-using namespace Game::Screens;
-using namespace Game::Race;
-using namespace Game::App;
-using namespace Game::Audio;
-using namespace Game::GUI;
-using namespace Game::Race;
-using namespace std;
 
 Game::Race::RaceState::RaceState(RaceStateData& _Data) : Data(_Data)
 {
     Type = RaceStateType::PreRace;
 }
 
-RaceState* Game::Race::RaceState::Tick(unsigned int TimeTakenMs)
+Game::Race::RaceState* Game::Race::RaceState::Tick(unsigned int TimeTakenMs)
 {
     return this;
 }
@@ -39,7 +31,7 @@ Game::Race::RaceStateMachine::RaceStateMachine(Race TheRace) : Data(TheRace)
     Push(new RaceState_PreRace(Data));
 }
 
-RaceStateType Game::Race::RaceStateMachine::Tick(unsigned int TickTimeMs)
+Game::Race::RaceStateType Game::Race::RaceStateMachine::Tick(unsigned int TickTimeMs)
 {
     Data.CurrentTick += TickTimeMs;
 
@@ -81,7 +73,7 @@ Game::Race::RaceState_PreRace::RaceState_PreRace(RaceStateData& _Data) : RaceSta
 
 }
 
-RaceState* Game::Race::RaceState_PreRace::Tick(unsigned int TimeTakenMs)
+Game::Race::RaceState* Game::Race::RaceState_PreRace::Tick(unsigned int TimeTakenMs)
 {
     TickAccumulator += TimeTakenMs;
 
@@ -91,13 +83,14 @@ RaceState* Game::Race::RaceState_PreRace::Tick(unsigned int TimeTakenMs)
     return this;
 }
 
-Game::Race::RaceState_StartersOrders::RaceState_StartersOrders(RaceStateData& _Data) : RaceState(_Data)
+Game::Race::RaceState_StartersOrders::RaceState_StartersOrders(RaceStateData& _Data) 
+    : RaceState(_Data)
 {
     Type = RaceStateType::StartersOrders;
     TickAccumulator = 0;
 }
 
-RaceState* Game::Race::RaceState_StartersOrders::Tick(unsigned int TimeTakenMs)
+Game::Race::RaceState* Game::Race::RaceState_StartersOrders::Tick(unsigned int TimeTakenMs)
 {
     TickAccumulator += TimeTakenMs;
 
@@ -116,7 +109,7 @@ Game::Race::RaceState_Racing::RaceState_Racing(RaceStateData& _Data) : RaceState
     Type = RaceStateType::Racing;
 }
 
-RaceState* Game::Race::RaceState_Racing::Tick(unsigned int TimeTakenMs)
+Game::Race::RaceState* Game::Race::RaceState_Racing::Tick(unsigned int TimeTakenMs)
 {
     auto ReturnType = Data.ThisRace.Tick(TimeTakenMs, RaceStatus::Racing);
 
@@ -125,13 +118,14 @@ RaceState* Game::Race::RaceState_Racing::Tick(unsigned int TimeTakenMs)
     return this;
 }
 
-Game::Race::RaceState_Finishing::RaceState_Finishing(RaceStateData& _Data) : RaceState(_Data)
+Game::Race::RaceState_Finishing::RaceState_Finishing(RaceStateData& _Data) 
+    : RaceState(_Data)
 {
 
     Type = RaceStateType::Finishing;
 }
 
-RaceState* Game::Race::RaceState_Finishing::Tick(unsigned int TimeTakenMs)
+Game::Race::RaceState* Game::Race::RaceState_Finishing::Tick(unsigned int TimeTakenMs)
 {
     auto ReturnType = Data.ThisRace.Tick(TimeTakenMs, RaceStatus::Finishing);
 
@@ -140,12 +134,13 @@ RaceState* Game::Race::RaceState_Finishing::Tick(unsigned int TimeTakenMs)
     return this;
 }
 
-Game::Race::RaceState_Finished::RaceState_Finished(RaceStateData& _Data) : RaceState(_Data)
+Game::Race::RaceState_Finished::RaceState_Finished(RaceStateData& _Data) 
+    : RaceState(_Data)
 {
     Type = RaceStateType::Finished;
 }
 
-RaceState* Game::Race::RaceState_Finished::Tick(unsigned int TimeTakenMs)
+Game::Race::RaceState* Game::Race::RaceState_Finished::Tick(unsigned int TimeTakenMs)
 {
     return this;
 }

@@ -41,7 +41,7 @@ namespace Game
 			Game::Career::CareerProfile* RacerProfile;
 
 		public:
-			Screens::RacerScreen* State;
+			Screens::RacerScreen* Screen;
 
 			RacerScreenRenderer(Game::Render::AppRenderContext* Context, Game::Career::CareerProfile* RacerProfile);
 

@@ -2,30 +2,25 @@
 #include "..\Race.h"
 #include "..\App\App.h"
 
-using namespace Game::App;
-using namespace Game::Audio;
-using namespace Game::Race;
-using namespace Game::Render;
-using namespace Game::Render;
-using namespace Game::Screens;
-using namespace std;
-
-Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer) : 
-	AppScreen(_Machine, _IO, _Data), RaceSM(*new Race::Race())
+Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer) 
+	: AppScreen(_Machine, _IO, _Data), 
+	RaceSM(*new Race::Race())
 {
 	Type = AppScreenType::RaceScreen;
 	LastFrameEnd = SDL_GetTicks();
 }
 
-Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun) : 
-	AppScreen(_Machine, _IO, _Data), RaceSM(RaceToRun)
+Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun) 
+	:AppScreen(_Machine, _IO, _Data), 
+	RaceSM(RaceToRun)
 {
 	Type = AppScreenType::RaceScreen;
 	LastFrameEnd = SDL_GetTicks();
 }
 
-Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, AppIO& _IO, AppData& _Data, Race::Race RaceToRun, RacerGUID PlayerRacer) : 
-	AppScreen(_Machine, _IO, _Data), RaceSM(RaceToRun)
+Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun, Race::RacerGUID PlayerRacer) 
+	: AppScreen(_Machine, _IO, _Data), 
+	RaceSM(RaceToRun)
 {
 	Type = AppScreenType::RaceScreen;
 	LastFrameEnd = SDL_GetTicks();
@@ -45,11 +40,13 @@ void Game::Screens::RaceScreen::Entry()
 void Game::Screens::RaceScreen::Exit()
 {
 	IO.Player.StopMusic();
-
 }
 
-AppScreen* Game::Screens::RaceScreen::Update()
+Game::Screens::AppScreen* Game::Screens::RaceScreen::Update()
 {
+	using namespace Game::Race;
+	using namespace Game::Audio;
+
 	while (SDL_GetTicks() > LastFrameEnd + 33)
 	{
 		auto OldType = RaceSM.State->Type;
@@ -95,16 +92,18 @@ AppScreen* Game::Screens::RaceScreen::Update()
 }
 
 
-Game::Render::RaceScreenRenderer::RaceScreenRenderer(Game::Render::AppRenderContext* Context) :
-	State(nullptr),  BaseRenderer(Context)
+Game::Render::RaceScreenRenderer::RaceScreenRenderer(Game::Render::AppRenderContext* Context) 
+	: Screen(nullptr), 
+	BaseRenderer(Context)
 {
 	Camera.X = 0;
 	Camera.W = Context->ScreenWidth;
 	Camera.H = Context->ScreenHeight;
 }
 
-Game::Render::RaceScreenRenderer::RaceScreenRenderer(Game::Render::AppRenderContext* Context, Screens::RaceScreen* _State) :
-	State(_State), BaseRenderer(Context)
+Game::Render::RaceScreenRenderer::RaceScreenRenderer(Game::Render::AppRenderContext* Context, Screens::RaceScreen* _State) 
+	: Screen(_State), 
+	BaseRenderer(Context)
 {
 	Camera.X = 0;
 	Camera.W = Context->ScreenWidth;
@@ -131,6 +130,8 @@ void Game::Render::RaceScreenRendererCamera::PointAt(unsigned int X)
 
 void Game::Render::RaceScreenRenderer::DrawRacer(Race::Racer Racer, unsigned int Track)
 {
+	using namespace Game::Race;
+
 	unsigned int yOffset = ((Track + 1) * 40) + 300;
 	unsigned int StaggerOffset = (Track + 1) * 20;
 	unsigned int xOffset = 200;
@@ -148,7 +149,7 @@ void Game::Render::RaceScreenRenderer::DrawRacer(Race::Racer Racer, unsigned int
 
 
 	SDL_Rect RenderQuad2 = { XDraw  ,  yOffset + 79, 144,107 };
-	if (State->RaceSM.State->Type == RaceStateType::StartersOrders)
+	if (Screen->RaceSM.State->Type == RaceStateType::StartersOrders)
 		RenderImage(Context->Store.GetImage(Assets::ImageAssetFellaWait)->Texture, NULL, &RenderQuad2);	//starters orders
 	else
 		RenderImage(Context->Store.GetImage(Assets::ImageAssetFellaRun)->Texture, &SourceQuad, &RenderQuad);	//running
@@ -160,20 +161,22 @@ void Game::Render::RaceScreenRenderer::DrawRacer(Race::Racer Racer, unsigned int
 
 void Game::Render::RaceScreenRenderer::DrawWinners()
 {
-	double ScaleFactor = double(Context->ScreenWidth) / double(unsigned int(State->RaceSM.Data.ThisRace.ThisTrack->Length) + 200);
+	using namespace std;
+
+	double ScaleFactor = double(Context->ScreenWidth) / double(unsigned int(Screen->RaceSM.Data.ThisRace.ThisTrack->Length) + 200);
 	unsigned int yOffset = 50;
-	if (State->RaceSM.Data.ThisRace.Result.RacerResults.size() > 0)
+	if (Screen->RaceSM.Data.ThisRace.Result.RacerResults.size() > 0)
 	{
 		SDL_Rect RenderQuad2 = { 280, 220 , 378 , 359 };
 		RenderImage(Context->Store.GetImage(Assets::ImageAssetRaceBackground)->Texture, NULL, &RenderQuad2);
-		for (int t = 0; t < State->RaceSM.Data.ThisRace.Result.RacerResults.size() && t < 3; ++t)
+		for (int t = 0; t < Screen->RaceSM.Data.ThisRace.Result.RacerResults.size() && t < 3; ++t)
 		{
-			auto& Result = State->RaceSM.Data.ThisRace.Result.RacerResults[t];
-			auto& Racer = State->RaceSM.Data.ThisRace.Result.RacerResults[t].Racer;
+			auto& Result = Screen->RaceSM.Data.ThisRace.Result.RacerResults[t];
+			auto& Racer = Screen->RaceSM.Data.ThisRace.Result.RacerResults[t].Racer;
 
-			auto WinAmount =	t == 0	? State->RaceSM.Data.ThisRace.Financials.FirstPlacePrize :
-								t == 1	? State->RaceSM.Data.ThisRace.Financials.SecondPlacePrize 
-										: State->RaceSM.Data.ThisRace.Financials.ThirdPlacePrize;
+			auto WinAmount =	t == 0	? Screen->RaceSM.Data.ThisRace.Financials.FirstPlacePrize :
+								t == 1	? Screen->RaceSM.Data.ThisRace.Financials.SecondPlacePrize 
+										: Screen->RaceSM.Data.ThisRace.Financials.ThirdPlacePrize;
 
 			RenderText(Context->Store.GetFont(Assets::FontAssetMainFont), "Wins " + to_string(WinAmount), 290, 290 + (t * 60) + 20, { 255,255,255 });
 			RenderText(Context->Store.GetFont(Assets::FontAssetMainFont), "#: " + Racer->Name, 470, 290 + (t * 60) + 20, { 255,255,255 });
@@ -233,7 +236,7 @@ void Game::Render::RaceScreenRenderer::DrawProgressBar()
 	SDL_RectToFRect(&fillRect, &fillRectF);
 	SDL_RenderFillRect(Context->MainRenderer, &fillRectF);
 
-	auto& Race = State->RaceSM.Data.ThisRace;
+	auto& Race = Screen->RaceSM.Data.ThisRace;
 	for (int t = Race.Racers.size() - 1; t > -1 ; --t)
 	{
 		//Draw racers circle
@@ -241,7 +244,7 @@ void Game::Render::RaceScreenRenderer::DrawProgressBar()
 		double ScaleFactor =  double(R->Pos.X) / unsigned int(Race.ThisTrack->Length);
 		
 		SDL_Rect RenderQuad = { X + (W * ScaleFactor) - 10, Y - 15, 32,32 };
-		if (R->GUID == State->PlayerGUID)
+		if (R->GUID == Screen->PlayerGUID)
 		{
 			RenderQuad.x -= 8;
 			RenderQuad.y -= 8;
@@ -256,12 +259,12 @@ unsigned int Game::Render::RaceScreenRenderer::Render()
 	//start timer
 	auto StartTime = SDL_GetTicks();
 
-	Camera.TrackLength = unsigned int(State->RaceSM.Data.ThisRace.ThisTrack->Length);
+	Camera.TrackLength = unsigned int(Screen->RaceSM.Data.ThisRace.ThisTrack->Length);
 
-	if (this->State->RaceSM.Data.ThisRace.Contains(State->PlayerGUID))
-		Camera.PointAt(State->RaceSM.Data.ThisRace.Get(State->PlayerGUID)->Pos.X + 75);
+	if (this->Screen->RaceSM.Data.ThisRace.Contains(Screen->PlayerGUID))
+		Camera.PointAt(Screen->RaceSM.Data.ThisRace.Get(Screen->PlayerGUID)->Pos.X + 75);
 	else
-		Camera.PointAt(State->RaceSM.Data.ThisRace.CurrentWinnerDistance() + 75);
+		Camera.PointAt(Screen->RaceSM.Data.ThisRace.CurrentWinnerDistance() + 75);
 
 	SDL_SetRenderDrawColor(Context->MainRenderer, 0, 0, 0, 0);
 	SDL_RenderClear(Context->MainRenderer);
@@ -269,7 +272,7 @@ unsigned int Game::Render::RaceScreenRenderer::Render()
 	DrawBackground();
 
 	//draw racers
-	auto& Racers = State->RaceSM.Data.ThisRace.Racers;
+	auto& Racers = Screen->RaceSM.Data.ThisRace.Racers;
 	for (int t = 0; t < Racers.size(); ++t)
 		DrawRacer(*Racers[t], t);
 
@@ -288,21 +291,23 @@ unsigned int Game::Render::RaceScreenRenderer::Render()
 
 void Game::Render::RaceScreenRenderer::RenderDebugText()
 {
+	using namespace std;
+
 	//top right
-	string Body = "AppScreen: " + AppStateTypeToString(State->Type) + "\n" +
-		"RaceState: " + RaceStateTypeToString(State->RaceSM.State->Type) + "\n" +
-		"Finished: " + to_string(State->RaceSM.Data.ThisRace.FinishedCount()) + "\n" +
-		"Leader: " + State->RaceSM.Data.ThisRace.CurrentWinner()->Name + "\n" +
-		"Entrance Fee: " + to_string(State->RaceSM.Data.ThisRace.Financials.EntranceFee) + "\n" +
-		"1st Prize: " + to_string(State->RaceSM.Data.ThisRace.Financials.FirstPlacePrize) + "\n" +
+	string Body = "AppScreen: " + AppStateTypeToString(Screen->Type) + "\n" +
+		"RaceState: " + RaceStateTypeToString(Screen->RaceSM.State->Type) + "\n" +
+		"Finished: " + to_string(Screen->RaceSM.Data.ThisRace.FinishedCount()) + "\n" +
+		"Leader: " + Screen->RaceSM.Data.ThisRace.CurrentWinner()->Name + "\n" +
+		"Entrance Fee: " + to_string(Screen->RaceSM.Data.ThisRace.Financials.EntranceFee) + "\n" +
+		"1st Prize: " + to_string(Screen->RaceSM.Data.ThisRace.Financials.FirstPlacePrize) + "\n" +
 		"Camera.CameraX: " + to_string(Camera.CameraX) + "\n" +
 		"Camera.CameraX2: " + to_string(Camera.CameraX2) + "\n";
 	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), Body, 850, 10, {255,0,0});
 
 	//middle top
-	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "CurrentTick: " + to_string(State->RaceSM.Data.CurrentTick), 400, 10, { 255,255,255 });
+	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "CurrentTick: " + to_string(Screen->RaceSM.Data.CurrentTick), 400, 10, { 255,255,255 });
 	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "SDL_GetTicks(): " + to_string(SDL_GetTicks()), 400, 22, { 255,255,255 });
-	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "Race.CurrentTick: " + to_string(State->RaceSM.Data.ThisRace.CurrentTick), 400, 34, { 255,255,255 });
+	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "Race.CurrentTick: " + to_string(Screen->RaceSM.Data.ThisRace.CurrentTick), 400, 34, { 255,255,255 });
 
 	//top left
 	//if (Data->ShowFPS)	//TODO FIXME

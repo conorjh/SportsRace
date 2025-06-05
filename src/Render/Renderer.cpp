@@ -5,7 +5,7 @@
 #include "spdlog/spdlog.h"
 #include <iostream>
 
-bool Game::Assets::AssetStore::LoadAll(Game::Render::BaseRenderer& Renderer)
+bool Game::Assets::AssetStore::RegisterAll(Game::Render::BaseRenderer& Renderer)
 {
 	using namespace Game::Assets;
 

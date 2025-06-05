@@ -30,7 +30,7 @@ namespace Game
 		class CareerHubRenderer : public Render::BaseRenderer
 		{
 		public:
-			Screens::CareerHubScreen* State;
+			Screens::CareerHubScreen* Screen;
 
 			CareerHubRenderer(Game::Render::AppRenderContext* Context);
 			CareerHubRenderer(Game::Render::AppRenderContext* Context, Screens::CareerHubScreen* State);

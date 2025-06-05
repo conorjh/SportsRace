@@ -7,15 +7,6 @@
 #include <map>
 #include <string>
 
-using namespace Game;
-using namespace Game::Screens;
-using namespace Game::Race;
-using namespace Game::App;
-using namespace Game::Audio;
-using namespace Game::GUI;
-using namespace Game::Race;
-using namespace std;
-
 void Game::Race::Race::Finished(Racer* R)
 {
 	Result.RacerResults.push_back(RacerRaceResult(R, Result.RacerResults.size() + 1, CurrentTick, GUID));
@@ -34,8 +25,10 @@ bool Game::Race::Race::HasFinished()
 	return (FinishedCount() >= Racers.size());
 }
 
-Racer* Game::Race::Race::CurrentWinner()
+Game::Race::Racer* Game::Race::Race::CurrentWinner()
 {
+	using namespace std;
+
 	unsigned int Max = 0, RacerNum = 0, t = -1;
 	for (vector<Racer*>::iterator it = Racers.begin(); it != Racers.end(); ++it)
 	{
@@ -51,6 +44,8 @@ Racer* Game::Race::Race::CurrentWinner()
 
 unsigned int Game::Race::Race::CurrentWinnerDistance()
 {
+	using namespace std;
+
 	unsigned int Max = 0;
 	for (vector<Racer*>::iterator it = Racers.begin(); it != Racers.end(); ++it)
 		if ((*it)->Pos.X > Max)
@@ -58,8 +53,10 @@ unsigned int Game::Race::Race::CurrentWinnerDistance()
 	return Max;
 }
 
-Racer* Game::Race::Race::Get(RacerGUID Guid)
+Game::Race::Racer* Game::Race::Race::Get(RacerGUID Guid)
 {
+	using namespace std;
+
 	for (vector<Racer*>::iterator it = Racers.begin(); it != Racers.end(); ++it)
 		if ((*it)->GUID == Guid)
 			return (*it);
@@ -67,8 +64,10 @@ Racer* Game::Race::Race::Get(RacerGUID Guid)
 }
 
 //count from 1
-Racer* Game::Race::Race::GetByRank(unsigned int Rank)
+Game::Race::Racer* Game::Race::Race::GetByRank(unsigned int Rank)
 {
+	using namespace std;
+
 	if (Rank == 0 || Rank > Racers.size())
 		return nullptr;
 
@@ -96,7 +95,7 @@ Game::Race::Race::Race()
 	
 }
 
-RaceStatus Game::Race::Race::Tick(unsigned int Ms, RaceStatus Type)
+Game::Race::RaceStatus Game::Race::Race::Tick(unsigned int Ms, RaceStatus Type)
 {
 	CurrentTick += Ms;
 
@@ -144,12 +143,15 @@ RaceStatus Game::Race::Race::Tick(unsigned int Ms, RaceStatus Type)
 	return Type;
 }
 
-RaceResult Game::Race::Race::Sim()
+Game::Race::RaceResult Game::Race::Race::Sim()
 {
 	Result.GUID = GUID;
 	RaceStatus CurrentState = RaceStatus::Racing;
 
-	while ((CurrentState = Tick(33, CurrentState)) != RaceStatus::Finished) {}
+	while ((CurrentState = Tick(33, CurrentState)) != RaceStatus::Finished)
+	{
+		//nop
+	}
 
 	return Result;
 }

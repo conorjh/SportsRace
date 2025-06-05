@@ -18,9 +18,9 @@ namespace Game
 			unsigned int LastFrameEnd;
 		public:
 			Race::RacerGUID PlayerGUID;
-			RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer);	//InRaceStateInitType::Training
-			RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun);			//demo
-			RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun, Race::RacerGUID);			//InRaceStateInitType::Race
+			RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer);					//InRaceStateInitType::Training
+			RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun);						//demo
+			RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun, Race::RacerGUID);		//InRaceStateInitType::Race
 			~RaceScreen();
 
 			void Entry(), Exit();
@@ -51,7 +51,7 @@ namespace Game
 			RaceScreenRendererCamera Camera;
 
 		public:
-			Screens::RaceScreen* State;
+			Screens::RaceScreen* Screen;
 			RaceScreenRenderer(Game::Render::AppRenderContext* Context);
 			RaceScreenRenderer(Game::Render::AppRenderContext* Context, Screens::RaceScreen* _State);
 

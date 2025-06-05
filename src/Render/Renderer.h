@@ -41,7 +41,7 @@ namespace Game
 			std::unordered_map<ImageAssetId, Game::Render::Image*> Images;
 
 		public:
-			bool LoadAll(Game::Render::BaseRenderer& Renderer);
+			bool RegisterAll(Game::Render::BaseRenderer& Renderer);
 
 			void RegisterFont(FontAssetId FontId, TTF_Font* LoadedFont);
 			void RegisterImage(ImageAssetId ImageId, Game::Render::Image* LoadedImage);

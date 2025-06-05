@@ -2,12 +2,12 @@
 #include "Render\AppRenderer.h"
 #include "SDL3/SDL_main.h"
 
-using namespace Game;
-using namespace Game::App;
-using namespace Game::App::Render;
-
 int main(int argc, char* argv[])
 {
+	using namespace Game;
+	using namespace Game::App;
+	using namespace Game::App::Render;
+
 	Application App(argc, argv);
 
 	if (!App.Init())
