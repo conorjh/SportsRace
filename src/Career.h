@@ -40,8 +40,6 @@ namespace Game
 			void Init();
 
 			void Update(unsigned int Ms);
-
-
 		};
 	}
 

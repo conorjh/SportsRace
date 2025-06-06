@@ -8,7 +8,6 @@ Game::Audio::AudioPlayer::AudioPlayer()
 
 bool Game::Audio::AudioPlayer::Init()
 {
-
 	this->Hover = Mix_LoadWAV("media/hover.wav");
 	this->Click = Mix_LoadWAV("media/click.wav");
 	this->StartersPistol = Mix_LoadWAV("media/starter_pistol.mp3");
