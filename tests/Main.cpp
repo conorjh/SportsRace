@@ -3,7 +3,7 @@
 
 using namespace Game;
 using namespace Game::App;
-using namespace Game::App::Renderer;
+using namespace Game::App::Render;
 
 int main(int argc, char* argv[])
 {

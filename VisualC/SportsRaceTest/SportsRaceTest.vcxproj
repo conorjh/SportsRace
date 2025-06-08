@@ -82,6 +82,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\src;$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\sdl_net\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -96,6 +97,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\src;$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\sdl_net\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -110,7 +112,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)SportsRace;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\src;$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\sdl_net\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -125,7 +127,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)SportsRace;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\src;$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\sdl_net\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
