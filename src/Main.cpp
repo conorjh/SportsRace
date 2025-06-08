@@ -9,6 +9,7 @@ int main(int argc, char* argv[])
 	using namespace Game::App::Render;
 
 	Application App(argc, argv);
+	if (App.Ended())
 
 	if (!App.Init())
 		return App.ReturnCode;	
