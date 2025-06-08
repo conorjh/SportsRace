@@ -10,6 +10,7 @@ int main(int argc, char* argv[])
 
 	Application App(argc, argv);
 	if (App.Ended())
+		return App.ReturnCode;	//could fail to parse command line etc
 
 	if (!App.Init())
 		return App.ReturnCode;	
