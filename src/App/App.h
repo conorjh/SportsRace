@@ -16,26 +16,24 @@ namespace Game
 
 	namespace App
 	{
-		struct Config
+		enum AppErrorCode
 		{
-			Config() {}
-
-			unsigned int ScreenWidth = 1024, ScreenHeight = 768, ScreenDepth = 32;	
-			bool ShowFPS = true;
-
-			unsigned int Ver = 2;
-			std::string VerString = "0.0.0.2";
+			NoError = 0,
+			InvalidCommandLineArguments = 1,
+			SDLInitFailed = 2,
+			IOInitFailed = 3,
+			UnknownError = 123456
 		};
 
-		class ConfigParser
+		struct AppError
 		{
-			std::string ConfigString;
-		public:
-			ConfigParser(std::string _Filepath);
+			bool HasErrored() const 
+			{ 
+				return Errors.size(); 
+			}
 
-			Config Parse();
-
-			ErrorData Errors;
+			AppErrorCode ErrorCode = AppErrorCode::NoError;
+			std::vector<std::string> Errors;
 		};
 
 		struct ParsedCommandLineArguments
@@ -43,23 +41,20 @@ namespace Game
 			ParsedCommandLineArguments()
 			{
 				Filepath = "";
-				ConfigPath = "config.cfg";
 				LogLevel = 6;
 			};
 
 			//settings
-			std::string Filepath, ConfigPath;
+			std::string Filepath;
 			unsigned int LogLevel;
 
 			//errors
-			ErrorData Errors;
+			AppError Errors;
 		};
 
 		struct AppData
 		{
 			AppData();
-
-			void UpdateFromConfig(Config Cfg);
 
 			unsigned int ScreenWidth = 1024, ScreenHeight = 768;
 			bool ShowFPS = false, Halted = false;
@@ -89,12 +84,13 @@ namespace Game
 
 		class Application
 		{
-			bool SDLInit(), SDLClose();
+			bool SDLInit(Game::Render::AppRenderContext* RenderContext, unsigned int ScreenHeight, unsigned int ScreenWidth);
+			bool SDLClose(Game::Render::AppRenderContext* RenderContext);
+
 		public:
-			Config Configuration;
 			AppIO IO;
 			AppData Data;
-			int ReturnCode;	
+			AppErrorCode ReturnCode;
 
 			Application(int argc, char* argv[]);
 
@@ -102,7 +98,7 @@ namespace Game
 			void Update();
 
 			bool Ended() const;
-			void Halt(int ErrorCode);
+			void Halt(AppErrorCode ErrorCode);
 		};
 		
 		

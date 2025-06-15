@@ -43,7 +43,6 @@ ParsedCommandLineArguments ParseCommandLine(int argc, char* argv[])
 				continue;
 			}
 
-			Output.ConfigPath = Argument.Parameters[0];
 		}
 		else if (Argument.Data == "-log")
 		{
@@ -73,22 +72,6 @@ ParsedCommandLineArguments ParseCommandLine(int argc, char* argv[])
 	return Output;
 }
 
-Game::App::ConfigParser::ConfigParser(std::string _ConfigString)
-{
-	ConfigString = _ConfigString;
-	
-}
-
-Config Game::App::ConfigParser::Parse()
-{
-	if(Errors.HasErrored())
-		return Config();
-
-	Config Output;
-	
-	return Output;
-}
-
 Game::App::Application::Application(int argc, char* argv[]) 
 	: IO(Data)
 {
@@ -104,12 +87,13 @@ Game::App::Application::Application(int argc, char* argv[])
 			spdlog::critical(Error);
 
 		//TODO: error code = command line error
-		Halt(Arguments.Errors.GetErrorCode());
+		Halt(Arguments.Errors.ErrorCode);
 		return;
 	}
 
 	//use command line value or default
 	spdlog::set_level((spdlog::level::level_enum)Arguments.LogLevel);
+	spdlog::set_level(spdlog::level::level_enum::trace);
 
 	//set the rng seed
 	srand(time(0));
@@ -118,7 +102,6 @@ Game::App::Application::Application(int argc, char* argv[])
 	spdlog::debug(" - - - Settings - - - ");
 	spdlog::debug("Filepath: " + Arguments.Filepath);
 	spdlog::debug("Log level: " + Arguments.LogLevel);
-	spdlog::debug("Config file: " + Arguments.ConfigPath);
 	spdlog::debug(" - - - - - - - - - - -");
 	spdlog::debug("Queried running dir " + std::filesystem::current_path().string());
 }
@@ -127,11 +110,17 @@ bool Game::App::Application::Init()
 {
 	spdlog::trace("Application init");
 
-	if (!SDLInit())
-		return false;
+	if (!SDLInit(Data.RenderContext, 1024, 768))
+	{
+		Halt(AppErrorCode::SDLInitFailed);
+		return false;	//critical error, cannot continue
+	}
 
 	if (!IO.Init())
-		return false;
+	{
+		Halt(AppErrorCode::SDLInitFailed);
+		return false;	//critical error, cannot continue
+	}
 
 	Data.ScreenStack.Push(new MainMenuScreen(Data.ScreenStack, IO, Data));
 
@@ -143,13 +132,13 @@ bool Game::App::Application::Ended() const
 	return Data.Halted;
 }
 
-void Game::App::Application::Halt(int _ReturnCode)
+void Game::App::Application::Halt(AppErrorCode _ReturnCode)
 {
 	ReturnCode = _ReturnCode;
 	Data.Halted = true;
 }
 
-bool Game::App::Application::SDLInit()
+bool Game::App::Application::SDLInit(Game::Render::AppRenderContext* RenderContext, unsigned int ScreenWidth, unsigned int ScreenHeight)
 {
 	spdlog::debug("SDL Init - Video");
 	if (!SDL_Init(SDL_INIT_VIDEO))
@@ -158,14 +147,14 @@ bool Game::App::Application::SDLInit()
 		return false;
 	}
 
-	spdlog::debug("SDL Init - Creating main window {}, {}", Configuration.ScreenWidth, Configuration.ScreenHeight);
-	if (!SDL_CreateWindowAndRenderer("SportsRace", Configuration.ScreenWidth, Configuration.ScreenHeight, NULL, &Data.RenderContext->MainWindow, &Data.RenderContext->MainRenderer))
+	spdlog::debug("SDL Init - Creating main window {}, {}", ScreenWidth, ScreenHeight);
+	if (!SDL_CreateWindowAndRenderer("SportsRace", ScreenWidth, ScreenHeight, NULL, &RenderContext->MainWindow, &RenderContext->MainRenderer))
 	{
 		spdlog::critical("SDL init error, SDL_CreateWindowAndRenderer(): {}", SDL_GetError());
 		return false;
 	}
-	Data.RenderContext->MainSurface = SDL_CreateSurface(Configuration.ScreenWidth, Configuration.ScreenHeight, SDL_GetWindowPixelFormat(Data.RenderContext->MainWindow));
-	SDL_SetRenderDrawColor(Data.RenderContext->MainRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+	RenderContext->MainSurface = SDL_CreateSurface(ScreenWidth, ScreenHeight, SDL_GetWindowPixelFormat(RenderContext->MainWindow));
+	SDL_SetRenderDrawColor(RenderContext->MainRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
 	spdlog::debug("SDL Init - Init TTF");
 	if (!TTF_Init())
@@ -184,15 +173,15 @@ bool Game::App::Application::SDLInit()
 	return true;
 }
 
-bool Game::App::Application::SDLClose()
+bool Game::App::Application::SDLClose(Game::Render::AppRenderContext* RenderContext)
 {
 	spdlog::debug("SDL Close");
 
 	//Destroy window and renderer
-	SDL_DestroyRenderer(Data.RenderContext->MainRenderer);
-	SDL_DestroyWindow(Data.RenderContext->MainWindow);
-	Data.RenderContext->MainRenderer = nullptr;
-	Data.RenderContext->MainWindow = nullptr;
+	SDL_DestroyRenderer(RenderContext->MainRenderer);
+	SDL_DestroyWindow(RenderContext->MainWindow);
+	RenderContext->MainRenderer = nullptr;
+	RenderContext->MainWindow = nullptr;
 
 	//Quit SDL subsystems
 	Mix_Quit();
@@ -210,7 +199,8 @@ void Game::App::Application::Update()
 	Data.ScreenStack.Update();
 }
 
-Game::App::AppIO::AppIO(AppData& _Data) : Data(_Data)
+Game::App::AppIO::AppIO(AppData& _Data) 
+	: Data(_Data)
 {
 
 }
@@ -267,10 +257,4 @@ Game::App::AppData::AppData()
 	Career(new Game::Career::CareerData())
 {
 
-}
-
-void Game::App::AppData::UpdateFromConfig(Config Cfg)
-{
-	ScreenWidth = Cfg.ScreenWidth; ScreenHeight = Cfg.ScreenHeight;
-	ShowFPS = Cfg.ShowFPS;
 }

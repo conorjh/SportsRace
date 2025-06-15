@@ -54,12 +54,6 @@ namespace Game
 		};
 	}
 
-	struct ErrorData
-	{
-		bool HasErrored() const { return Errors.size(); }
-		int GetErrorCode() const { return Errors.size() ? 1 : 0; }
-		std::vector<std::string> Errors;
-	};
 
 	namespace Util
 	{
