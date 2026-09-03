@@ -19,10 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\tests\AppTest.hpp" />
+    <ClInclude Include="..\..\tests\TestHarness.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\tests\Main.cpp" />
+    <ClCompile Include="..\..\src\Race.cpp" />
+    <ClCompile Include="..\..\src\Racer.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -83,6 +85,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)..\src;$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\sdl_net\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -98,6 +101,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)..\src;$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\sdl_net\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -113,6 +117,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)..\src;$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\sdl_net\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -128,6 +133,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)..\src;$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\sdl_net\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

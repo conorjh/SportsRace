@@ -34,7 +34,7 @@ ParsedCommandLineArguments ParseCommandLine(int argc, char* argv[])
 		{
 			Output.Filepath = Argument.Data;
 		}
-		else if (Argument.Data == "-cfg")
+		else if (Argument.Data == "cfg")
 		{
 			if (Argument.Parameters.size() != 1)
 			{
@@ -44,7 +44,7 @@ ParsedCommandLineArguments ParseCommandLine(int argc, char* argv[])
 			}
 
 		}
-		else if (Argument.Data == "-log")
+		else if (Argument.Data == "log")
 		{
 			if (Argument.Parameters.size() != 1)
 			{

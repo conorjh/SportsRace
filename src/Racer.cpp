@@ -170,8 +170,8 @@ Game::Race::RacerSkills::RacerSkills()
 	Sprint = rand() % 5;
 	Luck = rand() % 2;
 
-	StandardCutoff = rand() % 50000;
-	SprintCutoff = rand() % (StandardCutoff / 2);
+	StandardCutoff = 1 + rand() % 50000;
+	SprintCutoff = rand() % ((StandardCutoff / 2) + 1);
 }
 
 Racer* Game::Race::RacerMaker::Make()

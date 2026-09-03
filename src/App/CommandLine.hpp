@@ -49,9 +49,10 @@ namespace Game
 				int index = 0;
 				while (index < argc)
 				{
-					switch (argv[index][0])
+					std::string Token(argv[index]);
+					switch (Token[0])
 					{
-					case '//':
+					case '/':
 					case '-':	//command			
 						if (parsingParams)
 						{
@@ -59,12 +60,17 @@ namespace Game
 							arg = CommandLineArgument();
 						}
 
-						if (argv[index][0] == '--')
+						if (Token.rfind("--", 0) == 0)
+						{
 							arg.Type = CommandLineArgumentType::OptionalArgument;
+							arg.Data = Token.substr(2);
+						}
 						else
+						{
 							arg.Type = CommandLineArgumentType::Argument;
+							arg.Data = Token.substr(1);
+						}
 
-						arg.Data = std::string(argv[index]).substr(1, strlen(argv[index]) - 1);
 						parsingParams = true;
 						break;
 
