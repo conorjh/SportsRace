@@ -3,7 +3,13 @@
 
 #include "SDL3_image/SDL_image.h"
 #include "spdlog/spdlog.h"
+#include <cmath>
 #include <iostream>
+
+namespace
+{
+	constexpr double MillisecondsPerSecond = 1000.0;
+}
 
 bool Game::Assets::AssetStore::RegisterAll(Game::Render::BaseRenderer& Renderer)
 {
@@ -56,11 +62,10 @@ Game::Render::Image* Game::Assets::AssetStore::GetImage(Game::Assets::ImageAsset
 }
 
 Game::Render::BaseRenderer::BaseRenderer(AppRenderContext* Context)
-	:Context(Context)
+	:LastFrameEnd()
+	, HasLastFrameEnd(false)
+	, Context(Context)
 {
-
-
-	LastFrameEnd = 0;
 }
 
 Game::Render::Image* Game::Render::BaseRenderer::LoadImageFile(const std::string File)
@@ -135,12 +140,17 @@ void Game::Render::BaseRenderer::RenderText(TTF_Font* Font, std::string Text, in
 
 void Game::Render::BaseRenderer::Display()
 {
-	auto FrameTime = SDL_GetTicks();
-
-	FPS.AddFrame(FrameTime - LastFrameEnd);
 	SDL_RenderPresent(Context->MainRenderer);
 
-	LastFrameEnd = FrameTime;
+	const auto FrameEnd = std::chrono::steady_clock::now();
+	if (HasLastFrameEnd)
+	{
+		const double FrameTimeMs = std::chrono::duration<double, std::milli>(FrameEnd - LastFrameEnd).count();
+		FPS.AddFrame(FrameTimeMs);
+	}
+
+	LastFrameEnd = FrameEnd;
+	HasLastFrameEnd = true;
 }
 
 void Game::Render::BaseRenderer::RenderImage(SDL_Texture* Texture, SDL_Rect* SourceQuad, SDL_Rect* RenderQuad)
@@ -157,15 +167,16 @@ void Game::Render::BaseRenderer::RenderImage(SDL_Texture* Texture, SDL_Rect* Sou
 	SDL_RenderTexture(Context->MainRenderer, Texture, &SourceQuadF, &RenderQuadF);
 }
 
-void Game::Render::FPSCounter::AddFrame(unsigned int TimeTakenMs)
+void Game::Render::FPSCounter::AddFrame(double TimeTakenMs)
 {
-	if (TimeTakenMs > 1000)
-		TimeTakenMs = 1000;
-
-	//max 3k samples
-	while (TotalFrameTime + TimeTakenMs > 1000)
+	if (!std::isfinite(TimeTakenMs) || TimeTakenMs <= 0.0)
 	{
-		TotalFrameTime -= *FrameTimes.begin();
+		return;
+	}
+
+	while (!FrameTimes.empty() && TotalFrameTime + TimeTakenMs > MillisecondsPerSecond)
+	{
+		TotalFrameTime -= FrameTimes.front();
 		FrameTimes.erase(FrameTimes.begin());
 	}
 
@@ -176,22 +187,27 @@ void Game::Render::FPSCounter::AddFrame(unsigned int TimeTakenMs)
 void Game::Render::FPSCounter::Clear()
 {
 	FrameTimes.clear();
-	TotalFrameTime = 0;
+	TotalFrameTime = 0.0;
 }
 
 unsigned int Game::Render::FPSCounter::GetFrameTime()
 {
-	if (FrameTimes.size() == 0)
+	if (FrameTimes.empty())
+	{
 		return 0;
+	}
 
-	return FrameTimes.back();
+	return static_cast<unsigned int>(std::lround(TotalFrameTime / static_cast<double>(FrameTimes.size())));
 }
 
 unsigned int Game::Render::FPSCounter::GetFPS()
 {
-	if (!FrameTimes.size() || !TotalFrameTime)
+	if (FrameTimes.empty() || TotalFrameTime <= 0.0)
+	{
 		return 0;
+	}
 
-	return 1000 / GetFrameTime();
+	const double FramesPerSecond = static_cast<double>(FrameTimes.size()) * MillisecondsPerSecond / TotalFrameTime;
+	return static_cast<unsigned int>(std::lround(FramesPerSecond));
 }
 

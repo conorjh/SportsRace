@@ -5,6 +5,7 @@
 #include "..\Screens.h"
 #include "..\Screens\MainMenu.h"
 #include "..\Screens\RaceScreen.h"
+#include "..\Screens\NodeView.h"
 #include "..\Screens\CareerHub.h"
 #include "..\Screens\RacerScreen.h"
 #include "..\Screens\RankingScreen.h"
@@ -19,6 +20,7 @@ namespace Game
 			{
 				Game::Render::MainMenuRenderer MainMenuRen;
 				Game::Render::RaceScreenRenderer InRaceRen;
+				Game::Render::NodeViewRenderer NodeViewRen;
 				Game::Render::CareerHubRenderer CareerHubRen;
 				Game::Render::RacerScreenRenderer RacerScreenRen;
 				Game::Render::RankingScreenRenderer RankingScreenRen;

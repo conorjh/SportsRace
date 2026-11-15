@@ -21,7 +21,7 @@ namespace Game
 
 			std::string Text;
 			int x, y, w, h;
-			SDL_Color Color;
+			SDL_Color Color{ 0, 0, 0, 255 };
 			SDL_Rect Rect;
 
 			Button(App::AppIO& _IO, std::string _Text, int x, int  y, int w, int h);

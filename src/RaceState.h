@@ -8,7 +8,7 @@ namespace Game
 	{
 		enum class RaceStateType
 		{
-			PreRace, StartersOrders, Racing, Finishing, Finished
+			PreRace, StartersOrders, Racing, Finishing, Finished, Failed
 		};
 
 		std::string RaceStateTypeToString(RaceStateType Type);
@@ -82,7 +82,7 @@ namespace Game
 
 			void Push(RaceState*);
 
-			RaceState* State;
+			RaceState* State = nullptr;
 		};
 	}
 

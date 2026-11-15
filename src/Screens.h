@@ -15,7 +15,7 @@ namespace Game
 	{
 		enum class AppScreenType
 		{
-			Null, MainMenu, RaceScreen, RacerScreen, CareerHub, RankingScreen
+			Null, MainMenu, RaceScreen, RacerScreen, CareerHub, RankingScreen, NodeView
 		};
 		
 		std::string AppStateTypeToString(AppScreenType Type);

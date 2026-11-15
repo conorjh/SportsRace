@@ -6,6 +6,10 @@
 #include "Screens\MainMenu.h"
 #include <string>
 
+namespace
+{
+    constexpr unsigned int RacePhaseDurationMs = 1000;
+}
 
 Game::Race::RaceState::RaceState(RaceStateData& _Data) : Data(_Data)
 {
@@ -26,7 +30,7 @@ void Game::Race::RaceState::Exit()
 {
 }
 
-Game::Race::RaceStateMachine::RaceStateMachine(Race TheRace) : Data(TheRace)
+Game::Race::RaceStateMachine::RaceStateMachine(Race TheRace) : Data(TheRace), State(nullptr)
 {
     Push(new RaceState_PreRace(Data));
 }
@@ -58,15 +62,17 @@ void Game::Race::RaceStateMachine::Push(RaceState* NewState)
     State->Entry();
 }
 
-Game::Race::RaceStateData::RaceStateData(Race R)
+Game::Race::RaceStateData::RaceStateData(Race R) : CurrentTick(0), ThisRace(R)
 {
-    ThisRace = R;
 }
 
 Game::Race::RaceState_PreRace::RaceState_PreRace(RaceStateData& _Data) : RaceState(_Data)
 {
     for (int t = 0; t < Data.ThisRace.Racers.size(); ++t)
-        Data.ThisRace.Racers[t]->Pos.X = 0;
+    {
+        if (Data.ThisRace.Racers[t] != nullptr)
+            Data.ThisRace.Racers[t]->Pos.X = 0;
+    }
 
     Type = RaceStateType::PreRace;
     TickAccumulator = 0;
@@ -77,7 +83,7 @@ Game::Race::RaceState* Game::Race::RaceState_PreRace::Tick(unsigned int TimeTake
 {
     TickAccumulator += TimeTakenMs;
 
-    if (TickAccumulator > 1000)
+    if (TickAccumulator > RacePhaseDurationMs)
         return new RaceState_StartersOrders(Data);
 
     return this;
@@ -94,27 +100,44 @@ Game::Race::RaceState* Game::Race::RaceState_StartersOrders::Tick(unsigned int T
 {
     TickAccumulator += TimeTakenMs;
 
-    if (TickAccumulator > 1000)
+    if (TickAccumulator > RacePhaseDurationMs)
         return new RaceState_Racing(Data);
 
 
     for (int t = 0; t < Data.ThisRace.Racers.size(); ++t)
-        Data.ThisRace.Racers[t]->Pos.X = 0;
+    {
+        if (Data.ThisRace.Racers[t] != nullptr)
+            Data.ThisRace.Racers[t]->Pos.X = 0;
+    }
 
     return this;
 }
 
 Game::Race::RaceState_Racing::RaceState_Racing(RaceStateData& _Data) : RaceState(_Data)
 {
-    Type = RaceStateType::Racing;
+    const RaceError Error = Data.ThisRace.Precompute();
+    Type = Error == RaceError::None ? RaceStateType::Racing : RaceStateType::Failed;
+    if (Error != RaceError::None)
+        spdlog::error("Race precomputation failed: {}", RaceErrorToString(Error));
 }
 
 Game::Race::RaceState* Game::Race::RaceState_Racing::Tick(unsigned int TimeTakenMs)
 {
+    if (Type == RaceStateType::Failed)
+        return this;
+
     auto ReturnType = Data.ThisRace.Tick(TimeTakenMs, RaceStatus::Racing);
 
+    if (ReturnType == RaceStatus::Failed)
+    {
+        Type = RaceStateType::Failed;
+        spdlog::error("Race playback failed: {}", RaceErrorToString(Data.ThisRace.Result.Error));
+        return this;
+    }
     if (ReturnType == RaceStatus::Finishing)
         return new RaceState_Finishing(Data);
+    if (ReturnType == RaceStatus::Finished)
+        return new RaceState_Finished(Data);
     return this;
 }
 
@@ -129,6 +152,12 @@ Game::Race::RaceState* Game::Race::RaceState_Finishing::Tick(unsigned int TimeTa
 {
     auto ReturnType = Data.ThisRace.Tick(TimeTakenMs, RaceStatus::Finishing);
 
+    if (ReturnType == RaceStatus::Failed)
+    {
+        Type = RaceStateType::Failed;
+        spdlog::error("Race playback failed: {}", RaceErrorToString(Data.ThisRace.Result.Error));
+        return this;
+    }
     if (ReturnType == RaceStatus::Finished)
         return new RaceState_Finished(Data);
     return this;
@@ -159,6 +188,8 @@ std::string Game::Race::RaceStateTypeToString(RaceStateType Type)
         return "Finishing";
     case RaceStateType::Finished:
         return "Finished";
+    case RaceStateType::Failed:
+        return "Failed";
     default:
         return "";
     }

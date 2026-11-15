@@ -59,9 +59,9 @@ void Game::GUI::Button::Update()
 		IsButtonHoveredOver = false;
 
 	if (IsButtonHoveredOver)
-		Color = { 255, 0, 255 };
+		Color = { 255, 0, 255, 255 };
 	else
-		Color = { 0, 0, 0 };
+		Color = { 0, 0, 0, 255 };
 }
 
 bool Game::GUI::Button::IsMouseOver()

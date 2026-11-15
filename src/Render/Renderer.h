@@ -1,5 +1,6 @@
 #ifndef RENDERER_H
 #define RENDERER_H
+#include <chrono>
 #include <vector>
 #include <string>
 #include <unordered_map>
@@ -66,11 +67,11 @@ namespace Game
 
 		class FPSCounter
 		{
-			std::vector<unsigned int> FrameTimes;
-			unsigned int TotalFrameTime = 0;
+			std::vector<double> FrameTimes;
+			double TotalFrameTime = 0.0;
 
 		public:
-			void AddFrame(unsigned int TimeTakenMs);
+			void AddFrame(double TimeTakenMs);
 			void Clear();
 			unsigned int GetFrameTime();
 			unsigned int GetFPS();
@@ -84,7 +85,8 @@ namespace Game
 		
 		class BaseRenderer
 		{
-			unsigned int LastFrameEnd;
+			std::chrono::steady_clock::time_point LastFrameEnd;
+			bool HasLastFrameEnd;
 		protected:
 			AppRenderContext* Context;
 			FPSCounter FPS;

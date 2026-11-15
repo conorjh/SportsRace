@@ -16,6 +16,8 @@ namespace Game
 		class RaceScreen : public AppScreen
 		{
 			unsigned int LastFrameEnd;
+			bool ShowNodeViewOnComplete = false;
+			bool NodeViewShown = false;
 		public:
 			Race::RacerGUID PlayerGUID;
 			RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer);					//InRaceStateInitType::Training
@@ -55,7 +57,7 @@ namespace Game
 			RaceScreenRenderer(Game::Render::AppRenderContext* Context);
 			RaceScreenRenderer(Game::Render::AppRenderContext* Context, Screens::RaceScreen* _State);
 
-			void DrawRacer(Race::Racer, unsigned int Track);
+			void DrawRacer(const Race::Racer& Racer, unsigned int Track);
 			void DrawWinners();
 
 			unsigned int Render();

@@ -1,6 +1,38 @@
 #include "RacerScreen.h"
 #include "..\Audio.h"
 #include "..\App\App.h"
+#include "..\Render\RaceCurveVisualization.h"
+
+namespace
+{
+	constexpr int CurvePlotLeft = 520;
+	constexpr int CurvePlotTop = 340;
+	constexpr int CurvePlotWidth = 338;
+	constexpr int CurvePlotHeight = 80;
+	constexpr int CurvePlotTitleTop = 318;
+	constexpr int CurvePlotLegendTop = 426;
+	constexpr int RacerScreenButtonTextLeftPadding = 5;
+	constexpr SDL_Color RacerScreenBackgroundColor{ 0, 0, 0, 255 };
+	constexpr SDL_Color RacerScreenButtonFillColor{ 255, 0, 0, 255 };
+	constexpr SDL_Color RacerScreenButtonBorderColor{ 255, 255, 255, 255 };
+
+	void DrawRacerScreenButton(Game::Render::BaseRenderer& Renderer, Game::Render::AppRenderContext* Context,
+		const Game::GUI::Button& Button)
+	{
+		SDL_FRect ButtonBounds;
+		SDL_RectToFRect(&Button.Rect, &ButtonBounds);
+
+		SDL_SetRenderDrawColor(Context->MainRenderer, RacerScreenButtonFillColor.r, RacerScreenButtonFillColor.g,
+			RacerScreenButtonFillColor.b, RacerScreenButtonFillColor.a);
+		SDL_RenderFillRect(Context->MainRenderer, &ButtonBounds);
+		SDL_SetRenderDrawColor(Context->MainRenderer, RacerScreenButtonBorderColor.r, RacerScreenButtonBorderColor.g,
+			RacerScreenButtonBorderColor.b, RacerScreenButtonBorderColor.a);
+		SDL_RenderRect(Context->MainRenderer, &ButtonBounds);
+
+		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetBigFont), Button.Text,
+			Button.x + RacerScreenButtonTextLeftPadding, Button.y + RacerScreenButtonTextLeftPadding, Button.Color);
+	}
+}
 
 Game::Screens::RacerScreen::RacerScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay, RacerScreenStateInitType _InitType) :
 	AppScreen(_Machine, _IO, _Data),
@@ -29,8 +61,9 @@ Game::Screens::AppScreen* Game::Screens::RacerScreen::Update()
 	{
 		IO.Player.Play(BuiltInSounds::Click);
 
-		Data.Profile->MainFella.Name = RacerNameMaker().Make();
-		Data.Profile->MainFella.Skills = RacerSkills();
+		Racer Generated(RacerNameMaker().Make());
+		Generated.GUID = Data.Profile->MainFella.GUID;
+		Data.Profile->MainFella = Generated;
 	}
 
 	if (InitType == RacerScreenStateInitType::RacerCreation)
@@ -65,7 +98,8 @@ unsigned int Game::Render::RacerScreenRenderer::Render()
 	//start timer
 	auto StartTime = SDL_GetTicks();
 
-	SDL_SetRenderDrawColor(Context->MainRenderer, 255, 255, 255, 255);
+	SDL_SetRenderDrawColor(Context->MainRenderer, RacerScreenBackgroundColor.r, RacerScreenBackgroundColor.g,
+		RacerScreenBackgroundColor.b, RacerScreenBackgroundColor.a);
 	SDL_RenderClear(Context->MainRenderer);
 
 	SDL_Rect RenderQuad1 = { 100 , 100 , 378 , 359 };
@@ -75,50 +109,38 @@ unsigned int Game::Render::RacerScreenRenderer::Render()
 	RenderImage(Context->Store.GetImage(Assets::ImageAssetRaceBackground)->Texture, NULL, &RenderQuad2);
 
 
-	std::string SecondScreen = "Name: " + RacerProfile->MainFella.Name + "\n" + "\n" +
-		"Base Speed: " + to_string(RacerProfile->MainFella.Skills.BaseSpeed) + "\n" + "\n" +
-		"Standard Velovity: " + to_string(RacerProfile->MainFella.Skills.StandardVelocity) + "\n" + "\n" +
-		"Sprint Boost: " + to_string(RacerProfile->MainFella.Skills.Sprint) + "\n" + "\n" +
-		"Luck: " + to_string(RacerProfile->MainFella.Skills.Luck) + "% \n" + "\n" + "\n" + "\n" + "\n" + "\n" +
-		"Cash: $" + to_string(RacerProfile->Financials.Cash) + "\n" + "\n" ;
-	SDL_Color White = { 255,255,255 };
-	RenderText(Context->Store.GetFont(Assets::FontAssetMainFont), SecondScreen, 550, 150, { 255,255,255 });
+	auto& Runner = RacerProfile->MainFella;
+	std::string SecondScreen = "Name: " + Runner.Name + "\n" +
+		"Reflex: " + to_string(static_cast<int>(Runner.Skills.Reflex)) + "\n" +
+		"Composure: " + to_string(static_cast<int>(Runner.Skills.Composure)) + "\n" +
+		"Acceleration: " + to_string(static_cast<int>(Runner.Skills.Acceleration)) + "\n" +
+		"Endurance: " + to_string(static_cast<int>(Runner.Skills.Endurance)) + "\n" +
+		"Speed: " + to_string(static_cast<int>(Runner.Skills.Speed)) + "\n" +
+		"Height: " + to_string(static_cast<int>(Runner.Details.HeightCm)) + " cm\n" +
+		"Weight: " + to_string(static_cast<int>(Runner.Details.WeightKg)) + " kg\n" +
+		"Age: " + to_string(Runner.Details.Age) + "\n" +
+		"Fatigue: " + to_string(static_cast<int>(Runner.Conditions.Fatigue * 100)) + "%\n" +
+		"Confidence: " + to_string(static_cast<int>(Runner.Conditions.Confidence * 100)) + "%\n" +
+		"Injury: " + to_string(static_cast<int>(Runner.Conditions.Injury * 100)) + "%\n" +
+		"Cash: $" + to_string(RacerProfile->Financials.Cash);
+	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), SecondScreen, 550, 150, { 255,255,255 });
+	const SDL_FRect CurvePlotBounds{ static_cast<float>(CurvePlotLeft), static_cast<float>(CurvePlotTop),
+		static_cast<float>(CurvePlotWidth), static_cast<float>(CurvePlotHeight) };
+	DrawRacerCurveVisualization(*this, Context, Runner, CurvePlotBounds,
+		CurvePlotLeft, CurvePlotTitleTop, CurvePlotLegendTop);
 
+	DrawRacerScreenButton(*this, Context, Screen->RegenButton);
 	if (Screen->InitType == Screens::RacerScreenStateInitType::RacerCreation)
 	{
-		auto MappedRgb = SDL_MapRGB(SDL_GetPixelFormatDetails(Context->MainSurface->format), SDL_GetSurfacePalette(Context->MainSurface), 255,0,0);
-
-		//regen
-		SDL_FillSurfaceRect(Context->MainSurface, &Screen->RegenButton.Rect, MappedRgb);
-		SDL_SetRenderDrawColor(Context->MainRenderer, 255, 255, 255, 255);
-		SDL_FRect RegenButtonFRect; SDL_RectToFRect(&Screen->RegenButton.Rect, &RegenButtonFRect);
-		SDL_RenderRect(Context->MainRenderer, &RegenButtonFRect);
-		RenderText(Context->Store.GetFont(Assets::FontAssetBigFont), Screen->RegenButton.Text.c_str(), Screen->RegenButton.x + 5, Screen->RegenButton.y + 5, Screen->RegenButton.Color);
-
-		//apply
-		SDL_FillSurfaceRect(Context->MainSurface, &Screen->ApplyButton.Rect, MappedRgb);
-		SDL_SetRenderDrawColor(Context->MainRenderer, 255, 255, 255, 255);
-
-		SDL_FRect ApplyButtonFRect; SDL_RectToFRect(&Screen->ApplyButton.Rect, &ApplyButtonFRect);
-		SDL_RenderRect(Context->MainRenderer, &ApplyButtonFRect);
-		RenderText(Context->Store.GetFont(Assets::FontAssetBigFont), Screen->ApplyButton.Text.c_str(), Screen->ApplyButton.x + 5, Screen->ApplyButton.y + 5, Screen->ApplyButton.Color);
+		DrawRacerScreenButton(*this, Context, Screen->ApplyButton);
 	}
 
 	if (Screen->InitType == Screens::RacerScreenStateInitType::ViewOnly)
 	{
-		auto MappedRgb = SDL_MapRGB(SDL_GetPixelFormatDetails(Context->MainSurface->format), SDL_GetSurfacePalette(Context->MainSurface), 255, 0, 0);
-		
-		//exit
-		SDL_FillSurfaceRect(Context->MainSurface, &Screen->ExitButton.Rect, MappedRgb);
-		SDL_SetRenderDrawColor(Context->MainRenderer, 255, 255, 255, 255);
-		SDL_FRect ExitButtonFRect; SDL_RectToFRect(&Screen->ExitButton.Rect, &ExitButtonFRect);
-		SDL_RenderRect(Context->MainRenderer, &ExitButtonFRect);
-		RenderText(Context->Store.GetFont(Assets::FontAssetBigFont), Screen->ExitButton.Text.c_str(), Screen->ExitButton.x + 5, Screen->ExitButton.y + 5, Screen->ExitButton.Color);
+		DrawRacerScreenButton(*this, Context, Screen->ExitButton);
 	}
 
 	//racer
-	auto& Fella = this->RacerProfile->MainFella;
-	unsigned int FrameTime = 250 - (Fella.Skills.BaseSpeed * 10);
 	unsigned int FrameNum =  ( (SDL_GetTicks() % 1000)  / 250) * (613 / 4);
 	SDL_Rect SourceQuad = { 0 + FrameNum, 0, 613 / 4, 186 / 1 };
 	SDL_Rect RenderQuad = { 180,  150, 613 / 4 , 186 / 1 };
@@ -127,6 +149,5 @@ unsigned int Game::Render::RacerScreenRenderer::Render()
 
 	Display();
 	auto EndTime = SDL_GetTicks();
-	FPS.AddFrame(EndTime - StartTime);
 	return EndTime - StartTime;
 }

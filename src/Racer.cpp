@@ -1,78 +1,88 @@
 #include "Racer.h"
+#include <algorithm>
+#include <random>
+#include <cmath>
+#include <cstdlib>
 
 using namespace Game;
 using namespace Game::Race;
 using namespace std;
 
-Game::Race::Racer::Racer()
+namespace
 {
-	Name = "";
-	LastRunFrameEnd = CurrentTick = 0;
-	RunFrame = 0;
-	Pos.X = 0;
-	Pos.Velocity = 15 + (rand() % 10);
+	constexpr unsigned int MinimumGeneratedSkill = 20;
+	constexpr unsigned int MaximumGeneratedSkill = 100;
+	constexpr unsigned int MinimumGeneratedPotential = 70;
+	constexpr unsigned int MinimumGeneratedTrainability = 1;
+	constexpr unsigned int MinimumGeneratedAge = 18;
+	constexpr unsigned int MaximumGeneratedAge = 40;
+	constexpr double GeneratedRatingMean = 50.0;
+	constexpr double GeneratedRatingStandardDeviation = 15.0;
+	constexpr double GeneratedPotentialMean = 85.0;
+	constexpr double GeneratedPotentialStandardDeviation = 7.5;
+	constexpr double StandardNormalMean = 0.0;
+	constexpr double StandardNormalDeviation = 1.0;
+	constexpr double MeanHeightCm = 174.0;
+	constexpr double HeightStandardDeviationCm = 8.8;
+	constexpr double MeanWeightKg = 67.3;
+	constexpr double WeightHeightCoefficientKg = 9.0;
+	constexpr double WeightResidualStandardDeviationKg = 7.3;
+	constexpr unsigned int MillisecondsPerSecond = 1000;
+	constexpr double AnimationBaseFrameTimeMs = 350.0;
+	constexpr double AnimationFrameTimeReductionPerPace = 0.1;
+	constexpr double MinimumAnimationFrameTimeMs = 80.0;
+	constexpr unsigned int AnimationFrameCount = 4;
+	constexpr unsigned int CurveInversionIterations = 40;
+	constexpr double BezierControlPointWeight = 3.0;
+	constexpr double CurveSubdivisionCount = 2.0;
+	constexpr unsigned int DescendingCurveSeedSalt = 0x9e3779b9u;
+	constexpr double MinimumAccelerationP1Y = 0.4;
+
+	unsigned int GenerateRating(std::mt19937& Generator, std::normal_distribution<double>& Distribution,
+		unsigned int Minimum, unsigned int Maximum)
+	{
+		const long RoundedValue = std::lround(Distribution(Generator));
+		return static_cast<unsigned int>(std::clamp(RoundedValue,
+			static_cast<long>(Minimum), static_cast<long>(Maximum)));
+	}
+}
+
+Game::Race::Racer::Racer() : Racer("")
+{
 }
 
 Game::Race::Racer::Racer(std::string _Name)
+	: Name(_Name), CurveSeed(static_cast<unsigned int>(rand())),
+	AccelerationCurve(RaceCurve::Generate(CurveSeed, false)),
+	EnduranceCurve(RaceCurve::Generate(CurveSeed, true))
 {
-	Name = _Name;
 	LastRunFrameEnd = CurrentTick = 0;
 	RunFrame = 0;
 	Pos.X = 0;
-	Pos.Velocity = 15 + (rand() % 10);
+	Pos.Velocity = 0.0;
 }
 
 void Game::Race::Racer::Tick(unsigned int Ms)
 {
 	CurrentTick += Ms;
 
-	if (Pos.X < Skills.SprintCutoff && Pos.X < Skills.StandardCutoff)
-	{
-		if (rand() % 8 == 1)
-		{
-			Pos.Velocity = Skills.BaseSpeed + (rand() % Skills.StandardVelocity);
-			if (Skills.Sprint > 0)
-				Pos.Velocity += (rand() % Skills.Sprint);
-			if (Skills.Luck > 0)
-				Pos.Velocity += (rand() % Skills.Luck);   //1/5
-		}
-	}
-	else if (Pos.X >= Skills.SprintCutoff && Pos.X < Skills.StandardCutoff)
-	{
-		if (rand() % 10 == 1)
-		{
-			Pos.Velocity = Skills.BaseSpeed + (rand() % Skills.StandardVelocity);
-			if (Skills.Luck > 0)
-				Pos.Velocity += (rand() % Skills.Luck);   //1/10
-		}
-	}
-	else if (Pos.X >= Skills.SprintCutoff && Pos.X >= Skills.StandardCutoff)
-	{
-		if (rand() % 20 == 1)
-		{
-			Pos.Velocity = Skills.BaseSpeed;
-			if (Skills.Luck > 0)
-				Pos.Velocity += (rand() % Skills.Luck);   //1/20
-		}
-	}
-
 	//animation
-	auto FrameTime = (350 - (Pos.Velocity * 10)) * 0.9;
+	auto FrameTime = static_cast<unsigned int>(std::clamp(AnimationBaseFrameTimeMs - Pos.Velocity * AnimationFrameTimeReductionPerPace,
+		MinimumAnimationFrameTimeMs, AnimationBaseFrameTimeMs));
 	if (CurrentTick > LastRunFrameEnd + FrameTime)
 	{
-		RunFrame++;
+		RunFrame = (RunFrame + 1) % AnimationFrameCount;
 		LastRunFrameEnd = CurrentTick;
 	}
-	if (RunFrame > 3)
-		RunFrame = 0;
 
-	Pos.X += Pos.Velocity;
+	Pos.X += static_cast<int>(std::lround(Pos.Velocity * Ms / MillisecondsPerSecond));
 }
 
 void Game::Race::Racer::Reset()
 {
 	this->CurrentTick = this->LastRunFrameEnd = this->RunFrame = 0;
 	this->Pos.X = 0;
+	this->Pos.Velocity = 0.0;
 }
 
 Game::Race::RacerNameMaker::RacerNameMaker()
@@ -97,8 +107,8 @@ Game::Race::RacerNameMaker::RacerNameMaker()
 
 std::string Game::Race::RacerNameMaker::Make()
 {
-	unsigned int FirstNameIndex = rand() % (FirstNames.size() - 1);
-	unsigned int SecondNameIndex = rand() % (SecondNames.size() - 1);
+	unsigned int FirstNameIndex = static_cast<unsigned int>(rand() % FirstNames.size());
+	unsigned int SecondNameIndex = static_cast<unsigned int>(rand() % SecondNames.size());
 
 
 	return FirstNames[FirstNameIndex] + " " + SecondNames[SecondNameIndex];
@@ -164,14 +174,69 @@ RacerGUID& Game::Race::RacerGUID::operator=(const int& Other)
 Game::Race::RacerSkills::RacerSkills()
 {
 	Xp = 0;
+	std::mt19937 Generator(static_cast<unsigned int>(rand()));
+	std::normal_distribution<double> RatingDistribution(GeneratedRatingMean, GeneratedRatingStandardDeviation);
+	std::normal_distribution<double> PotentialDistribution(GeneratedPotentialMean, GeneratedPotentialStandardDeviation);
+	Potential = GenerateRating(Generator, PotentialDistribution, MinimumGeneratedPotential, MaximumGeneratedSkill);
+	Reflex = GenerateRating(Generator, RatingDistribution, MinimumGeneratedSkill, MaximumGeneratedSkill);
+	Composure = GenerateRating(Generator, RatingDistribution, MinimumGeneratedSkill, MaximumGeneratedSkill);
+	Acceleration = std::min<double>(GenerateRating(Generator, RatingDistribution,
+		MinimumGeneratedSkill, MaximumGeneratedSkill), Potential);
+	Endurance = std::min<double>(GenerateRating(Generator, RatingDistribution,
+		MinimumGeneratedSkill, MaximumGeneratedSkill), Potential);
+	Speed = std::min<double>(GenerateRating(Generator, RatingDistribution,
+		MinimumGeneratedSkill, MaximumGeneratedSkill), Potential);
+	Trainability = GenerateRating(Generator, RatingDistribution, MinimumGeneratedTrainability, MaximumGeneratedSkill);
+	Luck = GenerateRating(Generator, RatingDistribution, 0, MaximumGeneratedSkill);
+}
 
-	BaseSpeed = 1 + rand() % 15;
-	StandardVelocity = 1 + rand() % 9;
-	Sprint = rand() % 5;
-	Luck = rand() % 2;
+Game::Race::RacerDetails::RacerDetails()
+{
+	std::mt19937 Generator(static_cast<unsigned int>(rand()));
+	std::normal_distribution<double> Normal(StandardNormalMean, StandardNormalDeviation);
+	// Approximate the combined sprinter population described by Uth (2005).
+	do
+	{
+		const double HeightScore = Normal(Generator);
+		HeightCm = MeanHeightCm + HeightStandardDeviationCm * HeightScore;
+		WeightKg = MeanWeightKg + WeightHeightCoefficientKg * HeightScore + WeightResidualStandardDeviationKg * Normal(Generator);
+	} while (HeightCm <= 0.0 || WeightKg <= 0.0);
+	Age = MinimumGeneratedAge + rand() % (MaximumGeneratedAge - MinimumGeneratedAge + 1);
+}
 
-	StandardCutoff = 1 + rand() % 50000;
-	SprintCutoff = rand() % ((StandardCutoff / 2) + 1);
+Game::Race::RaceCurve Game::Race::RaceCurve::Generate(unsigned int Seed, bool Descending)
+{
+	std::mt19937 Generator(Seed ^ (Descending ? DescendingCurveSeedSalt : 0u));
+	std::uniform_real_distribution<double> Uniform(0.0, 1.0);
+	double X1 = Uniform(Generator), X2 = Uniform(Generator);
+	double Y1 = Uniform(Generator), Y2 = Uniform(Generator);
+	if (X1 > X2) std::swap(X1, X2);
+	if ((!Descending && Y1 > Y2) || (Descending && Y1 < Y2)) std::swap(Y1, Y2);
+	if (!Descending)
+	{
+		Y1 = MinimumAccelerationP1Y + (1.0 - MinimumAccelerationP1Y) * Y1;
+		Y2 = std::max(Y1, Y2);
+	}
+	return { X1, Y1, X2, Y2, Descending };
+}
+
+double Game::Race::RaceCurve::Evaluate(double Time) const
+{
+	Time = std::clamp(Time, 0.0, 1.0);
+	if (Time == 0.0) return Descending ? 1.0 : 0.0;
+	if (Time == 1.0) return Descending ? 0.0 : 1.0;
+	double Low = 0.0, High = 1.0;
+	for (unsigned int I = 0; I < CurveInversionIterations; ++I)
+	{
+		const double T = (Low + High) / CurveSubdivisionCount;
+		const double S = 1.0 - T;
+		const double X = BezierControlPointWeight * S * S * T * X1 + BezierControlPointWeight * S * T * T * X2 + T * T * T;
+		if (X < Time) Low = T; else High = T;
+	}
+	const double T = (Low + High) / CurveSubdivisionCount;
+	const double S = 1.0 - T;
+	return S * S * S * (Descending ? 1.0 : 0.0) + BezierControlPointWeight * S * S * T * Y1 +
+		BezierControlPointWeight * S * T * T * Y2 + T * T * T * (Descending ? 0.0 : 1.0);
 }
 
 Racer* Game::Race::RacerMaker::Make()

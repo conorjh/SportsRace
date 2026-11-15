@@ -1,24 +1,13 @@
 #ifndef TESTHARNESS_HPP
 #define TESTHARNESS_HPP
 
-#include <exception>
 #include <iostream>
 #include <sstream>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
 namespace Test
 {
-	class Failure : public std::runtime_error
-	{
-	public:
-		explicit Failure(const std::string& Message)
-			: std::runtime_error(Message)
-		{
-		}
-	};
-
 	struct Case
 	{
 		std::string Name;
@@ -39,23 +28,37 @@ namespace Test
 		}
 	};
 
+	inline std::string& CurrentFailureMessage()
+	{
+		static std::string Message;
+		return Message;
+	}
+
 	inline void Fail(const char* Expression, const char* File, int Line)
 	{
+		if (!CurrentFailureMessage().empty())
+			return;
+
 		std::ostringstream Stream;
 		Stream << File << ":" << Line << ": assertion failed: " << Expression;
-		throw Failure(Stream.str());
+		CurrentFailureMessage() = Stream.str();
 	}
 
 	template <typename TExpected, typename TActual>
-	void AreEqual(const TExpected& Expected, const TActual& Actual, const char* ExpectedExpression, const char* ActualExpression, const char* File, int Line)
+	bool AreEqual(const TExpected& Expected, const TActual& Actual, const char* ExpectedExpression,
+		const char* ActualExpression, const char* File, int Line)
 	{
-		if (!(Expected == Actual))
+		if (Expected == Actual)
+			return true;
+
+		if (CurrentFailureMessage().empty())
 		{
 			std::ostringstream Stream;
 			Stream << File << ":" << Line << ": expected " << ExpectedExpression << " == " << ActualExpression
-				<< ", got " << Expected << " and " << Actual;
-			throw Failure(Stream.str());
+				<< ", but the values differ";
+			CurrentFailureMessage() = Stream.str();
 		}
+		return false;
 	}
 
 	inline int RunAll()
@@ -63,15 +66,14 @@ namespace Test
 		int Failed = 0;
 		for (const auto& TestCase : Cases())
 		{
-			try
-			{
-				TestCase.Body();
+			CurrentFailureMessage().clear();
+			TestCase.Body();
+			if (CurrentFailureMessage().empty())
 				std::cout << "[PASS] " << TestCase.Name << '\n';
-			}
-			catch (const std::exception& Ex)
+			else
 			{
 				Failed++;
-				std::cerr << "[FAIL] " << TestCase.Name << " - " << Ex.what() << '\n';
+				std::cerr << "[FAIL] " << TestCase.Name << " - " << CurrentFailureMessage() << '\n';
 			}
 		}
 
@@ -89,12 +91,19 @@ namespace Test
 	do \
 	{ \
 		if (!(Expression)) \
+		{ \
 			Test::Fail(#Expression, __FILE__, __LINE__); \
+			return; \
+		} \
 	} while (false)
 
 #define ASSERT_FALSE(Expression) ASSERT_TRUE(!(Expression))
 
 #define ASSERT_EQ(Expected, Actual) \
-	Test::AreEqual((Expected), (Actual), #Expected, #Actual, __FILE__, __LINE__)
+	do \
+	{ \
+		if (!Test::AreEqual((Expected), (Actual), #Expected, #Actual, __FILE__, __LINE__)) \
+			return; \
+	} while (false)
 
 #endif

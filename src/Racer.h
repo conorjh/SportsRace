@@ -30,8 +30,15 @@ namespace Game
 
 		struct RacerGUID
 		{
-			RacerGUID() { GUID = 0; }
-			RacerGUID(unsigned int _GUID) { GUID = _GUID; }
+			RacerGUID()
+			{
+				GUID = 0;
+			}
+
+			RacerGUID(unsigned int _GUID)
+			{
+				GUID = _GUID;
+			}
 
 			bool operator==(const RacerGUID& Other);
 			bool operator==(RacerGUID& Other);
@@ -48,9 +55,35 @@ namespace Game
 
 			unsigned int Xp;
 
-			unsigned int BaseSpeed, Sprint, StandardVelocity, Luck;
+			double Reflex, Composure, Acceleration, Endurance, Speed;
+			double Potential, Trainability, Luck;
+		};
 
-			unsigned int SprintCutoff, StandardCutoff;
+		struct RacerDetails
+		{
+			RacerDetails();
+			double HeightCm, WeightKg;
+			unsigned int Age;
+		};
+
+		struct RacerConditions
+		{
+			static constexpr double InitialFatigue = 0.0;
+			static constexpr double InitialConfidence = 0.5;
+			static constexpr double InitialInjury = 0.0;
+
+			double Fatigue = InitialFatigue;
+			double Confidence = InitialConfidence;
+			double Injury = InitialInjury;
+		};
+
+		struct RaceCurve
+		{
+			double X1, Y1, X2, Y2;
+			bool Descending;
+
+			static RaceCurve Generate(unsigned int Seed, bool Descending);
+			double Evaluate(double Time) const;
 		};
 
 		class Racer
@@ -67,6 +100,10 @@ namespace Game
 			std::string Name;
 			unsigned int RunFrame, LastRunFrameEnd;
 			RacerSkills Skills;
+			RacerDetails Details;
+			RacerConditions Conditions;
+			unsigned int CurveSeed;
+			RaceCurve AccelerationCurve, EnduranceCurve;
 			Position Pos;
 		};
 
@@ -79,7 +116,10 @@ namespace Game
 			Racer* Get(unsigned int GUID);
 			void Add(Racer*);
 
-			bool Contains(unsigned int GUID) { return Get(GUID) != nullptr; }
+			bool Contains(unsigned int GUID)
+			{
+				return Get(GUID) != nullptr;
+			}
 		};
 	}
 }

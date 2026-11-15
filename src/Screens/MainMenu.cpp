@@ -141,12 +141,11 @@ unsigned int Game::Render::MainMenuRenderer::Render()
 	DrawLeague();
 
 	//fps
-	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "FPS: " + std::to_string(FPS.GetFrameTime()), 975, 5, { 255,255,255 });
+	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "FPS: " + std::to_string(FPS.GetFPS()), 975, 5, { 255,255,255 });
 
 	Display();
 
 	auto EndTime = SDL_GetTicks();
-	FPS.AddFrame(EndTime - StartTime);
 
 	return EndTime - StartTime;
 }

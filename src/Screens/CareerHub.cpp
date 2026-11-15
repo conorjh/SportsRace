@@ -157,7 +157,6 @@ unsigned int Game::Render::CareerHubRenderer::Render()
 
 	Display();
 	auto EndTime = SDL_GetTicks();
-	FPS.AddFrame(EndTime - StartTime);
 	return EndTime - StartTime;
 }
 
