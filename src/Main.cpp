@@ -18,6 +18,7 @@ int main(int argc, char* argv[])
 		return App.ReturnCode;	
 
 	AppRenderer Renderer(&App.Data, &App.Data.ScreenStack);
+	// Update the active screen before drawing it; race timing is advanced by its fixed-step state machine.
 	while (!App.Ended())
 	{
 		App.Update();

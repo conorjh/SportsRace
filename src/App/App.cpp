@@ -29,6 +29,7 @@ ParsedCommandLineArguments ParseCommandLine(int argc, char* argv[])
 {
 	ParsedCommandLineArguments Output;
 
+	// Translate parser tokens into application settings and collect invalid options before startup.
 	for (auto& Argument : CommandLineParser().Parse(argc, argv))
 		if (Argument.Type == ApplicationPath)
 			Output.Filepath = Argument.Data;
@@ -82,6 +83,7 @@ Game::App::Application::Application(int argc, char* argv[])
 		for (auto& Error : Arguments.Errors.Errors)
 			spdlog::critical(Error);
 
+		// Stop before initializing SDL so invalid startup options cannot leave a partial application running.
 		//TODO: error code = command line error
 		Halt(Arguments.Errors.ErrorCode);
 		return;
@@ -160,6 +162,7 @@ bool Game::App::Application::SDLInit(Game::Render::AppRenderContext* RenderConte
 	}
 
 	spdlog::debug("SDL Init - Starting Audio {}hz, {}ch, ({})chunksize", 44100, 2, 2048);
+	// Audio is optional; keep the game usable when the device or mixer cannot be opened.
 	if (!SDL_Init(SDL_INIT_AUDIO))	
 		spdlog::warn("SDL Audio init error: {}", SDL_GetError());										//we can live without sound
 	if (!Mix_OpenAudio(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, NULL))
@@ -220,7 +223,7 @@ void Game::App::AppIO::Update()
 	Esc = false;
 	MouseButtons = 0;
 
-	//handle input
+	// Drain queued input events for this frame, then refresh the pointer position for screen updates.
 	SDL_Event Event;
 	while (SDL_PollEvent(&Event))
 		switch (Event.type)

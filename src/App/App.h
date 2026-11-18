@@ -52,6 +52,7 @@ namespace Game
 			AppError Errors;
 		};
 
+		// Shared runtime state used by the active screen, race, and renderer.
 		struct AppData
 		{
 			AppData();

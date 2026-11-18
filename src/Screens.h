@@ -40,6 +40,7 @@ namespace Game
 			AppScreenType Type;
 		};
 
+		// Stacking a screen suspends the previous one; popping resumes it.
 		class AppScreenStateMachine
 		{
 			std::stack<AppScreen*> ScreenStack; 

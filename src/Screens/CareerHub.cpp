@@ -42,6 +42,7 @@ Game::Screens::AppScreen* Game::Screens::CareerHubScreen::Update()
 	RaceIcon.Update();
 	if (RaceIcon.HasMouseClicked())
 	{
+		// Build a six-entrant field around the career racer and attach the stakes before opening the race screen.
 		Game::Race::Race* RaceBuffer = new Game::Race::Race();
 		RaceBuffer->Racers.push_back(&Orchestrator.Profile->MainFella);
 		for (int t = 0; t < 5; ++t)

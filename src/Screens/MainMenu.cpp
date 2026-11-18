@@ -15,6 +15,7 @@ Game::Screens::MainMenuScreen::MainMenuScreen(AppScreenStateMachine& _Machine, A
 {
 	Type = AppScreenType::MainMenu;
 
+	// Keep a small generated field ready for the standalone race option.
 	for (int t = 0; t < 6; ++t)
 		RaceBuffer.Racers.push_back(Racers.Make(Race::RacerNameMaker().Make()));
 }
@@ -46,7 +47,7 @@ Game::Screens::AppScreen* Game::Screens::MainMenuScreen::Update()
 			Data.Profile = new Career::CareerProfile();
 			Data.Career = new Career::CareerData();
 
-			//call character creation screen
+			// Place the hub beneath the editor so finishing setup returns to the career menu.
 			ScreenStack.Push(new CareerHubScreen(ScreenStack, IO, Data));
 			ScreenStack.Push(new RacerScreen(ScreenStack, IO, Data, &Data.Profile->MainFella, RacerScreenStateInitType::RacerCreation));
 			return ScreenStack.Top();

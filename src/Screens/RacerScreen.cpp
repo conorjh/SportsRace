@@ -214,6 +214,7 @@ Game::Screens::AppScreen* Game::Screens::RacerScreen::Update()
 		IO.Player.Play(BuiltInSounds::Click);
 
 		Racer Generated(RacerNameMaker().Make());
+		// Preserve the racer's identity while replacing the generated profile and curves.
 		Generated.GUID = Data.Profile->MainFella.GUID;
 		Data.Profile->MainFella = Generated;
 	}
@@ -341,6 +342,7 @@ unsigned int Game::Render::RacerScreenRenderer::Render()
 		static_cast<float>(RacerScreenCurvePlotTop),
 		static_cast<float>(RacerScreenPanelWidth - RacerScreenPanelPadding * 2),
 		static_cast<float>(RacerScreenCurvePlotHeight) };
+	// Show the generated, normalized acceleration and endurance curves alongside the raw skill ratings.
 	DrawRacerCurveVisualization(*this, Context, Runner, CurvePlotBounds,
 		RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenCurveTitleTop, RacerScreenCurveLegendTop,
 		RacerScreenCurveStyle);

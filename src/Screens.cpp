@@ -67,6 +67,7 @@ Game::Screens::AppScreenStateMachine::AppScreenStateMachine(AppScreen* StartingS
 
 void Game::Screens::AppScreenStateMachine::Update()
 {
+	// Only the top screen receives updates; screens below it remain suspended on the stack.
 	if (ScreenStack.size())
 		ScreenStack.top()->Update();
 }
@@ -75,6 +76,7 @@ void Game::Screens::AppScreenStateMachine::Pop()
 {
 	ScreenStack.top()->Exit();
 	ScreenStack.pop();
+	// Resume the screen that was covered by the one just removed.
 	if(ScreenStack.size())
 		ScreenStack.top()->Entry();
 }
@@ -86,6 +88,7 @@ Game::Screens::AppScreen* Game::Screens::AppScreenStateMachine::Top()
 
 void Game::Screens::AppScreenStateMachine::Push(AppScreen* State)
 {
+	// Let the current screen release transient state while preserving it underneath the new screen.
 	if (ScreenStack.size())
 		ScreenStack.top()->Exit();
 	ScreenStack.push(State);

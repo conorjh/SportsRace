@@ -26,6 +26,7 @@ unsigned int Game::App::Render::AppRenderer::Render()
 	if (StateMachine->Top() == nullptr)
 		return 0;
 
+	// The active screen type selects the concrete screen object and its matching renderer.
 	switch (StateMachine->Top()->Type)
 	{
 	case AppScreenType::RaceScreen:

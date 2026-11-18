@@ -121,7 +121,7 @@ void Game::Render::BaseRenderer::RenderTextSingleLine(TTF_Font* Font, std::strin
 
 void Game::Render::BaseRenderer::RenderText(TTF_Font* Font, std::string Text, int x, int y, SDL_Color Color)
 {
-	//split text into lines
+	// SDL renders one line at a time, so draw each newline-delimited segment with a vertical offset.
 	std::string buffer = ""; unsigned int offset = 0;
 	for (auto it = Text.begin(); it != Text.end(); ++it)
 	{
@@ -157,6 +157,7 @@ void Game::Render::BaseRenderer::Display()
 void Game::Render::BaseRenderer::RenderImage(SDL_Texture* Texture, SDL_Rect* SourceQuad, SDL_Rect* RenderQuad)
 {
 	SDL_FRect SourceQuadF, RenderQuadF;
+	// A null source rectangle selects the full texture; a supplied rectangle supports sprite-sheet frames.
 	if (SourceQuad == nullptr)
 	{
 		SourceQuadF.x = SourceQuadF.y = 0;
@@ -173,6 +174,7 @@ void Game::Render::FPSCounter::AddFrame(double TimeTakenMs)
 	if (!std::isfinite(TimeTakenMs) || TimeTakenMs <= 0.0)
 		return;
 
+	// Evict older samples so the FPS estimate reflects the most recent second of frame time.
 	while (!FrameTimes.empty() && TotalFrameTime + TimeTakenMs > MillisecondsPerSecond)
 	{
 		TotalFrameTime -= FrameTimes.front();

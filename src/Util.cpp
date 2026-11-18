@@ -48,6 +48,7 @@ void Game::GUI::Button::Update()
 {
 	if (IsMouseOver())
 	{
+		// Play the hover cue only on entry, not on every frame the pointer stays over the button.
 		if (!IsButtonHoveredOver)
 			IO.Player.Play(BuiltInSounds::Hover);
 		IsButtonHoveredOver = true;

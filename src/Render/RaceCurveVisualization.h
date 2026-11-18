@@ -39,6 +39,7 @@ namespace Game
 
 			float PreviousX = PlotBounds.x;
 			float PreviousY = PlotY(Curve.Evaluate(0.0));
+			// Approximate the generated curve with connected samples for reuse in both profile views.
 			for (unsigned int Sample = 1; Sample <= RaceCurveVisualizationSampleCount; ++Sample)
 			{
 				const double Time = static_cast<double>(Sample) / RaceCurveVisualizationSampleCount;
@@ -75,6 +76,7 @@ namespace Game
 				SDL_RenderLine(Context->MainRenderer, PlotBounds.x, GridY, PlotBounds.x + PlotBounds.w, GridY);
 			}
 
+			// Share a normalized 0-1 scale so the acceleration and endurance shapes remain comparable.
 			DrawRaceCurve(Context->MainRenderer, Runner.AccelerationCurve, PlotBounds, Style.AccelerationColor);
 			DrawRaceCurve(Context->MainRenderer, Runner.EnduranceCurve, PlotBounds, Style.EnduranceColor);
 			Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), "Acceleration",

@@ -8,6 +8,7 @@ Game::Audio::AudioPlayer::AudioPlayer()
 
 bool Game::Audio::AudioPlayer::Init()
 {
+	// Load short effects as chunks and background tracks as streamed music.
 	this->Hover = Mix_LoadWAV("media/hover.wav");
 	this->Click = Mix_LoadWAV("media/click.wav");
 	this->StartersPistol = Mix_LoadWAV("media/starter_pistol.mp3");
@@ -57,6 +58,7 @@ void Game::Audio::AudioPlayer::Play(Soundtrack Track)
 		return;
 	}
 
+	// Loop the background track; screen transitions fade it out.
 	Mix_PlayMusic(Chunk, 999);
 }
 

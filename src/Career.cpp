@@ -8,6 +8,7 @@ Game::Career::CareerOrchestrator::CareerOrchestrator(CareerData* _Data, CareerPr
 
 void Game::Career::CareerOrchestrator::Init()
 {
+	// Seed the shared career roster so later races can select generated opponents.
 	for (int t = 0; t < 1000; ++t)
 		Data->Racers.Make();
 }
