@@ -69,10 +69,8 @@ Game::Race::RaceStateData::RaceStateData(Race R) : CurrentTick(0), ThisRace(R)
 Game::Race::RaceState_PreRace::RaceState_PreRace(RaceStateData& _Data) : RaceState(_Data)
 {
     for (int t = 0; t < Data.ThisRace.Racers.size(); ++t)
-    {
         if (Data.ThisRace.Racers[t] != nullptr)
             Data.ThisRace.Racers[t]->Pos.X = 0;
-    }
 
     Type = RaceStateType::PreRace;
     TickAccumulator = 0;
@@ -105,10 +103,8 @@ Game::Race::RaceState* Game::Race::RaceState_StartersOrders::Tick(unsigned int T
 
 
     for (int t = 0; t < Data.ThisRace.Racers.size(); ++t)
-    {
         if (Data.ThisRace.Racers[t] != nullptr)
             Data.ThisRace.Racers[t]->Pos.X = 0;
-    }
 
     return this;
 }

@@ -5,7 +5,7 @@
 #include "..\Screens.h"
 #include "..\Screens\MainMenu.h"
 #include "..\Screens\RaceScreen.h"
-#include "..\Screens\NodeView.h"
+#include "..\Screens\NodeViewScreen.h"
 #include "..\Screens\CareerHub.h"
 #include "..\Screens\RacerScreen.h"
 #include "..\Screens\RankingScreen.h"

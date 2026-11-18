@@ -9,9 +9,7 @@ Game::Career::CareerOrchestrator::CareerOrchestrator(CareerData* _Data, CareerPr
 void Game::Career::CareerOrchestrator::Init()
 {
 	for (int t = 0; t < 1000; ++t)
-	{
 		Data->Racers.Make();
-	}
 }
 
 void Game::Career::CareerOrchestrator::Update(unsigned int Ms)

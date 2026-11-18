@@ -27,8 +27,9 @@ namespace
 	constexpr double MinimumAccelerationDurationMs = 1500.0;
 	constexpr double MaximumAccelerationDurationMs = 6000.0;
 	constexpr double AccelerationDurationReductionMsPerPoint = 45.0;
-	constexpr double BaseEnduranceDurationMs = 22500.0;
-	constexpr double EnduranceDurationMsPerPoint = 300.0;
+	constexpr unsigned int AccelerationCurveRewindIterations = 32;
+	constexpr double BaseEnduranceDurationMs = 90000.0;
+	constexpr double EnduranceDurationMsPerPoint = 1200.0;
 	constexpr double EnduranceDurationReferenceRating = 80.0;
 	constexpr double EmptyEndurancePaceMultiplier = 0.2;
 	constexpr double TrapezoidalIntegrationFactor = 0.5;
@@ -133,6 +134,36 @@ namespace
 	{
 		return CalculateEffectiveRacerStats(Runner, Runner.Conditions.Confidence,
 			Runner.Conditions.Fatigue, Runner.Conditions.Injury);
+	}
+
+	double AccelerationCurveTimeOffsetAfterStumble(const Game::Race::Racer& Runner,
+		const EffectiveRacerStats& Stats, double StumbleEndTimeMs, double CurrentTimeOffsetMs,
+		double StumblePaceMultiplier)
+	{
+		if (Stats.MaximumPace <= 0.0 || Stats.AccelerationDurationMs <= 0.0)
+			return CurrentTimeOffsetMs;
+
+		const double CurveTimeMs = StumbleEndTimeMs - CurrentTimeOffsetMs;
+		const double CurveProgress = std::clamp((CurveTimeMs - Stats.ResponseDelayMs) /
+			Stats.AccelerationDurationMs, 0.0, 1.0);
+		if (CurveProgress == 0.0)
+			return CurrentTimeOffsetMs;
+
+		const double TargetPace = Runner.AccelerationCurve.Evaluate(CurveProgress) *
+			Clamp01(StumblePaceMultiplier);
+		double LowerProgress = 0.0;
+		double UpperProgress = CurveProgress;
+		for (unsigned int Iteration = 0; Iteration < AccelerationCurveRewindIterations; ++Iteration)
+		{
+			const double MiddleProgress = (LowerProgress + UpperProgress) * 0.5;
+			if (Runner.AccelerationCurve.Evaluate(MiddleProgress) < TargetPace)
+				LowerProgress = MiddleProgress;
+			else
+				UpperProgress = MiddleProgress;
+		}
+
+		const double ReducedCurveTimeMs = Stats.ResponseDelayMs + UpperProgress * Stats.AccelerationDurationMs;
+		return StumbleEndTimeMs - ReducedCurveTimeMs;
 	}
 
 	Game::Race::RaceEvent CreateRaceEvent(Game::Race::Racer* Runner, unsigned int RacerIndex,
@@ -386,9 +417,6 @@ namespace
 		const EffectiveRacerStats Stats = CalculateEffectiveRacerStats(Runner,
 			Timeline.PreRaceConfidence, Timeline.PreRaceFatigue, Timeline.PreRaceInjury);
 
-		const double NormalPace = TimeMs <= Stats.ResponseDelayMs
-			? 0.0
-			: Stats.MaximumPace * Runner.AccelerationCurve.Evaluate((TimeMs - Stats.ResponseDelayMs) / Stats.AccelerationDurationMs);
 		const bool IsAtFinish = Timeline.Finished && TimeMs >= Timeline.FinishTimeMs;
 		const bool IsPulledUp = Timeline.PulledUp &&
 			(TimeMs > Timeline.PullUpTimeMs || (IncludeEventsAtTime && TimeMs >= Timeline.PullUpTimeMs));
@@ -396,6 +424,7 @@ namespace
 		const RaceTimelineNode* WindOverrideNode = nullptr;
 		bool SecondWindActive = false;
 		double StumbleMultiplier = 1.0;
+		double AccelerationCurveTimeOffsetMs = 0.0;
 		double LostBeliefMultiplier = 1.0;
 		double BeliefMultiplier = 1.0;
 		double EnduranceCycleStartMs = 0.0;
@@ -430,6 +459,11 @@ namespace
 					WindOverrideNode = &Node;
 				continue;
 			}
+			if (Event.Type == RaceEventType::Stumble && TimeMs >= Node.EndTimeMs)
+			{
+				AccelerationCurveTimeOffsetMs = Node.AccelerationCurveTimeOffsetMs;
+				continue;
+			}
 
 			if (TimeMs >= Node.EndTimeMs)
 				continue;
@@ -450,6 +484,11 @@ namespace
 			}
 		}
 
+		const double AccelerationCurveTimeMs = TimeMs - AccelerationCurveTimeOffsetMs;
+		const double NormalPace = AccelerationCurveTimeMs <= Stats.ResponseDelayMs
+			? 0.0
+			: Stats.MaximumPace * Runner.AccelerationCurve.Evaluate(
+				(AccelerationCurveTimeMs - Stats.ResponseDelayMs) / Stats.AccelerationDurationMs);
 		TimelinePlaybackState State;
 		if (SecondWindActive)
 		{
@@ -565,10 +604,11 @@ namespace
 
 		double NormalPace(double TimeMs) const
 		{
-			if (TimeMs <= Stats.ResponseDelayMs)
+			const double AccelerationCurveTimeMs = TimeMs - AccelerationCurveTimeOffsetMs;
+			if (AccelerationCurveTimeMs <= Stats.ResponseDelayMs)
 				return 0.0;
 			return Stats.MaximumPace * Runner->AccelerationCurve.Evaluate(
-				(TimeMs - Stats.ResponseDelayMs) / Stats.AccelerationDurationMs);
+				(AccelerationCurveTimeMs - Stats.ResponseDelayMs) / Stats.AccelerationDurationMs);
 		}
 
 		double EnduranceReserve(double TimeMs) const
@@ -671,7 +711,23 @@ namespace
 
 			StumbleUntilMs = TimeMs + DurationMs;
 			StumblePaceMultiplier = PaceMultiplier;
-			AddEvent(CreateEventRecord(RaceEventType::Stumble, TimeMs, DurationMs, PaceMultiplier));
+			StumbleTimelineNode = AddEvent(CreateEventRecord(RaceEventType::Stumble,
+				TimeMs, DurationMs, PaceMultiplier));
+		}
+
+		void CompleteStumbleIfDue(double TimeMs)
+		{
+			if (StumbleTimelineNode == nullptr || TimeMs < StumbleUntilMs)
+				return;
+
+			AccelerationCurveTimeOffsetMs = AccelerationCurveTimeOffsetAfterStumble(*Runner,
+				Stats, StumbleUntilMs, AccelerationCurveTimeOffsetMs, StumblePaceMultiplier);
+			StumbleTimelineNode->AccelerationCurveTimeOffsetMs = AccelerationCurveTimeOffsetMs;
+			AccelerationTimelineNode->EndTimeMs = std::max(AccelerationTimelineNode->EndTimeMs,
+				Stats.ResponseDelayMs + Stats.AccelerationDurationMs + AccelerationCurveTimeOffsetMs);
+			StumbleTimelineNode = nullptr;
+			StumbleUntilMs = 0.0;
+			StumblePaceMultiplier = 1.0;
 		}
 
 		void CloseThoughtNode(Game::Race::RaceTimelineNode* Node, double TimeMs)
@@ -815,6 +871,7 @@ namespace
 		{
 			for (double TimeMs = 0.0; TimeMs < MaximumRaceDurationMs; TimeMs += SimulationStepMs)
 			{
+				CompleteStumbleIfDue(TimeMs);
 				StartGassingIfDue(TimeMs);
 				ProcessEventChecks(TimeMs);
 				if (TryPullUp(TimeMs))
@@ -842,6 +899,7 @@ namespace
 		SecondWindEvent SecondWindRule;
 		double StumbleUntilMs = 0.0;
 		double StumblePaceMultiplier = 1.0;
+		double AccelerationCurveTimeOffsetMs = 0.0;
 		double LostBeliefUntilMs = 0.0;
 		double LostBeliefPaceMultiplier = 1.0;
 		double BeliefUntilMs = 0.0;
@@ -857,6 +915,7 @@ namespace
 		double GassingEntryBasePace = 0.0;
 		bool Gassing = false;
 		Game::Race::RaceTimelineNode* AccelerationTimelineNode = nullptr;
+		Game::Race::RaceTimelineNode* StumbleTimelineNode = nullptr;
 		Game::Race::RaceTimelineNode* GassingTimelineNode = nullptr;
 		Game::Race::RaceTimelineNode* LostBeliefTimelineNode = nullptr;
 		Game::Race::RaceTimelineNode* BeliefTimelineNode = nullptr;

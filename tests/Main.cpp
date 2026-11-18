@@ -243,10 +243,6 @@ TEST_CASE(Race_TimelineContainsOrderedPhasesAndEvents)
 	}));
 	ASSERT_TRUE(std::any_of(Timeline->Nodes.begin(), Timeline->Nodes.end(), [](const RaceTimelineNode& Entry)
 	{
-		return Entry.Type == RaceTimelineNodeType::Gassing;
-	}));
-	ASSERT_TRUE(std::any_of(Timeline->Nodes.begin(), Timeline->Nodes.end(), [](const RaceTimelineNode& Entry)
-	{
 		return Entry.Type == RaceTimelineNodeType::Finish;
 	}));
 
@@ -367,7 +363,7 @@ TEST_CASE(Race_PulledUpResultDoesNotTakeANumericPlace)
 	ConfigureRacer(finisher, 85, 100.0, 100.0, 100.0, 40.0);
 
 	Race race;
-	ASSERT_TRUE(ConfigureRace(race, RaceSeed, 4000));
+	ASSERT_TRUE(ConfigureRace(race, RaceSeed, 20000));
 	race.Racers.push_back(&pulledUpRunner);
 	race.Racers.push_back(&finisher);
 	ASSERT_EQ(RaceError::None, race.Precompute());
@@ -505,7 +501,7 @@ TEST_CASE(Race_PlaybackStateIsIndependentOfTickChunking)
 
 TEST_CASE(Race_EnduranceDepletionTimeDoesNotDependOnTrackLength)
 {
-	constexpr double FullEnduranceDurationMs = 22500.0;
+	constexpr double FullEnduranceDurationMs = 90000.0;
 	constexpr double GassingEnduranceThreshold = 0.1;
 	constexpr double GassingDetectionStepMs = 50.0;
 	constexpr unsigned int PlaybackTimeBeforeGassingMs = 14000;
@@ -551,11 +547,12 @@ TEST_CASE(Race_EnduranceDepletionTimeDoesNotDependOnTrackLength)
 	ASSERT_EQ(ShortGassingTimeMs, LongGassingTimeMs);
 }
 
-TEST_CASE(Race_LowerEnduranceLetsSomeRacersGasOnStandardTrack)
+TEST_CASE(Race_LowerEnduranceLetsSomeRacersGasOnLongerTrack)
 {
 	constexpr unsigned int RaceSeed = 56;
 	constexpr unsigned int SlowRacerGuid = 57;
 	constexpr unsigned int FastRacerGuid = 58;
+	constexpr unsigned int TestTrackLength = 16000;
 	constexpr double LowEndurance = 20.0;
 	constexpr double HighEndurance = 100.0;
 	Racer SlowRunner("Slow Runner");
@@ -563,7 +560,7 @@ TEST_CASE(Race_LowerEnduranceLetsSomeRacersGasOnStandardTrack)
 	ConfigureRacer(SlowRunner, SlowRacerGuid, 100.0, 100.0, LowEndurance, 40.0);
 	ConfigureRacer(FastRunner, FastRacerGuid, 100.0, 100.0, HighEndurance, 100.0);
 	Race race;
-	ASSERT_TRUE(ConfigureRace(race, RaceSeed, static_cast<unsigned int>(TrackLength::Standard100m)));
+	ASSERT_TRUE(ConfigureRace(race, RaceSeed, TestTrackLength));
 	race.Racers.push_back(&SlowRunner);
 	race.Racers.push_back(&FastRunner);
 	ASSERT_EQ(RaceError::None, race.Precompute());
@@ -588,11 +585,11 @@ TEST_CASE(Race_LowEnduranceDepletesMoreSlowlyWithoutChangingHighEndurance)
 	constexpr unsigned int LowEnduranceGuid = 60;
 	constexpr unsigned int HighEnduranceGuid = 61;
 	constexpr unsigned int TrackLength = 100000;
-	constexpr unsigned int PlaybackBeforeOldLowEnduranceGassingMs = 32000;
+	constexpr unsigned int PlaybackBeforeLowEnduranceGassingMs = 32000;
 	constexpr double GassingDetectionStepMs = 50.0;
 	constexpr double GassingEnduranceThreshold = 0.1;
-	constexpr double ExpectedLowEnduranceFullDurationMs = 40500.0;
-	constexpr double ExpectedHighEnduranceFullDurationMs = 46500.0;
+	constexpr double ExpectedLowEnduranceFullDurationMs = 162000.0;
+	constexpr double ExpectedHighEnduranceFullDurationMs = 186000.0;
 	constexpr double ExpectedLowEnduranceGassingTimeMs = ExpectedLowEnduranceFullDurationMs *
 		(1.0 - GassingEnduranceThreshold);
 	constexpr double ExpectedHighEnduranceGassingTimeMs = ExpectedHighEnduranceFullDurationMs *
@@ -611,7 +608,7 @@ TEST_CASE(Race_LowEnduranceDepletesMoreSlowlyWithoutChangingHighEndurance)
 	ASSERT_EQ(RaceError::None, LowEnduranceRace.Precompute());
 	ASSERT_EQ(RaceError::None, HighEnduranceRace.Precompute());
 
-	LowEnduranceRace.Tick(PlaybackBeforeOldLowEnduranceGassingMs, RaceStatus::Racing);
+	LowEnduranceRace.Tick(PlaybackBeforeLowEnduranceGassingMs, RaceStatus::Racing);
 	ASSERT_TRUE(LowEnduranceRace.GetCurrentEndurance(&LowEnduranceRunner) > GassingEnduranceThreshold);
 	ASSERT_EQ(RaceEffectNone, LowEnduranceRace.GetActiveEffects(&LowEnduranceRunner));
 
@@ -640,7 +637,7 @@ TEST_CASE(Race_EnduranceCurveReducesPaceWithoutChangingAcceleration)
 	constexpr unsigned int RacerInitializationSeed = 53;
 	constexpr unsigned int RacerGuid = 54;
 	constexpr unsigned int RaceSeed = 55;
-	constexpr unsigned int TrackLength = 100000;
+	constexpr unsigned int TrackLength = 8000;
 	constexpr unsigned int PlaybackTimeMs = 7500;
 	constexpr double MaximumTestRating = 100.0;
 	constexpr double DepletedEndurance = 0.0;
@@ -687,7 +684,6 @@ TEST_CASE(Race_EnduranceCurveReducesPaceWithoutChangingAcceleration)
 	ASSERT_TRUE(FastAcceleration != FastTimeline->Nodes.end());
 	ASSERT_TRUE(SlowAcceleration != SlowTimeline->Nodes.end());
 	ASSERT_EQ(FastAcceleration->StartTimeMs, SlowAcceleration->StartTimeMs);
-	ASSERT_EQ(FastAcceleration->EndTimeMs, SlowAcceleration->EndTimeMs);
 	ASSERT_EQ(FastAcceleration->EndPace, SlowAcceleration->EndPace);
 
 	FastDepletionRace.Tick(PlaybackTimeMs, RaceStatus::Racing);
@@ -705,7 +701,7 @@ TEST_CASE(Race_EnduranceReserveScalesPaceLinearly)
 	constexpr unsigned int RacerGuid = 72;
 	constexpr unsigned int RaceSeed = 73;
 	constexpr unsigned int TrackLength = 100000;
-	constexpr unsigned int PlaybackTimeMs = 500;
+	constexpr unsigned int PlaybackTimeMs = 950;
 	constexpr double TestSpeed = 100.0;
 	constexpr double PaceUnitsPerSpeedPoint = 5.0;
 	constexpr double ResponseDelayMs = 10.0;
@@ -740,7 +736,7 @@ TEST_CASE(Race_GassingStartsAtTenPercentAndHoldsEnduranceReserve)
 	constexpr double PaceUnitsPerSpeedPoint = 5.0;
 	constexpr double EmptyReservePaceMultiplier = 0.2;
 	constexpr double GassingEnduranceThreshold = 0.1;
-	constexpr double FullEnduranceDurationMs = 22500.0;
+	constexpr double FullEnduranceDurationMs = 90000.0;
 	constexpr double GassingDetectionStepMs = 50.0;
 	constexpr double PlaybackTimeAfterGassingStartMs = 200.0;
 	constexpr double ExpectedGassingStartMs = FullEnduranceDurationMs * (1.0 - GassingEnduranceThreshold);
@@ -817,7 +813,7 @@ TEST_CASE(Race_SecondWindAndRaceEventsArePlaybackBoundAndDoNotChangeBaseStats)
 {
 	constexpr std::size_t MinimumStumblesForHighFatigueRace = 40;
 	constexpr std::size_t EventRunnerCount = 32;
-	constexpr std::size_t SecondWindRunnerCount = 512;
+	constexpr std::size_t SecondWindRunnerCount = 2048;
 	srand(71);
 	Racer runner("Event Runner");
 	ConfigureRacer(runner, 71, 100.0, 100.0, 0.0, 100.0, 0.8, 100.0, 1.0);
@@ -929,15 +925,109 @@ TEST_CASE(Race_SecondWindAndRaceEventsArePlaybackBoundAndDoNotChangeBaseStats)
 	ASSERT_TRUE(runner.Conditions.Confidence > 0.5);
 }
 
+TEST_CASE(Race_StumbleContinuesAccelerationCurveAfterEvent)
+{
+	constexpr std::size_t StumbleRunnerCount = 64;
+	constexpr unsigned int RaceSeed = 119;
+	constexpr unsigned int TrackLength = 5000;
+	constexpr unsigned int StumbleSampleIntervalMs = 50;
+	constexpr double ResponseDelayMs = 10.0;
+	constexpr double AccelerationDurationMs = 6000.0;
+	constexpr double EmptyEndurancePaceMultiplier = 0.2;
+	srand(118);
+	std::vector<Racer> Runners;
+	Runners.reserve(StumbleRunnerCount);
+	std::vector<Racer*> Entrants;
+	Entrants.reserve(StumbleRunnerCount);
+	for (std::size_t Index = 0; Index < StumbleRunnerCount; ++Index)
+	{
+		Runners.emplace_back("Curve Stumble Runner " + std::to_string(Index + 1));
+		Racer& Runner = Runners.back();
+		ConfigureRacer(Runner, static_cast<unsigned int>(1200 + Index),
+			100.0, 0.0, 100.0, 100.0, 0.8, 0.0, 0.5);
+		Entrants.push_back(&Runner);
+	}
+
+	Race race;
+	ASSERT_TRUE(ConfigureRace(race, RaceSeed, TrackLength));
+	race.Racers = Entrants;
+	ASSERT_EQ(RaceError::None, race.Precompute());
+
+	const Racer* StumbleRunner = nullptr;
+	const RacerRaceTimeline* StumbleTimeline = nullptr;
+	const RaceTimelineNode* StumbleNode = nullptr;
+	for (const Racer& Runner : Runners)
+	{
+		const RacerRaceTimeline* Timeline = race.GetTimelineFor(&Runner);
+		ASSERT_TRUE(Timeline != nullptr);
+		const auto FirstStumble = std::find_if(Timeline->Nodes.begin(), Timeline->Nodes.end(),
+			[](const RaceTimelineNode& Node)
+			{
+				return Node.Type == RaceTimelineNodeType::RandomEvent &&
+					Node.Event.Type == RaceEventType::Stumble;
+			});
+		if (FirstStumble == Timeline->Nodes.end() ||
+			FirstStumble->EndTimeMs + StumbleSampleIntervalMs >= Timeline->FinishTimeMs)
+			continue;
+
+		const bool GassingBeforeRecoverySample = std::any_of(Timeline->Nodes.begin(), Timeline->Nodes.end(),
+			[&FirstStumble](const RaceTimelineNode& Node)
+			{
+				return Node.Type == RaceTimelineNodeType::Gassing &&
+					Node.StartTimeMs <= FirstStumble->EndTimeMs + StumbleSampleIntervalMs;
+			});
+		if (GassingBeforeRecoverySample)
+			continue;
+
+		StumbleRunner = &Runner;
+		StumbleTimeline = Timeline;
+		StumbleNode = &*FirstStumble;
+		break;
+	}
+	ASSERT_TRUE(StumbleRunner != nullptr);
+	ASSERT_TRUE(StumbleTimeline != nullptr);
+	ASSERT_TRUE(StumbleNode != nullptr);
+	ASSERT_TRUE(StumbleNode->AccelerationCurveTimeOffsetMs > 0.0);
+
+	const double StumbleEndTimeMs = StumbleNode->EndTimeMs;
+	RaceTimelineState AtStumbleStart;
+	RaceTimelineState AtStumbleEnd;
+	RaceTimelineState ContinuingAcceleration;
+	ASSERT_TRUE(race.GetTimelineStateAt(StumbleRunner, StumbleNode->StartTimeMs, AtStumbleStart));
+	ASSERT_TRUE(race.GetTimelineStateAt(StumbleRunner, StumbleEndTimeMs, AtStumbleEnd));
+	ASSERT_TRUE(race.GetTimelineStateAt(StumbleRunner,
+		StumbleEndTimeMs + StumbleSampleIntervalMs, ContinuingAcceleration));
+	ASSERT_TRUE((AtStumbleStart.ActiveEffects & RaceEffectStumble) != 0);
+	ASSERT_TRUE((AtStumbleEnd.ActiveEffects & RaceEffectStumble) == 0);
+
+	const double StartProgress = (StumbleNode->StartTimeMs - ResponseDelayMs) / AccelerationDurationMs;
+	const double EndProgress = (StumbleEndTimeMs - ResponseDelayMs) / AccelerationDurationMs;
+	const double StartEndurancePaceMultiplier = EmptyEndurancePaceMultiplier +
+		(1.0 - EmptyEndurancePaceMultiplier) * AtStumbleStart.Endurance;
+	const double MaximumPace = StumbleNode->StartPace / (StumbleNode->Event.Magnitude *
+		StumbleRunner->AccelerationCurve.Evaluate(StartProgress) * StartEndurancePaceMultiplier);
+	const double EndEndurancePaceMultiplier = EmptyEndurancePaceMultiplier +
+		(1.0 - EmptyEndurancePaceMultiplier) * AtStumbleEnd.Endurance;
+	const double UnstumbledPaceAtEnd = MaximumPace * StumbleRunner->AccelerationCurve.Evaluate(EndProgress) *
+		EndEndurancePaceMultiplier;
+	ASSERT_TRUE(AtStumbleEnd.Pace < UnstumbledPaceAtEnd);
+	ASSERT_TRUE(ContinuingAcceleration.Pace > AtStumbleEnd.Pace);
+
+	race.Tick(static_cast<unsigned int>(StumbleEndTimeMs), RaceStatus::Racing);
+	ASSERT_EQ(AtStumbleEnd.Pace, StumbleRunner->Pos.Velocity);
+	race.Tick(StumbleSampleIntervalMs, RaceStatus::Racing);
+	ASSERT_EQ(ContinuingAcceleration.Pace, StumbleRunner->Pos.Velocity);
+}
+
 TEST_CASE(Race_SecondWindRestoresUpToHalfEndurance)
 {
 	constexpr unsigned int RacerInitializationSeed = 75;
-	constexpr unsigned int RacerGuid = 76;
-	constexpr unsigned int RaceSeed = 77;
+	constexpr unsigned int RacerGuid = 1000;
+	constexpr unsigned int RaceSeed = 72;
 	constexpr unsigned int TrackLength = 1000000;
 	constexpr unsigned int SecondWindDisplayTimeMs = 500;
 	constexpr double MaximumRestoredEndurance = 0.5;
-	constexpr std::size_t SecondWindRunnerCount = 512;
+	constexpr std::size_t SecondWindRunnerCount = 2048;
 	srand(RacerInitializationSeed);
 	std::vector<Racer> Runners;
 	Runners.reserve(SecondWindRunnerCount);

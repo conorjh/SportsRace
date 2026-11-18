@@ -1,5 +1,5 @@
 #include "RaceScreen.h"
-#include "NodeView.h"
+#include "NodeViewScreen.h"
 #include "..\Race.h"
 #include "..\App\App.h"
 #include <cmath>
@@ -15,6 +15,8 @@ namespace
 	constexpr int RaceResultsPodiumRowSpacing = 60;
 	constexpr int RaceResultsPulledUpFirstRowY = 480;
 	constexpr int RaceResultsPulledUpRowSpacing = 20;
+	constexpr int RacerSpriteFrameWidth = 153;
+	constexpr int RacerSpriteFrameHeight = 186;
 	constexpr SDL_Color RacerLabelColor{ 255, 255, 255, 255 };
 
 	std::string RaceEffectsToString(unsigned int Effects)
@@ -102,6 +104,7 @@ Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppI
 	Type = AppScreenType::RaceScreen;
 	LastFrameEnd = SDL_GetTicks();
 	PlayerGUID = PlayerRacer;
+	PlayerRacerSupplied = true;
 }
 
 Game::Screens::RaceScreen::~RaceScreen()
@@ -148,7 +151,8 @@ Game::Screens::AppScreen* Game::Screens::RaceScreen::Update()
 	{
 		IO.Player.Play(BuiltInSounds::Click);
 
-		SavePlayerRaceResult(Data, RaceSM.Data.ThisRace, PlayerGUID);
+		if (PlayerRacerSupplied)
+			SavePlayerRaceResult(Data, RaceSM.Data.ThisRace, PlayerGUID);
 
 		//go back to main menu
 		ScreenStack.Pop();
@@ -207,19 +211,21 @@ void Game::Render::RaceScreenRenderer::DrawRacer(const Race::Racer& Racer, unsig
 		Camera.CameraX - static_cast<int>(StaggerOffset);
 	const unsigned int ActiveEffects = Screen->RaceSM.Data.ThisRace.GetActiveEffects(&Racer);
 	const bool PulledUp = (ActiveEffects & RaceEffectPulledUp) != 0;
-
-	unsigned int RacerWidth = 153;
-
-	unsigned int FrameNum = (613 / 4) * (Racer.RunFrame);
-	SDL_Rect SourceQuad = { 0 + FrameNum, 0, 613 / 4, 186 / 1 };
-	SDL_Rect RenderQuad = { XDraw   ,  yOffset, 613 / 4,186 / 1 };
-
+	const bool Stumbling = (ActiveEffects & RaceEffectStumble) != 0;
+	const auto RunningImageId = Stumbling ? Assets::ImageAssetFellaStumble : Assets::ImageAssetFellaRun;
+	const int FrameNum = RacerSpriteFrameWidth * static_cast<int>(Racer.RunFrame);
+	SDL_Rect SourceQuad = { FrameNum, 0, RacerSpriteFrameWidth, RacerSpriteFrameHeight };
+	SDL_Rect RenderQuad = { XDraw, static_cast<int>(yOffset), RacerSpriteFrameWidth, RacerSpriteFrameHeight };
 
 	SDL_Rect RenderQuad2 = { XDraw  ,  yOffset + 79, 144,107 };
 	if (Screen->RaceSM.State->Type == RaceStateType::StartersOrders || PulledUp)
 		RenderImage(Context->Store.GetImage(Assets::ImageAssetFellaWait)->Texture, NULL, &RenderQuad2);	//starters orders
 	else
-		RenderImage(Context->Store.GetImage(Assets::ImageAssetFellaRun)->Texture, &SourceQuad, &RenderQuad);	//running
+	{
+		auto* RunningImage = Context->Store.GetImage(RunningImageId);
+		if (RunningImage != nullptr)
+			RenderImage(RunningImage->Texture, &SourceQuad, &RenderQuad);
+	}
 
 	const int RacerNameY = static_cast<int>(yOffset) + RacerNameVerticalOffset;
 	const int RacerPaceY = RacerNameY - RacerTextLineSpacing;
@@ -238,6 +244,10 @@ void Game::Render::RaceScreenRenderer::DrawWinners()
 	using namespace std;
 	auto& Race = Screen->RaceSM.Data.ThisRace;
 	const auto& Results = Race.Result.RacerResults;
+
+	if (Screen->HasPlayerRacer() && !Race.IsComplete() &&
+		!Race.HasFinished(Race.Get(Screen->PlayerGUID)))
+		return;
 
 	if (Results.empty() || (!Race.IsComplete() && Race.FinishedCount() == 0))
 		return;
@@ -355,7 +365,7 @@ void Game::Render::RaceScreenRenderer::DrawProgressBar()
 		double ScaleFactor = double(R->Pos.X) / TrackLength;
 		
 		SDL_Rect RenderQuad = { X + (W * ScaleFactor) - 10, Y - 15, 32,32 };
-		if (R->GUID == Screen->PlayerGUID)
+		if (Screen->HasPlayerRacer() && R->GUID == Screen->PlayerGUID)
 		{
 			RenderQuad.x -= 8;
 			RenderQuad.y -= 8;
@@ -372,7 +382,7 @@ unsigned int Game::Render::RaceScreenRenderer::Render()
 
 	auto& CurrentRace = Screen->RaceSM.Data.ThisRace;
 	Camera.TrackLength = CurrentRace.GetTrackLength();
-	Race::Racer* PlayerRacer = CurrentRace.Contains(Screen->PlayerGUID)
+	Race::Racer* PlayerRacer = Screen->HasPlayerRacer() && CurrentRace.Contains(Screen->PlayerGUID)
 		? CurrentRace.Get(Screen->PlayerGUID) : nullptr;
 	const bool PlayerPulledUp = PlayerRacer != nullptr &&
 		(CurrentRace.GetActiveEffects(PlayerRacer) & Race::RaceEffectPulledUp) != 0;

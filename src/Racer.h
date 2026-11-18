@@ -86,6 +86,7 @@ namespace Game
 			double Evaluate(double Time) const;
 		};
 
+		// Profile attributes and deterministic curves accompany the racer state advanced during playback.
 		class Racer
 		{
 		public:

@@ -4,17 +4,20 @@ These conventions apply to first-party C++ code in `src/` and `tests/`. Leave th
 
 ## Braces
 
-Use Allman style: put each opening brace on its own line for namespaces, types, functions, and control-flow blocks. Keep single-statement branches consistent with surrounding code. Put `else` and similar continuations on their own lines after the preceding closing brace.
+Use Allman style for namespaces, types, functions, and control-flow blocks that need braces. For `if`, `else`, and loop bodies containing exactly one statement, prefer omitting braces. Put the statement on the next line, one indent level in, and apply this to nested statements when removing braces preserves the same control-flow association. Keep braces for multi-statement bodies, `switch` bodies, and branches where removing braces could change which `if` an `else` binds to. Put opening braces on their own lines where braces are used, and put `else` and similar continuations on their own lines after the preceding closing brace.
 
 ```cpp
+for (Racer* Runner : GetEntrants())
+	if (Runner != nullptr && !HasResult(Runner))
+		ActiveRacers.push_back(Runner);
+
 if (Ready)
 {
 	Start();
+	LogStart();
 }
 else
-{
 	Stop();
-}
 ```
 
 ## Header guards

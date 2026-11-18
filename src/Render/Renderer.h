@@ -30,7 +30,7 @@ namespace Game
 			ImageAssetTrainingIcon,
 			ImageAssetRankingIcon,
 
-			ImageAssetTrack, ImageAssetHead, ImageAssetFellaRun, ImageAssetFellaWait, ImageAssetScreen,
+			ImageAssetTrack, ImageAssetHead, ImageAssetFellaRun, ImageAssetFellaStumble, ImageAssetFellaWait, ImageAssetScreen,
 
 			ImageAssetRacer, ImageAssetStadium, ImageAssetStartingBlock, ImageAssetClouds, ImageAssetMountains,
 			ImageAssetRaceBackground

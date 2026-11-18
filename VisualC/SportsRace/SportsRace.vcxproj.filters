@@ -44,7 +44,7 @@
     <ClCompile Include="..\..\src\Screens\RaceScreen.cpp">
       <Filter>Screens</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Screens\NodeView.cpp">
+    <ClCompile Include="..\..\src\Screens\NodeViewScreen.cpp">
       <Filter>Screens</Filter>
     </ClCompile>
   </ItemGroup>
@@ -84,7 +84,7 @@
     <ClInclude Include="..\..\src\Screens\RaceScreen.h">
       <Filter>Screens</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Screens\NodeView.h">
+    <ClInclude Include="..\..\src\Screens\NodeViewScreen.h">
       <Filter>Screens</Filter>
     </ClInclude>
   </ItemGroup>

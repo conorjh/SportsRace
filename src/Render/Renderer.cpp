@@ -35,6 +35,7 @@ bool Game::Assets::AssetStore::RegisterAll(Game::Render::BaseRenderer& Renderer)
 	RegisterImage(ImageAssetClouds, Renderer.LoadImageFile("media/clouds.png"));
 	RegisterImage(ImageAssetMountains, Renderer.LoadImageFile("media/mountains.png"));
 	RegisterImage(ImageAssetFellaRun, Renderer.LoadImageFile("media/fellarun.png"));
+	RegisterImage(ImageAssetFellaStumble, Renderer.LoadImageFile("media/fellastumble.png"));
 	RegisterImage(ImageAssetFellaWait, Renderer.LoadImageFile("media/fellawait.png"));
 	RegisterImage(ImageAssetScreen, Renderer.LoadImageFile("media/screen.png"));
 
@@ -170,9 +171,7 @@ void Game::Render::BaseRenderer::RenderImage(SDL_Texture* Texture, SDL_Rect* Sou
 void Game::Render::FPSCounter::AddFrame(double TimeTakenMs)
 {
 	if (!std::isfinite(TimeTakenMs) || TimeTakenMs <= 0.0)
-	{
 		return;
-	}
 
 	while (!FrameTimes.empty() && TotalFrameTime + TimeTakenMs > MillisecondsPerSecond)
 	{
@@ -193,9 +192,7 @@ void Game::Render::FPSCounter::Clear()
 unsigned int Game::Render::FPSCounter::GetFrameTime()
 {
 	if (FrameTimes.empty())
-	{
 		return 0;
-	}
 
 	return static_cast<unsigned int>(std::lround(TotalFrameTime / static_cast<double>(FrameTimes.size())));
 }
@@ -203,9 +200,7 @@ unsigned int Game::Render::FPSCounter::GetFrameTime()
 unsigned int Game::Render::FPSCounter::GetFPS()
 {
 	if (FrameTimes.empty() || TotalFrameTime <= 0.0)
-	{
 		return 0;
-	}
 
 	const double FramesPerSecond = static_cast<double>(FrameTimes.size()) * MillisecondsPerSecond / TotalFrameTime;
 	return static_cast<unsigned int>(std::lround(FramesPerSecond));

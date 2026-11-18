@@ -15,6 +15,7 @@ namespace Game
 			RacerCreation, ViewOnly
 		};
 
+		// Displays a racer's player-facing profile; available actions depend on the initialization mode.
 		class RacerScreen : public AppScreen
 		{
 		protected:

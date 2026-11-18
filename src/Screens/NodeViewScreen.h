@@ -1,5 +1,5 @@
-#ifndef NODEVIEW_H
-#define NODEVIEW_H
+#ifndef NODEVIEWSCREEN_H
+#define NODEVIEWSCREEN_H
 #include "..\Render\Renderer.h"
 #include "..\Screens.h"
 #include "..\Race.h"
@@ -10,6 +10,7 @@ namespace Game
 {
 	namespace Screens
 	{
+		// Read-only inspection of a completed race's racer timelines, events, and curve data.
 		class NodeViewScreen : public AppScreen
 		{
 			const Race::Race* CompletedRace;
@@ -38,6 +39,7 @@ namespace Game
 
 	namespace Render
 	{
+		// Renders the selected entrant's pace/endurance graph and timeline details.
 		class NodeViewRenderer : public BaseRenderer
 		{
 		public:

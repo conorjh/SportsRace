@@ -64,6 +64,7 @@ Game::Race::Racer::Racer(std::string _Name)
 
 void Game::Race::Racer::Tick(unsigned int Ms)
 {
+	// Pace controls animation cadence; position integrates velocity over the elapsed simulation time.
 	CurrentTick += Ms;
 
 	//animation
@@ -222,6 +223,7 @@ Game::Race::RaceCurve Game::Race::RaceCurve::Generate(unsigned int Seed, bool De
 
 double Game::Race::RaceCurve::Evaluate(double Time) const
 {
+	// Invert the Bezier x-coordinate so the curve can be sampled by elapsed-time fraction.
 	Time = std::clamp(Time, 0.0, 1.0);
 	if (Time == 0.0) return Descending ? 1.0 : 0.0;
 	if (Time == 1.0) return Descending ? 0.0 : 1.0;

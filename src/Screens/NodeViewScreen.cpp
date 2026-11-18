@@ -1,4 +1,4 @@
-#include "NodeView.h"
+#include "NodeViewScreen.h"
 #include "..\Audio.h"
 #include "..\App\App.h"
 #include "..\Render\RaceCurveVisualization.h"
@@ -114,36 +114,22 @@ namespace
 		Details << GetNodeName(Node) << "  ";
 
 		if (Node.Type == RaceTimelineNodeType::InitialDelay)
-		{
 			Details << "duration " << (Node.EndTimeMs - Node.StartTimeMs) / 1000.0 << "s";
-		}
 		else if (Node.Type == RaceTimelineNodeType::AccelerationToTopSpeed)
-		{
 			Details << "pace " << Node.StartPace << " -> " << Node.EndPace
 				<< "  duration " << (Node.EndTimeMs - Node.StartTimeMs) / 1000.0 << "s";
-		}
 		else if (Node.Type == RaceTimelineNodeType::Gassing)
-		{
 			Details << "pace " << Node.StartPace << " -> " << Node.EndPace
 				<< "  duration " << Node.Event.DurationMs / 1000.0 << "s";
-		}
 		else if (Node.Type == RaceTimelineNodeType::RandomEvent)
-		{
 			if (Node.Event.Type == RaceEventType::PullingUp)
-			{
 				Details << "pace " << Node.StartPace << " -> " << Node.EndPace << "  after "
 					<< Node.Event.Magnitude / 1000.0 << "s gassing";
-			}
 			else
-			{
 				Details << "pace " << Node.StartPace << "  duration "
 					<< Node.Event.DurationMs / 1000.0 << "s  value " << Node.Event.Magnitude;
-			}
-		}
 		else if (Node.Type == RaceTimelineNodeType::Finish)
-		{
 			Details << "pace " << Node.StartPace;
-		}
 
 		return Details.str();
 	}
@@ -211,17 +197,16 @@ namespace
 		};
 
 		for (std::size_t Index = 0; Index < std::size(Stats); ++Index)
-		{
 			Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), Stats[Index],
 				NodeViewStatsLeft + static_cast<int>(Index) * NodeViewStatsColumnSpacing,
 				NodeViewStatsTop, NodeViewTextColor);
-		}
 	}
 
 	void DrawTimelineGraph(Game::Render::NodeViewRenderer& Renderer, Game::Render::AppRenderContext* Context,
 		const Game::Race::Race& CompletedRace, const Game::Race::Racer& Runner,
 		const Game::Race::RacerRaceTimeline& Timeline)
 	{
+		// Sample pace and endurance from the completed timeline, then place each event at its playback time.
 		using namespace Game::Race;
 
 		const SDL_FRect PlotBounds{ static_cast<float>(NodeViewPlotLeft), static_cast<float>(NodeViewPlotTop),
@@ -337,7 +322,7 @@ Game::Screens::NodeViewScreen::NodeViewScreen(AppScreenStateMachine& _Machine, A
 	NextNodePageButton(_IO, "Next nodes", 190, 700, 110, 42),
 	MainMenuButton(_IO, "Main Menu", 844, 700, 150, 42)
 {
-	Type = AppScreenType::NodeView;
+	Type = AppScreenType::NodeViewScreen;
 }
 
 Game::Screens::AppScreen* Game::Screens::NodeViewScreen::Update()
@@ -367,10 +352,8 @@ Game::Screens::AppScreen* Game::Screens::NodeViewScreen::Update()
 	const std::size_t LastPageStart = NodeCount > NodeViewVisibleNodeCount
 		? NodeCount - NodeViewVisibleNodeCount : 0;
 	if (PreviousNodePageButton.HasMouseClicked())
-	{
 		FirstNodeIndex = FirstNodeIndex > NodeViewVisibleNodeCount
 			? FirstNodeIndex - NodeViewVisibleNodeCount : 0;
-	}
 	if (NextNodePageButton.HasMouseClicked())
 		FirstNodeIndex = std::min(FirstNodeIndex + NodeViewVisibleNodeCount, LastPageStart);
 	FirstNodeIndex = std::min(FirstNodeIndex, LastPageStart);
@@ -379,6 +362,7 @@ Game::Screens::AppScreen* Game::Screens::NodeViewScreen::Update()
 	{
 		if (IO.Esc)
 			IO.Player.Play(BuiltInSounds::Click);
+		// This view is stacked over the completed race, so leave both screens to return to the career hub.
 		ScreenStack.Pop();
 		ScreenStack.Pop();
 		return ScreenStack.Top();
@@ -427,10 +411,8 @@ unsigned int Game::Render::NodeViewRenderer::Render()
 
 	const Race::Racer* SelectedRacer = Screen->GetSelectedRacer();
 	if (SelectedRacer == nullptr)
-	{
 		RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), "No racer timelines are available.",
 			70, 120, NodeViewTextColor);
-	}
 	else
 	{
 		RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont),
@@ -464,16 +446,12 @@ unsigned int Game::Render::NodeViewRenderer::Render()
 			auto Node = Timeline->Nodes.begin();
 			std::advance(Node, static_cast<std::ptrdiff_t>(FirstNodeIndex));
 			for (std::size_t Row = 0; Row < NodeViewVisibleNodeCount && Node != Timeline->Nodes.end(); ++Row, ++Node)
-			{
 				RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), FormatNodeDetails(*Node),
 					70, NodeViewNodeListTop + static_cast<int>(Row) * NodeViewNodeRowHeight, NodeViewTextColor);
-			}
 		}
 		else
-		{
 			RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), "No timeline is available for this racer.",
 				70, 120, NodeViewTextColor);
-		}
 	}
 
 	DrawNodeViewButton(*this, Context, Screen->PreviousRacerButton);

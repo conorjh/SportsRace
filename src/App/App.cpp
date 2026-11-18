@@ -31,9 +31,7 @@ ParsedCommandLineArguments ParseCommandLine(int argc, char* argv[])
 
 	for (auto& Argument : CommandLineParser().Parse(argc, argv))
 		if (Argument.Type == ApplicationPath)
-		{
 			Output.Filepath = Argument.Data;
-		}
 		else if (Argument.Data == "cfg")
 		{
 			if (Argument.Parameters.size() != 1)
@@ -64,10 +62,8 @@ ParsedCommandLineArguments ParseCommandLine(int argc, char* argv[])
 			Output.LogLevel = IntBuff;
 		}
 		else
-		{
 			//unknown parameter - error
 			Output.Errors.Errors.push_back("Invalid argument: " + Argument.Data);
-		}
 
 	return Output;
 }

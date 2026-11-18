@@ -35,7 +35,7 @@ unsigned int Game::App::Render::AppRenderer::Render()
 		return InRaceRen.Render();
 	}
 
-	case AppScreenType::NodeView:
+	case AppScreenType::NodeViewScreen:
 	{
 		NodeViewScreen* NodeView_Screen = reinterpret_cast<NodeViewScreen*>(StateMachine->Top());
 		NodeViewRen.Screen = NodeView_Screen;

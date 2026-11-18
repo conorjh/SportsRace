@@ -115,6 +115,7 @@ namespace Game
 			double Distance = 0.0;
 			double StartPace = 0.0;
 			double EndPace = 0.0;
+			double AccelerationCurveTimeOffsetMs = 0.0;
 			RaceEvent Event;
 		};
 

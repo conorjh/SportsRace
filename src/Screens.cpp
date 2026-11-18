@@ -18,8 +18,8 @@ std::string Game::Screens::AppStateTypeToString(AppScreenType Type)
 		return "RacerScreen";
 	case AppScreenType::RankingScreen:
 		return "RankingScreen";
-	case AppScreenType::NodeView:
-		return "NodeView";
+	case AppScreenType::NodeViewScreen:
+		return "NodeViewScreen";
 	}
 	return "";
 }
