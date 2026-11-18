@@ -72,6 +72,7 @@ namespace Game
 			RaceState* Tick(unsigned int TickTimeMs);
 		};
 
+		// Owns the active race phase and replaces it when a state reports a transition.
 		class RaceStateMachine
 		{
 		public:

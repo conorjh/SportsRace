@@ -121,7 +121,7 @@ Racer* Game::Race::RacerDB::Make(std::string Name)
 				? new Racer(RacerNameMaker().Make()) 
 				: new Racer(Name);
 
-	//while loop until we randomly generate an unused GUID
+	// Retry random identifiers that are already in use so each database entry stays addressable.
 	while (Container.find((R->GUID.GUID = rand())) != Container.end())
 	{
 	}
@@ -178,6 +178,7 @@ Game::Race::RacerSkills::RacerSkills()
 	std::mt19937 Generator(static_cast<unsigned int>(rand()));
 	std::normal_distribution<double> RatingDistribution(GeneratedRatingMean, GeneratedRatingStandardDeviation);
 	std::normal_distribution<double> PotentialDistribution(GeneratedPotentialMean, GeneratedPotentialStandardDeviation);
+	// Generate a potential ceiling first; acceleration, endurance, and speed cannot exceed it.
 	Potential = GenerateRating(Generator, PotentialDistribution, MinimumGeneratedPotential, MaximumGeneratedSkill);
 	Reflex = GenerateRating(Generator, RatingDistribution, MinimumGeneratedSkill, MaximumGeneratedSkill);
 	Composure = GenerateRating(Generator, RatingDistribution, MinimumGeneratedSkill, MaximumGeneratedSkill);
@@ -207,6 +208,7 @@ Game::Race::RacerDetails::RacerDetails()
 
 Game::Race::RaceCurve Game::Race::RaceCurve::Generate(unsigned int Seed, bool Descending)
 {
+	// Derive each curve from the racer's seed while keeping acceleration and endurance streams distinct.
 	std::mt19937 Generator(Seed ^ (Descending ? DescendingCurveSeedSalt : 0u));
 	std::uniform_real_distribution<double> Uniform(0.0, 1.0);
 	double X1 = Uniform(Generator), X2 = Uniform(Generator);
@@ -215,6 +217,7 @@ Game::Race::RaceCurve Game::Race::RaceCurve::Generate(unsigned int Seed, bool De
 	if ((!Descending && Y1 > Y2) || (Descending && Y1 < Y2)) std::swap(Y1, Y2);
 	if (!Descending)
 	{
+		// Keep acceleration rising and prevent its first control point from producing a sluggish opening.
 		Y1 = MinimumAccelerationP1Y + (1.0 - MinimumAccelerationP1Y) * Y1;
 		Y2 = std::max(Y1, Y2);
 	}

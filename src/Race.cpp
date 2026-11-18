@@ -64,6 +64,7 @@ namespace
 	double EvaluateEnduranceReserve(const Game::Race::RaceCurve& Curve, double TimeMs, double CycleStartMs,
 		double CycleDurationMs, double CycleReserve)
 	{
+		// Restart the endurance curve from the reserve available at this cycle's start.
 		const double DurationMs = std::max<double>(SimulationStepMs, CycleDurationMs);
 		const double Progress = (TimeMs - CycleStartMs) / DurationMs;
 		return CycleReserve * Curve.Evaluate(Progress);
@@ -79,6 +80,7 @@ namespace
 
 	unsigned int MixSeed(unsigned int RaceSeed, unsigned int RacerGuid, std::size_t RacerIndex)
 	{
+		// Keep each entrant's random stream reproducible for a race while distinct from other entrants.
 		std::uint32_t Value = RaceSeed ^ RacerGuid ^ (static_cast<std::uint32_t>(RacerIndex) + RacerIndexSeedSalt);
 		Value ^= Value >> SeedMixInitialShift;
 		Value *= SeedMixFirstMultiplier;
@@ -109,6 +111,7 @@ namespace
 		Stats.Confidence = Clamp01(ConfidenceValue);
 		Stats.Fatigue = Clamp01(FatigueValue);
 		Stats.Injury = Clamp01(InjuryValue);
+		// Apply race-day conditions before deriving the ratings used for pace and event chances.
 		const double ConditionScale = (1.0 + (Stats.Confidence - RacerConditions::InitialConfidence) * ConfidencePerformanceBonusScale) *
 			(1.0 - Stats.Fatigue * FatiguePerformancePenalty) * (1.0 - Stats.Injury * InjuryPerformancePenalty);
 		const double EffectiveReflex = ClampRating(ClampRating(Runner.Skills.Reflex) * ConditionScale);
@@ -122,7 +125,7 @@ namespace
 			MinimumAccelerationDurationMs, MaximumAccelerationDurationMs);
 		const double DurationEnduranceRating = EnduranceRating < EnduranceDurationReferenceRating
 			? EnduranceRating + EnduranceRating * (EnduranceDurationReferenceRating - EnduranceRating) /
-				EnduranceDurationReferenceRating
+			EnduranceDurationReferenceRating
 			: EnduranceRating;
 		const double EffectiveDurationEndurance = ClampRating(DurationEnduranceRating * ConditionScale);
 		Stats.FullEnduranceDurationMs = BaseEnduranceDurationMs +
@@ -151,6 +154,7 @@ namespace
 
 		const double TargetPace = Runner.AccelerationCurve.Evaluate(CurveProgress) *
 			Clamp01(StumblePaceMultiplier);
+		// Find the curve progress that matches the reduced pace so recovery does not jump back to normal pace.
 		double LowerProgress = 0.0;
 		double UpperProgress = CurveProgress;
 		for (unsigned int Iteration = 0; Iteration < AccelerationCurveRewindIterations; ++Iteration)
@@ -413,6 +417,7 @@ namespace
 	{
 		using namespace Game::Race;
 
+		// Rebuild pace and effects from the precomputed nodes so playback can be sampled at any time.
 		const Racer& Runner = *Timeline.Entrant;
 		const EffectiveRacerStats Stats = CalculateEffectiveRacerStats(Runner,
 			Timeline.PreRaceConfidence, Timeline.PreRaceFatigue, Timeline.PreRaceInjury);
@@ -430,6 +435,7 @@ namespace
 		double EnduranceCycleStartMs = 0.0;
 		double EnduranceCycleReserve = 1.0;
 
+		// IncludeEventsAtTime selects which side of an exact event timestamp this sample represents.
 		for (const RaceTimelineNode& Node : Timeline.Nodes)
 		{
 			if (Node.StartTimeMs > TimeMs || (!IncludeEventsAtTime && Node.StartTimeMs >= TimeMs))
@@ -520,6 +526,7 @@ namespace
 			State.Pace = EnduranceAdjustedPace;
 		}
 
+		// The brief second-wind override takes precedence; otherwise active pace effects multiply together.
 		if (WindOverrideNode != nullptr)
 			State.Pace = WindOverrideNode->StartPace;
 		else
@@ -568,6 +575,7 @@ namespace
 
 		Game::Race::RacerRaceTimeline Build()
 		{
+			// Precompute a complete outcome so playback can sample it without rolling events again.
 			Runner->Reset();
 			Stats = CalculateEffectiveRacerStats(*Runner);
 			Timeline.PreRaceConfidence = Stats.Confidence;
@@ -638,6 +646,7 @@ namespace
 
 		double CurrentPace(double TimeMs) const
 		{
+			// The wind override wins; otherwise gassing replaces the endurance-adjusted pace.
 			if (WindOverrideActive && TimeMs < WindOverrideUntilMs)
 				return WindOverridePace;
 
@@ -658,6 +667,7 @@ namespace
 		{
 			using namespace Game::Race;
 
+			// Capture onset pace and distance so playback can reconstruct the event without rerunning the simulation.
 			RaceTimelineNode Node;
 			Node.Type = Event.Type == RaceEventType::Gassing
 				? RaceTimelineNodeType::Gassing : RaceTimelineNodeType::RandomEvent;
@@ -720,6 +730,7 @@ namespace
 			if (StumbleTimelineNode == nullptr || TimeMs < StumbleUntilMs)
 				return;
 
+			// Store the adjusted curve clock on the event so replay reproduces the same recovery.
 			AccelerationCurveTimeOffsetMs = AccelerationCurveTimeOffsetAfterStumble(*Runner,
 				Stats, StumbleUntilMs, AccelerationCurveTimeOffsetMs, StumblePaceMultiplier);
 			StumbleTimelineNode->AccelerationCurveTimeOffsetMs = AccelerationCurveTimeOffsetMs;
@@ -741,6 +752,7 @@ namespace
 			using namespace Game::Race;
 
 			std::uniform_real_distribution<double> Unit(0.0, 1.0);
+			// Reuse one roll to make the two thought events mutually exclusive.
 			const double ThoughtRoll = Unit(EventRandom);
 			const double LostBeliefChance = LostBeliefRule.ChanceFor(Stats.Confidence);
 			unsigned int DurationMs = 0;
@@ -777,6 +789,7 @@ namespace
 			if (!Gassing || !SecondWindRule.TryRoll(Stats.Confidence, Stats.Luck, EventRandom))
 				return;
 
+			// Restart endurance from the restored reserve, using a brief pace override to bridge the change.
 			CloseGassingEvent(TimeMs);
 			const double RestoredReserve = SecondWindRule.RestoredReserve(Stats.Confidence, Stats.Luck);
 			WindOverridePace = GassingEntryPace;
@@ -796,6 +809,7 @@ namespace
 		{
 			using namespace Game::Race;
 
+			// A racer can pull up only while gassing, after a confidence- and composure-dependent limit.
 			if (!Gassing || !PullingUpRule.ShouldPullUp(TimeMs - GassingStartMs,
 				Stats.Confidence, Runner->Skills.Composure))
 				return false;
@@ -817,6 +831,7 @@ namespace
 
 		void ProcessEventChecks(double TimeMs)
 		{
+			// Run event rolls on the fixed one-second cadence independently of movement integration steps.
 			while (NextEventCheckMs <= TimeMs)
 			{
 				TryStumble(TimeMs);
@@ -834,6 +849,7 @@ namespace
 			const double StepDurationMs = NextTimeMs - TimeMs;
 			const double PaceAtStart = CurrentPace(TimeMs);
 			const double PaceAtEnd = CurrentPace(NextTimeMs);
+			// Average endpoint paces, then interpolate a track crossing to its exact time within the step.
 			const double DistanceStep = (PaceAtStart + PaceAtEnd) * TrapezoidalIntegrationFactor *
 				StepDurationMs / MillisecondsPerSecond;
 
@@ -869,6 +885,7 @@ namespace
 
 		void Simulate()
 		{
+			// Resolve event transitions before the pull-up check and distance integration at each fixed step.
 			for (double TimeMs = 0.0; TimeMs < MaximumRaceDurationMs; TimeMs += SimulationStepMs)
 			{
 				CompleteStumbleIfDue(TimeMs);
@@ -982,9 +999,9 @@ bool Game::Race::Race::HasFinished() const
 		return Result.RacerResults.size() >= LockedEntrants.size();
 
 	const auto EntrantCount = std::count_if(Racers.begin(), Racers.end(), [](const Racer* Runner)
-	{
-		return Runner != nullptr;
-	});
+		{
+			return Runner != nullptr;
+		});
 	return Result.RacerResults.size() >= static_cast<std::size_t>(EntrantCount);
 }
 
@@ -1113,9 +1130,9 @@ double Game::Race::Race::GetCurrentEndurance(const Racer* Runner) const
 const Game::Race::RacerRaceTimeline* Game::Race::Race::GetTimelineFor(const Racer* Runner) const
 {
 	const auto Timeline = std::find_if(Timelines.begin(), Timelines.end(), [Runner](const RacerRaceTimeline& Entry)
-	{
-		return Entry.Entrant == Runner;
-	});
+		{
+			return Entry.Entrant == Runner;
+		});
 	return Timeline == Timelines.end() ? nullptr : &*Timeline;
 }
 
@@ -1133,6 +1150,7 @@ bool Game::Race::Race::GetTimelineStateAt(const Racer* Runner, double TimeMs, Ra
 
 Game::Race::RaceError Game::Race::Race::Precompute()
 {
+	// Lock race inputs, precompute every entrant, and assemble shared playback data before playback begins.
 	if (TimelineReady)
 		return RaceError::None;
 	if (ThisTrack == nullptr)
@@ -1174,6 +1192,7 @@ Game::Race::RaceError Game::Race::Race::Precompute()
 
 void Game::Race::Race::PrecomputeRacerTimelines()
 {
+	// Preserve each entrant's original index for deterministic random seeds and tie-breaking.
 	for (std::size_t RacerIndex = 0; RacerIndex < Racers.size(); ++RacerIndex)
 	{
 		Racer* Runner = Racers[RacerIndex];
@@ -1187,6 +1206,7 @@ void Game::Race::Race::PrecomputeRacerTimelines()
 
 void Game::Race::Race::AssignTimelineFinishPositions()
 {
+	// Playback lasts through the latest finish or pull-up, but only finishers receive ranked places.
 	for (const RacerRaceTimeline& Timeline : Timelines)
 	{
 		const double TimelineEndTimeMs = Timeline.Finished ? Timeline.FinishTimeMs :
@@ -1200,10 +1220,11 @@ void Game::Race::Race::AssignTimelineFinishPositions()
 		if (Timelines[Index].Finished)
 			FinishOrder.push_back(Index);
 	}
+	// Stable sorting preserves entrant order when finish times are identical.
 	std::stable_sort(FinishOrder.begin(), FinishOrder.end(), [&](std::size_t Left, std::size_t Right)
-	{
-		return Timelines[Left].FinishTimeMs < Timelines[Right].FinishTimeMs;
-	});
+		{
+			return Timelines[Left].FinishTimeMs < Timelines[Right].FinishTimeMs;
+		});
 	for (std::size_t Index = 0; Index < FinishOrder.size(); ++Index)
 		Timelines[FinishOrder[Index]].FinishPosition = static_cast<unsigned int>(Index + FirstPlaceRank);
 }
@@ -1211,6 +1232,7 @@ void Game::Race::Race::AssignTimelineFinishPositions()
 
 void Game::Race::Race::CalculateTimelineConditions()
 {
+	// Calculate post-race changes now, but apply them only after playback has completed.
 	for (std::size_t Index = 0; Index < Timelines.size(); ++Index)
 	{
 		RacerRaceTimeline& Timeline = Timelines[Index];
@@ -1229,6 +1251,7 @@ void Game::Race::Race::CalculateTimelineConditions()
 		Timeline.InjuryAfter = Stats.Injury;
 
 		const InjuryEvent InjuryRule;
+		// Isolate injury rolls so other event-roll counts cannot change this outcome.
 		std::mt19937 InjuryRandom = InjuryRule.CreateRandom(LockedSeed, Timeline.Entrant->GUID.GUID, Timeline.RacerIndex);
 		if (InjuryRule.TryRoll(Stats.Fatigue, InjuryRandom))
 		{
@@ -1255,14 +1278,15 @@ void Game::Race::Race::SortTimelineNodesAndCollectEvents()
 	Events.clear();
 	for (RacerRaceTimeline& Timeline : Timelines)
 	{
+		// At equal timestamps, order event nodes before the finish marker.
 		Timeline.Nodes.sort([](const RaceTimelineNode& Left, const RaceTimelineNode& Right)
-		{
-			if (Left.StartTimeMs != Right.StartTimeMs)
-				return Left.StartTimeMs < Right.StartTimeMs;
-			if (Left.Type == RaceTimelineNodeType::Finish)
-				return false;
-			return Right.Type == RaceTimelineNodeType::Finish;
-		});
+			{
+				if (Left.StartTimeMs != Right.StartTimeMs)
+					return Left.StartTimeMs < Right.StartTimeMs;
+				if (Left.Type == RaceTimelineNodeType::Finish)
+					return false;
+				return Right.Type == RaceTimelineNodeType::Finish;
+			});
 
 		for (const RaceTimelineNode& Node : Timeline.Nodes)
 		{
@@ -1271,16 +1295,18 @@ void Game::Race::Race::SortTimelineNodesAndCollectEvents()
 		}
 	}
 
+	// Order simultaneous events by entrant index for deterministic playback and display.
 	std::stable_sort(Events.begin(), Events.end(), [](const RaceEvent& Left, const RaceEvent& Right)
-	{
-		if (Left.TimeMs != Right.TimeMs)
-			return Left.TimeMs < Right.TimeMs;
-		return Left.RacerIndex < Right.RacerIndex;
-	});
+		{
+			if (Left.TimeMs != Right.TimeMs)
+				return Left.TimeMs < Right.TimeMs;
+			return Left.RacerIndex < Right.RacerIndex;
+		});
 }
 
 void Game::Race::Race::RecordResultsThrough(double TimeMs)
 {
+	// Reveal each precomputed result only when playback reaches its finish or pull-up time.
 	struct NewlyResolvedResult
 	{
 		std::size_t TimelineIndex;
@@ -1299,11 +1325,11 @@ void Game::Race::Race::RecordResultsThrough(double TimeMs)
 	}
 	std::stable_sort(NewlyResolved.begin(), NewlyResolved.end(), [&](const NewlyResolvedResult& Left,
 		const NewlyResolvedResult& Right)
-	{
-		if (Left.TimeMs != Right.TimeMs)
-			return Left.TimeMs < Right.TimeMs;
-		return Timelines[Left.TimelineIndex].RacerIndex < Timelines[Right.TimelineIndex].RacerIndex;
-	});
+		{
+			if (Left.TimeMs != Right.TimeMs)
+				return Left.TimeMs < Right.TimeMs;
+			return Timelines[Left.TimelineIndex].RacerIndex < Timelines[Right.TimelineIndex].RacerIndex;
+		});
 
 	for (const NewlyResolvedResult& Entry : NewlyResolved)
 	{
@@ -1326,6 +1352,7 @@ void Game::Race::Race::UpdatePlaybackStateAt(double TimeMs)
 		const bool HasTerminalTime = Timeline.Finished || Timeline.PulledUp;
 		const double TerminalTimeMs = Timeline.Finished ? Timeline.FinishTimeMs : Timeline.PullUpTimeMs;
 		const double TargetTimeMs = HasTerminalTime ? std::min(TimeMs, TerminalTimeMs) : TimeMs;
+		// Consume complete fixed intervals once, regardless of the caller's playback tick size.
 		while (Timeline.PlaybackIntegratedTimeMs + SimulationStepMs <= TargetTimeMs)
 		{
 			const double StepStartMs = Timeline.PlaybackIntegratedTimeMs;
@@ -1358,6 +1385,7 @@ void Game::Race::Race::UpdatePlaybackStateAt(double TimeMs)
 		}
 		else if (Timeline.PlaybackIntegratedTimeMs < TargetTimeMs)
 		{
+			// Interpolate the remaining partial interval while respecting the entrant's terminal time.
 			const double StepStartMs = Timeline.PlaybackIntegratedTimeMs;
 			const double GridStepEndMs = StepStartMs + SimulationStepMs;
 			const bool EndsDuringStep = HasTerminalTime && GridStepEndMs > TerminalTimeMs;
@@ -1401,6 +1429,7 @@ void Game::Race::Race::UpdatePlaybackStateAt(double TimeMs)
 
 void Game::Race::Race::ApplyPersistentConditions()
 {
+	// Commit the precomputed post-race conditions once, after all timelines have played out.
 	if (ConditionsApplied)
 		return;
 
@@ -1417,6 +1446,7 @@ void Game::Race::Race::ApplyPersistentConditions()
 
 Game::Race::RaceStatus Game::Race::Race::Tick(unsigned int Ms, RaceStatus Type)
 {
+	// Advance the precomputed replay, revealing results at their event times and conditions at completion.
 	if (Type == RaceStatus::Failed)
 		return RaceStatus::Failed;
 	if (Complete || Type == RaceStatus::Finished)
@@ -1443,6 +1473,7 @@ Game::Race::RaceStatus Game::Race::Race::Tick(unsigned int Ms, RaceStatus Type)
 
 Game::Race::RaceResult Game::Race::Race::Sim()
 {
+	// Reuse Tick so one-shot simulation and animated playback resolve the same timeline identically.
 	if (Precompute() != RaceError::None)
 		return Result;
 	if (Complete)

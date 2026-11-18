@@ -39,6 +39,7 @@ Game::Race::RaceStateType Game::Race::RaceStateMachine::Tick(unsigned int TickTi
 {
     Data.CurrentTick += TickTimeMs;
 
+    // A state returns itself to continue or a new state to transition; discard the old state on transition.
     auto OldState = State;
     auto NewState = State->Tick(TickTimeMs);
 
@@ -81,6 +82,7 @@ Game::Race::RaceState* Game::Race::RaceState_PreRace::Tick(unsigned int TimeTake
 {
     TickAccumulator += TimeTakenMs;
 
+    // Hold the pre-race presentation for its phase duration before showing the starter's orders.
     if (TickAccumulator > RacePhaseDurationMs)
         return new RaceState_StartersOrders(Data);
 
@@ -111,6 +113,7 @@ Game::Race::RaceState* Game::Race::RaceState_StartersOrders::Tick(unsigned int T
 
 Game::Race::RaceState_Racing::RaceState_Racing(RaceStateData& _Data) : RaceState(_Data)
 {
+    // Build the deterministic race timelines before playback starts and expose setup failures as a state.
     const RaceError Error = Data.ThisRace.Precompute();
     Type = Error == RaceError::None ? RaceStateType::Racing : RaceStateType::Failed;
     if (Error != RaceError::None)

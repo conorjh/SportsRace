@@ -107,6 +107,7 @@ namespace Game
 			Finish
 		};
 
+		// A timed segment or event in one entrant's precomputed race.
 		struct RaceTimelineNode
 		{
 			RaceTimelineNodeType Type = RaceTimelineNodeType::InitialDelay;
@@ -115,14 +116,17 @@ namespace Game
 			double Distance = 0.0;
 			double StartPace = 0.0;
 			double EndPace = 0.0;
+			// Cumulative time removed from the curve so acceleration resumes at the stumble-reduced pace.
 			double AccelerationCurveTimeOffsetMs = 0.0;
 			RaceEvent Event;
 		};
 
+		// One entrant's precomputed outcome plus the mutable state needed to play it back.
 		struct RacerRaceTimeline
 		{
 			Racer* Entrant = nullptr;
 			unsigned int RacerIndex = 0;
+			// Snapshot conditions so playback uses the stats locked when this entrant's timeline was built.
 			double PreRaceConfidence = RacerConditions::InitialConfidence;
 			double PreRaceFatigue = 0.0;
 			double PreRaceInjury = 0.0;
@@ -143,6 +147,7 @@ namespace Game
 			unsigned int ActiveEffects = RaceEffectNone;
 		};
 
+		// The pace, endurance, and active effects sampled at one playback time.
 		struct RaceTimelineState
 		{
 			double Pace = 0.0;
@@ -159,6 +164,7 @@ namespace Game
 			unsigned int EntranceFee;
 		};
 
+		// Simulate the race once into entrant timelines, then advance those timelines for playback.
 		class Race
 		{
 			void Finished(Racer*, unsigned int FinishTimeMs);

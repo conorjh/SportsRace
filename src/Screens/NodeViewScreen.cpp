@@ -346,6 +346,7 @@ Game::Screens::AppScreen* Game::Screens::NodeViewScreen::Update()
 		FirstNodeIndex = 0;
 	}
 
+	// Each entrant has a different timeline length, so clamp pagination after racer selection changes.
 	const Race::Racer* SelectedRacer = GetSelectedRacer();
 	const Race::RacerRaceTimeline* Timeline = CompletedRace->GetTimelineFor(SelectedRacer);
 	const std::size_t NodeCount = Timeline == nullptr ? 0 : Timeline->Nodes.size();

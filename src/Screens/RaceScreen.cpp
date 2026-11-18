@@ -61,6 +61,7 @@ namespace
 		if (!CurrentRace.IsComplete())
 			return;
 
+		// Settle the player's entry fee and placing prize only after the race outcome is final.
 		Data.Profile->Financials.Cash -= CurrentRace.Financials.EntranceFee;
 		for (const auto& Result : CurrentRace.Result.RacerResults)
 		{
@@ -127,6 +128,7 @@ Game::Screens::AppScreen* Game::Screens::RaceScreen::Update()
 	using namespace Game::Race;
 	using namespace Game::Audio;
 
+	// Consume fixed-size race ticks to keep simulation cadence independent of render frame rate.
 	while (SDL_GetTicks() > LastFrameEnd + RaceTickIntervalMs)
 	{
 		auto OldType = RaceSM.State->Type;
@@ -245,6 +247,7 @@ void Game::Render::RaceScreenRenderer::DrawWinners()
 	auto& Race = Screen->RaceSM.Data.ThisRace;
 	const auto& Results = Race.Result.RacerResults;
 
+	// Keep standings hidden until the career racer's outcome is known; full completion also resolves a pull-up.
 	if (Screen->HasPlayerRacer() && !Race.IsComplete() &&
 		!Race.HasFinished(Race.Get(Screen->PlayerGUID)))
 		return;
@@ -386,6 +389,7 @@ unsigned int Game::Render::RaceScreenRenderer::Render()
 		? CurrentRace.Get(Screen->PlayerGUID) : nullptr;
 	const bool PlayerPulledUp = PlayerRacer != nullptr &&
 		(CurrentRace.GetActiveEffects(PlayerRacer) & Race::RaceEffectPulledUp) != 0;
+	// Follow the active player; otherwise track the current race leader.
 	Race::Racer* CameraRacer = PlayerRacer != nullptr && !PlayerPulledUp
 		? PlayerRacer : CurrentRace.CurrentWinner();
 	const unsigned int CameraPosition = CameraRacer != nullptr
