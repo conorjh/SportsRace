@@ -13,6 +13,7 @@
 #include <optional>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 using namespace Game::App;
@@ -46,6 +47,24 @@ namespace
 		RaceToConfigure.GUID.GUID = Seed + 1000;
 		RaceToConfigure.ThisTrack->Length = static_cast<Game::Race::TrackLength>(TrackLength);
 		return true;
+	}
+
+	bool CompletePlayoffBracketByAdvancingFirstSeeds(SportRaceCore::PlayoffBracket& Bracket)
+	{
+		for (std::size_t RoundIndex = 0; RoundIndex < Bracket.Rounds.size(); ++RoundIndex)
+			for (std::size_t MatchIndex = 0; MatchIndex < Bracket.Rounds[RoundIndex].Matches.size(); ++MatchIndex)
+			{
+				const SportRaceCore::PlayoffMatch& Match = Bracket.Rounds[RoundIndex].Matches[MatchIndex];
+				if (Match.IsComplete)
+					continue;
+				if (!Match.CompetitorAId.has_value() && !Match.CompetitorBId.has_value())
+					return false;
+				const std::uint64_t WinnerId = Match.CompetitorAId.has_value()
+					? Match.CompetitorAId.value() : Match.CompetitorBId.value();
+				if (!SportRaceCore::SetPlayoffMatchWinner(Bracket, RoundIndex, MatchIndex, WinnerId))
+					return false;
+			}
+		return Bracket.IsComplete;
 	}
 }
 
@@ -421,7 +440,7 @@ TEST_CASE(Career_SettlesWinningBetAndClearsTheScheduledRace)
 	ASSERT_EQ(0u, careerData.UpcomingRaceTrackLength);
 }
 
-TEST_CASE(Career_Initializes256RacerWorldAndCreatesOpenAmateurLobbies)
+TEST_CASE(Career_Initializes256RacerWorldWithBoundedAmateurFeeders)
 {
 	srand(231);
 	Game::Career::CareerData careerData;
@@ -435,7 +454,7 @@ TEST_CASE(Career_Initializes256RacerWorldAndCreatesOpenAmateurLobbies)
 	ASSERT_EQ(static_cast<std::size_t>(254), orchestrator.GetActiveRacerCount());
 	ASSERT_EQ(static_cast<std::size_t>(254), careerData.TargetAiPopulation);
 	ASSERT_EQ(static_cast<std::size_t>(254), careerData.RacerStates.size());
-	ASSERT_EQ(static_cast<std::size_t>(7), careerData.Leagues.size());
+	ASSERT_EQ(static_cast<std::size_t>(12), careerData.Leagues.size());
 	ASSERT_EQ(static_cast<std::size_t>(13), careerData.RaceTrackLengths.size());
 	ASSERT_EQ(static_cast<std::size_t>(13), std::count_if(careerData.CityPlots.begin(), careerData.CityPlots.end(),
 		[](const Game::Career::CityPlot& Plot)
@@ -466,12 +485,14 @@ TEST_CASE(Career_Initializes256RacerWorldAndCreatesOpenAmateurLobbies)
 			++AmateurLeagueCount;
 			if (League.State == Game::Career::CareerLeagueState::Filling)
 			{
-				ASSERT_TRUE(League.Entrants.empty());
+				ASSERT_TRUE(League.IsOpenLobby);
+				ASSERT_EQ(static_cast<std::size_t>(19), League.Entrants.size());
 				ASSERT_TRUE(League.Fixtures.empty());
 				ASSERT_TRUE(League.Standings.empty());
 			}
 			else
 			{
+				ASSERT_TRUE(!League.IsOpenLobby);
 				ASSERT_TRUE(League.State == Game::Career::CareerLeagueState::RegularSeason);
 				ASSERT_EQ(static_cast<std::size_t>(20), League.Entrants.size());
 				ASSERT_EQ(static_cast<std::size_t>(190), League.Fixtures.size());
@@ -495,9 +516,9 @@ TEST_CASE(Career_Initializes256RacerWorldAndCreatesOpenAmateurLobbies)
 	ASSERT_TRUE(HasAmateurCup);
 	ASSERT_EQ(static_cast<std::uint64_t>(24ull * 60 * 60 * 1000), careerData.NextAmateurCupAtMs);
 	ASSERT_EQ(static_cast<std::size_t>(4), DivisionLeagueCount);
-	ASSERT_EQ(static_cast<std::size_t>(2), AmateurLeagueCount);
-	ASSERT_EQ(static_cast<std::size_t>(100), LeagueEntrantIds.size());
-	ASSERT_EQ(static_cast<std::size_t>(154), std::count_if(careerData.RacerStates.begin(),
+	ASSERT_EQ(static_cast<std::size_t>(7), AmateurLeagueCount);
+	ASSERT_EQ(static_cast<std::size_t>(219), LeagueEntrantIds.size());
+	ASSERT_EQ(static_cast<std::size_t>(35), std::count_if(careerData.RacerStates.begin(),
 		careerData.RacerStates.end(), [](const Game::Career::CareerRacerState& State)
 		{
 			return State.LeagueId == 0;
@@ -628,8 +649,21 @@ TEST_CASE(Career_InitialWorldMonthIsFrameSteppedAndCreatesRaceHistory)
 	ASSERT_TRUE(HistoryEntryCount > static_cast<std::uint64_t>(ActiveRacerCount));
 	ASSERT_TRUE(LatestRaceWorldTimeMs >= static_cast<std::uint64_t>(7ull * 24 * 60 * 60 * 1000));
 
+	unsigned int HighestSeasonBeforePostWarmup = 0;
+	unsigned int AmateurCupSeasonBeforePostWarmup = 0;
+	std::vector<std::pair<std::uint64_t, unsigned int>> LeagueSeasonsBeforePostWarmup;
+	for (const Game::Career::CareerLeague& League : careerData.Leagues)
+		if (League.IsAmateurCup)
+			AmateurCupSeasonBeforePostWarmup = League.Season;
+		else
+		{
+			HighestSeasonBeforePostWarmup = std::max(HighestSeasonBeforePostWarmup, League.Season);
+			if (!League.IsOpenLobby)
+				LeagueSeasonsBeforePostWarmup.emplace_back(League.Id, League.Season);
+		}
+	ASSERT_TRUE(careerData.PlayerLeagueRacer == nullptr);
 	const std::uint64_t PostWarmupRealDurationMs =
-		static_cast<std::uint64_t>(3ull * 24 * 60 * 60 * 1000) / careerData.WorldClock.GetTimeScale();
+		static_cast<std::uint64_t>(3ull * 24 * 60 * 60 * 1000) / careerData.WorldClock.GetTimeScale() + 300000;
 	for (std::uint64_t ElapsedRealMs = 0; ElapsedRealMs < PostWarmupRealDurationMs; ElapsedRealMs += 1000)
 		orchestrator.Update(1000);
 
@@ -638,6 +672,37 @@ TEST_CASE(Career_InitialWorldMonthIsFrameSteppedAndCreatesRaceHistory)
 		if (Runner != nullptr)
 			PostWarmupHistoryEntryCount += static_cast<std::uint64_t>(Runner->CareerRecord.History.size());
 	ASSERT_TRUE(PostWarmupHistoryEntryCount > HistoryEntryCount);
+
+	unsigned int HighestSeasonAfterPostWarmup = 0;
+	std::size_t ScheduledRegularSeasonFixtureCount = 0;
+	for (const Game::Career::CareerLeague& League : careerData.Leagues)
+		if (!League.IsAmateurCup)
+		{
+			HighestSeasonAfterPostWarmup = std::max(HighestSeasonAfterPostWarmup, League.Season);
+			if (League.State == Game::Career::CareerLeagueState::RegularSeason)
+				ScheduledRegularSeasonFixtureCount += static_cast<std::size_t>(std::count_if(
+					League.Fixtures.begin(), League.Fixtures.end(), [](const Game::Career::CareerLeagueFixture& Fixture)
+					{
+						return Fixture.State == Game::Career::CareerFixtureState::Scheduled;
+					}));
+		}
+	ASSERT_TRUE(HighestSeasonAfterPostWarmup > HighestSeasonBeforePostWarmup);
+	ASSERT_TRUE(ScheduledRegularSeasonFixtureCount > 0);
+	std::size_t AmateurLeagueCountAfterPostWarmup = 0;
+	for (const auto& [LeagueId, PreviousSeason] : LeagueSeasonsBeforePostWarmup)
+	{
+		const auto League = std::find_if(careerData.Leagues.begin(), careerData.Leagues.end(),
+			[LeagueId](const Game::Career::CareerLeague& Candidate) { return Candidate.Id == LeagueId; });
+		ASSERT_TRUE(League != careerData.Leagues.end());
+		ASSERT_TRUE(League->Season > PreviousSeason);
+		if (League->Division == Game::Career::CareerLeagueDivision::Amateur)
+			++AmateurLeagueCountAfterPostWarmup;
+	}
+	ASSERT_EQ(static_cast<std::size_t>(6), AmateurLeagueCountAfterPostWarmup);
+	const auto AmateurCup = std::find_if(careerData.Leagues.begin(), careerData.Leagues.end(),
+		[](const Game::Career::CareerLeague& League) { return League.IsAmateurCup; });
+	ASSERT_TRUE(AmateurCup != careerData.Leagues.end());
+	ASSERT_TRUE(AmateurCup->Season > AmateurCupSeasonBeforePostWarmup);
 }
 
 TEST_CASE(Career_PlayerCanJoinAnAmateurLeagueAndRaceItsScheduledFixture)
@@ -664,7 +729,7 @@ TEST_CASE(Career_PlayerCanJoinAnAmateurLeagueAndRaceItsScheduledFixture)
 	ASSERT_EQ(AmateurLeagueId, careerData.PlayerLeagueId);
 	ASSERT_TRUE(careerProfile.MainFella.GUID.GUID != 0);
 	ASSERT_TRUE(careerData.Racers.Get(careerProfile.MainFella.GUID.GUID) == nullptr);
-	ASSERT_EQ(static_cast<std::size_t>(273), careerData.TargetAiPopulation);
+	ASSERT_EQ(static_cast<std::size_t>(254), careerData.TargetAiPopulation);
 
 	AmateurLeague = std::find_if(careerData.Leagues.begin(), careerData.Leagues.end(),
 		[AmateurLeagueId](const Game::Career::CareerLeague& League)
@@ -729,7 +794,7 @@ TEST_CASE(Career_PlayerCanJoinAnAmateurLeagueAndRaceItsScheduledFixture)
 	ASSERT_EQ(1u, PlayerStanding->Wins + PlayerStanding->Draws + PlayerStanding->Losses);
 }
 
-TEST_CASE(Career_FullAmateurLeagueOpensAnotherLobby)
+TEST_CASE(Career_AmateurFeederPyramidIsCappedAndKeepsOnePlayerLobby)
 {
 	srand(232);
 	Game::Career::CareerData careerData;
@@ -744,6 +809,46 @@ TEST_CASE(Career_FullAmateurLeagueOpensAnotherLobby)
 		});
 	ASSERT_TRUE(AmateurLeague != careerData.Leagues.end());
 	const std::uint64_t AmateurLeagueId = AmateurLeague->Id;
+	const auto Division4 = std::find_if(careerData.Leagues.begin(), careerData.Leagues.end(),
+		[](const Game::Career::CareerLeague& League)
+		{
+			return !League.IsAmateurCup && League.Division == Game::Career::CareerLeagueDivision::Division4;
+		});
+	ASSERT_TRUE(Division4 != careerData.Leagues.end());
+	ASSERT_EQ(Division4->Id, AmateurLeague->PromotionTargetLeagueId);
+	std::vector<const Game::Career::CareerLeague*> AmateurLeagues;
+	std::vector<std::uint64_t> MiddleFeederIds;
+	for (const Game::Career::CareerLeague& League : careerData.Leagues)
+		if (!League.IsAmateurCup && League.Division == Game::Career::CareerLeagueDivision::Amateur)
+		{
+			AmateurLeagues.push_back(&League);
+			if (League.PromotionTargetLeagueId == AmateurLeagueId)
+				MiddleFeederIds.push_back(League.Id);
+		}
+	ASSERT_EQ(static_cast<std::size_t>(7), AmateurLeagues.size());
+	ASSERT_EQ(static_cast<std::size_t>(2), MiddleFeederIds.size());
+	std::size_t BottomFeederCount = 0;
+	for (const Game::Career::CareerLeague& League : careerData.Leagues)
+		if (!League.IsAmateurCup && League.Division == Game::Career::CareerLeagueDivision::Amateur &&
+			(League.PromotionTargetLeagueId == MiddleFeederIds[0] ||
+				League.PromotionTargetLeagueId == MiddleFeederIds[1]))
+			++BottomFeederCount;
+	ASSERT_EQ(static_cast<std::size_t>(4), BottomFeederCount);
+	for (std::uint64_t MiddleFeederId : MiddleFeederIds)
+	{
+		const std::size_t BottomFeedersForLeague = static_cast<std::size_t>(std::count_if(
+			AmateurLeagues.begin(), AmateurLeagues.end(), [MiddleFeederId](const auto* League)
+			{
+				return League->PromotionTargetLeagueId == MiddleFeederId;
+			}));
+		ASSERT_EQ(static_cast<std::size_t>(2), BottomFeedersForLeague);
+	}
+	const auto OpenLobby = std::find_if(AmateurLeagues.begin(), AmateurLeagues.end(),
+		[](const auto* League) { return League->IsOpenLobby; });
+	ASSERT_TRUE(OpenLobby != AmateurLeagues.end());
+	ASSERT_EQ(static_cast<std::size_t>(19), (*OpenLobby)->Entrants.size());
+	ASSERT_TRUE((*OpenLobby)->PromotionTargetLeagueId == MiddleFeederIds[0] ||
+		(*OpenLobby)->PromotionTargetLeagueId == MiddleFeederIds[1]);
 
 	const auto DivisionLeague = std::find_if(careerData.Leagues.begin(), careerData.Leagues.end(),
 		[](const Game::Career::CareerLeague& League)
@@ -774,19 +879,114 @@ TEST_CASE(Career_FullAmateurLeagueOpensAnotherLobby)
 			++AmateurLeagueCount;
 			if (League.Id == AmateurLeagueId)
 				FilledLeague = &League;
-			else if (League.State == Game::Career::CareerLeagueState::Filling && League.Entrants.size() < 20)
+			else if (League.IsOpenLobby && League.State == Game::Career::CareerLeagueState::Filling)
 				OpenLeague = &League;
 		}
 
-	ASSERT_EQ(static_cast<std::size_t>(3), AmateurLeagueCount);
+	ASSERT_EQ(static_cast<std::size_t>(7), AmateurLeagueCount);
 	ASSERT_TRUE(FilledLeague != nullptr);
 	ASSERT_TRUE(FilledLeague->State == Game::Career::CareerLeagueState::RegularSeason);
 	ASSERT_EQ(static_cast<std::size_t>(20), FilledLeague->Entrants.size());
 	ASSERT_EQ(static_cast<std::size_t>(190), FilledLeague->Fixtures.size());
 	ASSERT_TRUE(OpenLeague != nullptr);
-	ASSERT_TRUE(OpenLeague->Entrants.empty());
+	ASSERT_EQ(static_cast<std::size_t>(19), OpenLeague->Entrants.size());
 	ASSERT_TRUE(OpenLeague->Name != FilledLeague->Name);
 	ASSERT_EQ(static_cast<std::size_t>(254), orchestrator.GetActiveRacerCount());
+}
+
+TEST_CASE(Career_CompletedLeaguesAndDailyCupAdvanceAndRestart)
+{
+	srand(2335);
+	Game::Career::CareerData careerData;
+	Game::Career::CareerProfile careerProfile;
+	careerProfile.MainFella.Name = "Lifecycle Racer";
+	Game::Career::CareerOrchestrator orchestrator(&careerData, &careerProfile);
+	orchestrator.Init();
+
+	const auto OpenLobby = std::find_if(careerData.Leagues.begin(), careerData.Leagues.end(),
+		[](const Game::Career::CareerLeague& League) { return League.IsOpenLobby; });
+	ASSERT_TRUE(OpenLobby != careerData.Leagues.end());
+	const std::uint64_t OpenLobbyId = OpenLobby->Id;
+	ASSERT_TRUE(orchestrator.JoinLeague(OpenLobbyId));
+
+	std::vector<std::pair<std::uint64_t, unsigned int>> PreviousSeasons;
+	for (Game::Career::CareerRacerState& State : careerData.RacerStates)
+	{
+		State.Cash = 1000;
+		State.Activity = Game::Career::CareerRacerActivity::Training;
+		State.ActionEndsAtRealMs = std::numeric_limits<std::uint64_t>::max();
+	}
+	for (Game::Career::CareerLeague& League : careerData.Leagues)
+	{
+		if (League.IsAmateurCup)
+			continue;
+		ASSERT_EQ(static_cast<std::size_t>(20), League.Entrants.size());
+		ASSERT_EQ(static_cast<std::size_t>(20), League.Standings.size());
+		PreviousSeasons.emplace_back(League.Id, League.Season);
+		League.State = Game::Career::CareerLeagueState::RegularSeason;
+		for (Game::Career::CareerLeagueFixture& Fixture : League.Fixtures)
+			Fixture.State = Game::Career::CareerFixtureState::Complete;
+		for (std::size_t Index = 0; Index < League.Standings.size(); ++Index)
+			League.Standings[Index].Points = static_cast<unsigned int>(League.Standings.size() - Index);
+	}
+	careerData.NextOpenRaceAtMs = std::numeric_limits<std::uint64_t>::max();
+	careerData.NextAmateurCupAtMs = std::numeric_limits<std::uint64_t>::max();
+
+	auto Cup = std::find_if(careerData.Leagues.begin(), careerData.Leagues.end(),
+		[](const Game::Career::CareerLeague& League) { return League.IsAmateurCup; });
+	ASSERT_TRUE(Cup != careerData.Leagues.end());
+	Cup->Season = 1;
+	Cup->State = Game::Career::CareerLeagueState::Playoffs;
+	for (const Game::Career::CareerLeague& League : careerData.Leagues)
+		if (!League.IsAmateurCup && League.Division == Game::Career::CareerLeagueDivision::Amateur)
+			for (Racer* Runner : League.Entrants)
+				if (Runner != careerData.PlayerLeagueRacer && Cup->Entrants.size() < 4)
+					Cup->Entrants.push_back(Runner);
+	std::vector<std::uint64_t> CupEntrantIds;
+	for (const Racer* Runner : Cup->Entrants)
+		CupEntrantIds.push_back(Runner->GUID.GUID);
+	Cup->Playoffs = SportRaceCore::GeneratePlayoffBracket(CupEntrantIds);
+	ASSERT_EQ(static_cast<std::size_t>(4), Cup->Entrants.size());
+
+	orchestrator.Update(1);
+
+	for (const Game::Career::CareerLeague& League : careerData.Leagues)
+		if (!League.IsAmateurCup)
+		{
+			ASSERT_TRUE(League.State == Game::Career::CareerLeagueState::Playoffs);
+			ASSERT_TRUE(!League.Playoffs.IsComplete);
+		}
+	ASSERT_TRUE(Cup->State == Game::Career::CareerLeagueState::Playoffs);
+	ASSERT_TRUE(!Cup->Playoffs.IsComplete);
+
+	for (Game::Career::CareerLeague& League : careerData.Leagues)
+		if (League.State == Game::Career::CareerLeagueState::Playoffs)
+			ASSERT_TRUE(CompletePlayoffBracketByAdvancingFirstSeeds(League.Playoffs));
+	careerData.NextAmateurCupAtMs = 0;
+
+	orchestrator.Update(1);
+
+	for (const auto& [LeagueId, PreviousSeason] : PreviousSeasons)
+	{
+		const auto League = std::find_if(careerData.Leagues.begin(), careerData.Leagues.end(),
+			[LeagueId](const Game::Career::CareerLeague& Candidate) { return Candidate.Id == LeagueId; });
+		ASSERT_TRUE(League != careerData.Leagues.end());
+		ASSERT_EQ(PreviousSeason + 1, League->Season);
+		ASSERT_TRUE(League->State == Game::Career::CareerLeagueState::RegularSeason);
+		ASSERT_EQ(static_cast<std::size_t>(20), League->Entrants.size());
+		ASSERT_EQ(static_cast<std::size_t>(190), League->Fixtures.size());
+		ASSERT_EQ(static_cast<std::size_t>(20), League->Standings.size());
+		ASSERT_TRUE(std::all_of(League->Fixtures.begin(), League->Fixtures.end(),
+			[](const Game::Career::CareerLeagueFixture& Fixture)
+			{
+				return Fixture.State == Game::Career::CareerFixtureState::Scheduled;
+			}));
+	}
+	ASSERT_EQ(static_cast<unsigned int>(2), Cup->Season);
+	ASSERT_TRUE(Cup->State == Game::Career::CareerLeagueState::Playoffs);
+	ASSERT_TRUE(!Cup->Playoffs.IsComplete);
+	ASSERT_EQ(Cup->Entrants.size(), Cup->Playoffs.EntrantCount);
+	ASSERT_TRUE(careerData.NextAmateurCupAtMs > careerData.WorldClock.NowMs());
 }
 
 TEST_CASE(Career_WorldSimulationAdvancesSeveralIndependentBackgroundRaces)
@@ -1248,6 +1448,41 @@ TEST_CASE(Career_CompletedSeasonsPromoteRelegateAndRegenerateFixtures)
 	for (Game::Career::CareerRacerState& State : careerData.RacerStates)
 		if (State.Runner == AmateurPromotedA || State.Runner == AmateurPromotedB)
 			State.HasRacingLicense = true;
+	std::vector<std::uint64_t> MiddleFeederIds;
+	for (const Game::Career::CareerLeague& League : careerData.Leagues)
+		if (!League.IsAmateurCup && League.Division == Game::Career::CareerLeagueDivision::Amateur &&
+			League.PromotionTargetLeagueId == Amateur->Id)
+			MiddleFeederIds.push_back(League.Id);
+	ASSERT_EQ(static_cast<std::size_t>(2), MiddleFeederIds.size());
+	std::vector<std::pair<std::uint64_t, Racer*>> MiddlePromotions;
+	std::vector<std::pair<std::uint64_t, Racer*>> TopRelegations;
+	std::vector<std::pair<std::uint64_t, Racer*>> BasePromotions;
+	std::vector<std::pair<std::uint64_t, Racer*>> MiddleRelegations;
+	for (std::size_t MiddleIndex = 0; MiddleIndex < MiddleFeederIds.size(); ++MiddleIndex)
+	{
+		const auto Middle = std::find_if(careerData.Leagues.begin(), careerData.Leagues.end(),
+			[MiddleFeederId = MiddleFeederIds[MiddleIndex]](const Game::Career::CareerLeague& League)
+			{
+				return League.Id == MiddleFeederId;
+			});
+		ASSERT_TRUE(Middle != careerData.Leagues.end());
+		MiddlePromotions.emplace_back(Amateur->Id, Middle->Standings[0].Runner);
+		TopRelegations.emplace_back(Middle->Id,
+			Amateur->Standings[Amateur->Standings.size() - 1 - MiddleIndex].Runner);
+		std::size_t ChildIndex = 0;
+		for (const Game::Career::CareerLeague& Child : careerData.Leagues)
+			if (!Child.IsAmateurCup && Child.Division == Game::Career::CareerLeagueDivision::Amateur &&
+				Child.PromotionTargetLeagueId == Middle->Id &&
+				Child.State == Game::Career::CareerLeagueState::Complete)
+			{
+				BasePromotions.emplace_back(Middle->Id, Child.Standings[0].Runner);
+				MiddleRelegations.emplace_back(Child.Id,
+					Middle->Standings[Middle->Standings.size() - 1 - ChildIndex].Runner);
+				++ChildIndex;
+			}
+	}
+	ASSERT_EQ(static_cast<std::size_t>(3), BasePromotions.size());
+	ASSERT_EQ(static_cast<std::size_t>(3), MiddleRelegations.size());
 	careerData.NextOpenRaceAtMs = std::numeric_limits<std::uint64_t>::max();
 	careerData.NextAmateurCupAtMs = std::numeric_limits<std::uint64_t>::max();
 
@@ -1293,6 +1528,34 @@ TEST_CASE(Career_CompletedSeasonsPromoteRelegateAndRegenerateFixtures)
 				std::find(League.Entrants.begin(), League.Entrants.end(), Division4Relegated) != League.Entrants.end();
 		});
 	ASSERT_TRUE(RelegatedIntoAmateur);
+	for (const auto& [TargetLeagueId, Runner] : MiddlePromotions)
+	{
+		const auto TargetLeague = FindLeagueById(TargetLeagueId);
+		ASSERT_TRUE(TargetLeague != careerData.Leagues.end());
+		ASSERT_TRUE(std::find(TargetLeague->Entrants.begin(), TargetLeague->Entrants.end(), Runner) !=
+			TargetLeague->Entrants.end());
+	}
+	for (const auto& [TargetLeagueId, Runner] : TopRelegations)
+	{
+		const auto TargetLeague = FindLeagueById(TargetLeagueId);
+		ASSERT_TRUE(TargetLeague != careerData.Leagues.end());
+		ASSERT_TRUE(std::find(TargetLeague->Entrants.begin(), TargetLeague->Entrants.end(), Runner) !=
+			TargetLeague->Entrants.end());
+	}
+	for (const auto& [TargetLeagueId, Runner] : BasePromotions)
+	{
+		const auto TargetLeague = FindLeagueById(TargetLeagueId);
+		ASSERT_TRUE(TargetLeague != careerData.Leagues.end());
+		ASSERT_TRUE(std::find(TargetLeague->Entrants.begin(), TargetLeague->Entrants.end(), Runner) !=
+			TargetLeague->Entrants.end());
+	}
+	for (const auto& [TargetLeagueId, Runner] : MiddleRelegations)
+	{
+		const auto TargetLeague = FindLeagueById(TargetLeagueId);
+		ASSERT_TRUE(TargetLeague != careerData.Leagues.end());
+		ASSERT_TRUE(std::find(TargetLeague->Entrants.begin(), TargetLeague->Entrants.end(), Runner) !=
+			TargetLeague->Entrants.end());
+	}
 }
 
 TEST_CASE(Career_UnderfilledDivision4PromotesEnoughLicensedAmateursToStart)

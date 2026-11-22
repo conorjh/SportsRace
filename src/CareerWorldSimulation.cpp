@@ -39,7 +39,7 @@ namespace
 	constexpr std::uint64_t CareerAmateurCupId = std::uint64_t{ 1 } << 63;
 	constexpr std::size_t CareerMinimumRaceTrackCount = 5;
 	constexpr std::size_t CareerRacersPerRaceTrack = 20;
-	constexpr std::size_t CareerAmateurLeagueCount = 1;
+	constexpr std::size_t CareerAmateurLeagueCount = 7;
 	constexpr std::size_t CareerFixturesPerWorldRace = 3;
 	constexpr std::size_t CareerWorldRaceEntrantCount = 6;
 	constexpr std::size_t CareerWorldRaceHistoryLimit = 1024;
@@ -77,10 +77,10 @@ namespace
 		static_cast<unsigned int>(Game::Race::TrackLength::Standard1000m)
 	};
 
-	constexpr std::array<const char*, 8> AmateurLeagueNames{
+	constexpr std::array<const char*, CareerAmateurLeagueCount> AmateurLeagueNames{
 		"Yorkshire Amateur League", "Lancashire Amateur League", "Northumbria Club League",
 		"Merseyside Amateur League", "West Midlands Amateur League", "East Anglia Amateur League",
-		"South Coast Amateur League", "Welsh Borders Amateur League"
+		"South Coast Amateur League"
 	};
 
 	constexpr std::size_t InvalidPlotIndex = std::numeric_limits<std::size_t>::max();
@@ -439,6 +439,7 @@ namespace
 			League.State = CareerLeagueState::Filling;
 			return;
 		}
+		League.IsOpenLobby = false;
 
 		std::vector<std::uint64_t> CompetitorIds;
 		CompetitorIds.reserve(League.Entrants.size());
@@ -494,12 +495,14 @@ namespace
 }
 
 	void AddLeague(CareerData& Data, const std::string& Name, CareerLeagueDivision Division,
-		const std::vector<Racer*>& Entrants)
+		const std::vector<Racer*>& Entrants, std::uint64_t PromotionTargetLeagueId = 0, bool IsOpenLobby = false)
 	{
 		CareerLeague League;
 		League.Id = Data.NextLeagueId++;
 		League.Name = Name;
 		League.Division = Division;
+		League.PromotionTargetLeagueId = PromotionTargetLeagueId;
+		League.IsOpenLobby = IsOpenLobby;
 		League.Entrants = Entrants;
 		for (Racer* Runner : Entrants)
 		{
@@ -515,45 +518,6 @@ namespace
 			}
 		}
 		Data.Leagues.push_back(std::move(League));
-	}
-
-	std::string MakeNextAmateurLeagueName(CareerData& Data)
-	{
-		std::vector<std::string> UnusedNames;
-		for (const char* Name : AmateurLeagueNames)
-			if (std::none_of(Data.Leagues.begin(), Data.Leagues.end(), [Name](const CareerLeague& League)
-				{
-					return League.Name == Name;
-				}))
-				UnusedNames.emplace_back(Name);
-		if (!UnusedNames.empty())
-		{
-			std::shuffle(UnusedNames.begin(), UnusedNames.end(), Data.WorldRandom);
-			return UnusedNames.front();
-		}
-
-		std::size_t AmateurLeagueNumber = 0;
-		std::string LeagueName;
-		do
-		{
-			LeagueName = "Amateur League " + std::to_string(++AmateurLeagueNumber);
-		} while (std::any_of(Data.Leagues.begin(), Data.Leagues.end(), [&LeagueName](const CareerLeague& League)
-			{
-				return League.Name == LeagueName;
-			}));
-		return LeagueName;
-	}
-
-	void EnsureOpenAmateurLeague(CareerData& Data)
-	{
-		const bool HasOpenLeague = std::any_of(Data.Leagues.begin(), Data.Leagues.end(),
-			[](const CareerLeague& League)
-			{
-				return !League.IsAmateurCup && League.Division == CareerLeagueDivision::Amateur &&
-					League.State == CareerLeagueState::Filling && League.Entrants.size() < CareerLeagueSize;
-			});
-		if (!HasOpenLeague)
-			AddLeague(Data, MakeNextAmateurLeagueName(Data), CareerLeagueDivision::Amateur, {});
 	}
 
 	bool IsRunnerInRace(const CareerData& Data, std::uint64_t LeagueId, std::size_t RoundIndex,
@@ -1027,7 +991,9 @@ namespace
 		{
 			if (League.IsAmateurCup || League.State != CareerLeagueState::Filling)
 				continue;
-			while (League.Entrants.size() < CareerLeagueSize)
+			const std::size_t EntrantLimit = League.IsOpenLobby && Data.PlayerLeagueRacer == nullptr
+				? CareerLeagueSize - 1 : CareerLeagueSize;
+			while (League.Entrants.size() < EntrantLimit)
 			{
 				CareerRacerState* Candidate = nullptr;
 				for (CareerRacerState& State : Data.RacerStates)
@@ -1049,7 +1015,6 @@ namespace
 			if (League.Entrants.size() == CareerLeagueSize)
 				StartLeagueSeason(Data, League);
 		}
-		EnsureOpenAmateurLeague(Data);
 	}
 
 	void UpdateLicenseStatus(CareerData& Data)
@@ -1641,9 +1606,7 @@ namespace
 				HasCompletedSeason = true;
 				continue;
 			}
-			if (League.State == CareerLeagueState::Filling &&
-				(League.Division == CareerLeagueDivision::Amateur ||
-					League.Division == CareerLeagueDivision::Division4))
+			if (League.State == CareerLeagueState::Filling)
 				continue;
 			return false;
 		}
@@ -1663,6 +1626,88 @@ namespace
 		auto& Destination = Members[DestinationIndex];
 		if (std::find(Destination.begin(), Destination.end(), Runner) == Destination.end())
 			Destination.push_back(Runner);
+	}
+
+	void ProcessAmateurFeederPromotions(CareerData& Data, std::vector<std::vector<Racer*>>& Members)
+	{
+		for (std::size_t TargetIndex = 0; TargetIndex < Data.Leagues.size(); ++TargetIndex)
+		{
+			CareerLeague& Target = Data.Leagues[TargetIndex];
+			if (Target.IsAmateurCup || (Target.State != CareerLeagueState::Complete &&
+				Target.State != CareerLeagueState::Filling))
+				continue;
+
+			std::vector<std::pair<std::size_t, std::vector<Racer*>>> FeederPromotions;
+			std::size_t IncomingCount = 0;
+			std::size_t RemainingTargetCapacity = Members[TargetIndex].size() < CareerLeagueSize
+				? CareerLeagueSize - Members[TargetIndex].size() : 0;
+			for (std::size_t FeederIndex = 0; FeederIndex < Data.Leagues.size(); ++FeederIndex)
+			{
+				CareerLeague& Feeder = Data.Leagues[FeederIndex];
+				if (FeederIndex == TargetIndex || Feeder.IsAmateurCup ||
+					Feeder.Division != CareerLeagueDivision::Amateur ||
+					Feeder.PromotionTargetLeagueId != Target.Id || Feeder.State != CareerLeagueState::Complete)
+					continue;
+
+				std::size_t PromotionLimit = Target.Division == CareerLeagueDivision::Division4 ? 2 : 1;
+				if (Target.Division == CareerLeagueDivision::Division4)
+					PromotionLimit = std::max(PromotionLimit, RemainingTargetCapacity);
+				if (Target.State == CareerLeagueState::Filling)
+					PromotionLimit = std::min(PromotionLimit, RemainingTargetCapacity);
+
+				std::vector<Racer*> PromotedRunners;
+				for (CareerLeagueStanding* Standing : GetSortedActiveStandings(Data, Feeder))
+				{
+					Racer* Runner = Standing == nullptr ? nullptr : Standing->Runner;
+					if (Runner == nullptr || std::find(Members[FeederIndex].begin(), Members[FeederIndex].end(),
+						Runner) == Members[FeederIndex].end())
+						continue;
+					if (Target.Division == CareerLeagueDivision::Division4)
+					{
+						const CareerRacerState* State = FindRacerState(Data, Runner);
+						const bool HasLicense = Runner == Data.PlayerLeagueRacer ? Data.Licenses[0] :
+							State != nullptr && State->HasRacingLicense;
+						if (!HasLicense)
+							continue;
+					}
+					PromotedRunners.push_back(Runner);
+					if (PromotedRunners.size() == PromotionLimit)
+						break;
+				}
+
+				if (Target.State == CareerLeagueState::Filling)
+					RemainingTargetCapacity -= PromotedRunners.size();
+				IncomingCount += PromotedRunners.size();
+				FeederPromotions.emplace_back(FeederIndex, std::move(PromotedRunners));
+			}
+
+			if (IncomingCount == 0)
+				continue;
+
+			std::size_t RelegationCount = 0;
+			if (Target.State == CareerLeagueState::Complete &&
+				Members[TargetIndex].size() + IncomingCount > CareerLeagueSize)
+				RelegationCount = std::min(IncomingCount,
+					Members[TargetIndex].size() + IncomingCount - CareerLeagueSize);
+			std::vector<Racer*> RelegatedRunners;
+			const std::vector<CareerLeagueStanding*> TargetStandings = GetSortedActiveStandings(Data, Target);
+			for (auto Standing = TargetStandings.rbegin(); Standing != TargetStandings.rend() &&
+				RelegatedRunners.size() < RelegationCount; ++Standing)
+				if (*Standing != nullptr && (*Standing)->Runner != nullptr &&
+					std::find(Members[TargetIndex].begin(), Members[TargetIndex].end(), (*Standing)->Runner) !=
+					Members[TargetIndex].end())
+					RelegatedRunners.push_back((*Standing)->Runner);
+
+			std::vector<std::size_t> PromotionFeederIndices;
+			for (const auto& [FeederIndex, PromotedRunners] : FeederPromotions)
+				for (Racer* Runner : PromotedRunners)
+				{
+					MoveMember(Members, FeederIndex, TargetIndex, Runner);
+					PromotionFeederIndices.push_back(FeederIndex);
+				}
+			for (std::size_t Index = 0; Index < RelegatedRunners.size(); ++Index)
+				MoveMember(Members, TargetIndex, PromotionFeederIndices[Index], RelegatedRunners[Index]);
+		}
 	}
 
 	void AdvanceCareerSeasons(CareerData& Data)
@@ -1691,98 +1736,55 @@ namespace
 		const std::size_t Division4Index = IndexOf(Division4);
 		if (Division1 != nullptr && Division2 != nullptr && Division3 != nullptr && Division4 != nullptr)
 		{
-			for (Racer* Runner : GetLeagueRunnersByRank(Data, *Division1, false, 2))
-				MoveMember(Members, Division1Index, Division2Index, Runner);
-			for (Racer* Runner : GetLeagueRunnersByRank(Data, *Division2, true, 2))
-				MoveMember(Members, Division2Index, Division1Index, Runner);
-			for (Racer* Runner : GetLeagueRunnersByRank(Data, *Division2, false, 2))
-				MoveMember(Members, Division2Index, Division3Index, Runner);
-			for (Racer* Runner : GetLeagueRunnersByRank(Data, *Division3, true, 2))
-				MoveMember(Members, Division3Index, Division2Index, Runner);
-			std::vector<Racer*> Division3Relegations = GetLeagueRunnersByRank(Data, *Division3, false, 2);
-			if (Division4->State == CareerLeagueState::Filling)
+			const bool AllDivisionsComplete = Division1->State == CareerLeagueState::Complete &&
+				Division2->State == CareerLeagueState::Complete &&
+				Division3->State == CareerLeagueState::Complete &&
+				Division4->State == CareerLeagueState::Complete;
+
+			if (AllDivisionsComplete)
 			{
-				const std::size_t Vacancies = Members[Division4Index].size() < CareerLeagueSize
-					? CareerLeagueSize - Members[Division4Index].size() : 0;
-				if (Division3Relegations.size() > Vacancies)
-					Division3Relegations.resize(Vacancies);
+				for (Racer* Runner : GetLeagueRunnersByRank(Data, *Division1, false, 2))
+					MoveMember(Members, Division1Index, Division2Index, Runner);
+				for (Racer* Runner : GetLeagueRunnersByRank(Data, *Division2, true, 2))
+					MoveMember(Members, Division2Index, Division1Index, Runner);
+				for (Racer* Runner : GetLeagueRunnersByRank(Data, *Division2, false, 2))
+					MoveMember(Members, Division2Index, Division3Index, Runner);
+				for (Racer* Runner : GetLeagueRunnersByRank(Data, *Division3, true, 2))
+					MoveMember(Members, Division3Index, Division2Index, Runner);
+				for (Racer* Runner : GetLeagueRunnersByRank(Data, *Division3, false, 2))
+					MoveMember(Members, Division3Index, Division4Index, Runner);
+				for (Racer* Runner : GetLeagueRunnersByRank(Data, *Division4, true, 2))
+					MoveMember(Members, Division4Index, Division3Index, Runner);
 			}
-			for (Racer* Runner : Division3Relegations)
-				MoveMember(Members, Division3Index, Division4Index, Runner);
-			for (Racer* Runner : GetLeagueRunnersByRank(Data, *Division4, true, 2))
-				MoveMember(Members, Division4Index, Division3Index, Runner);
-
-			std::vector<CareerLeagueStanding*> LicensedAmateurRunners;
-			for (CareerLeague& League : Data.Leagues)
-				if (!League.IsAmateurCup && League.Division == CareerLeagueDivision::Amateur)
-					for (CareerLeagueStanding* Standing : GetSortedActiveStandings(Data, League))
-					{
-						const CareerRacerState* State = FindRacerState(Data, Standing->Runner);
-						const bool HasLicense = Standing->Runner == Data.PlayerLeagueRacer
-							? Data.Licenses[0] : State != nullptr && State->HasRacingLicense;
-						if (HasLicense)
-							LicensedAmateurRunners.push_back(Standing);
-					}
-			std::stable_sort(LicensedAmateurRunners.begin(), LicensedAmateurRunners.end(),
-				[](const CareerLeagueStanding* Left, const CareerLeagueStanding* Right)
-				{
-					if (Left->Points != Right->Points)
-						return Left->Points > Right->Points;
-					return Left->Runner->CareerRecord.PositionPoints > Right->Runner->CareerRecord.PositionPoints;
-				});
-			if (Division4 != nullptr)
+			else
 			{
-				const std::size_t StandardPromotionCount = Division4->State == CareerLeagueState::Complete
-					? std::min<std::size_t>(2, LicensedAmateurRunners.size()) : 0;
-				const std::size_t Vacancies = Members[Division4Index].size() < CareerLeagueSize
-					? CareerLeagueSize - Members[Division4Index].size() : 0;
-				const std::size_t PromotionCount = std::min(LicensedAmateurRunners.size(),
-					std::max(StandardPromotionCount, Vacancies));
-				for (std::size_t Index = 0; Index < PromotionCount; ++Index)
+				const bool Division2WasFull = Members[Division2Index].size() == CareerLeagueSize;
+				const bool Division3WasFull = Members[Division3Index].size() == CareerLeagueSize;
+				const bool Division4WasFull = Members[Division4Index].size() == CareerLeagueSize;
+				auto PromoteIntoVacancies = [&Data, &Members](CareerLeague& Source,
+					std::size_t SourceIndex, std::size_t DestinationIndex, bool SourceWasFull)
 				{
-					const std::size_t SourceIndex = [&Data, &Members, &LicensedAmateurRunners, Index]()
-					{
-						for (std::size_t LeagueIndex = 0; LeagueIndex < Data.Leagues.size(); ++LeagueIndex)
-							if (std::find(Members[LeagueIndex].begin(), Members[LeagueIndex].end(),
-								LicensedAmateurRunners[Index]->Runner) != Members[LeagueIndex].end())
-								return LeagueIndex;
-						return InvalidPlotIndex;
-					}();
-					MoveMember(Members, SourceIndex, Division4Index, LicensedAmateurRunners[Index]->Runner);
-				}
-			}
+					if (Source.State != CareerLeagueState::Complete || !SourceWasFull)
+						return;
+					const std::size_t Vacancies = Members[DestinationIndex].size() < CareerLeagueSize
+						? CareerLeagueSize - Members[DestinationIndex].size() : 0;
+					for (Racer* Runner : GetLeagueRunnersByRank(Data, Source, true, Vacancies))
+						MoveMember(Members, SourceIndex, DestinationIndex, Runner);
+				};
+				PromoteIntoVacancies(*Division2, Division2Index, Division1Index, Division2WasFull);
+				PromoteIntoVacancies(*Division3, Division3Index, Division2Index, Division3WasFull);
+				PromoteIntoVacancies(*Division4, Division4Index, Division3Index, Division4WasFull);
 
-			if (Division4 != nullptr)
-			{
-				const std::size_t RelegationCount = Division4->State == CareerLeagueState::Complete &&
-					Members[Division4Index].size() > CareerLeagueSize
-					? Members[Division4Index].size() - CareerLeagueSize : 0;
-				for (Racer* Runner : GetLeagueRunnersByRank(Data, *Division4, false, RelegationCount))
+				if (!Division4WasFull && Division3->State == CareerLeagueState::Complete)
 				{
-					std::size_t AmateurDestination = InvalidPlotIndex;
-					for (std::size_t LeagueIndex = 0; LeagueIndex < Data.Leagues.size(); ++LeagueIndex)
-						if (!Data.Leagues[LeagueIndex].IsAmateurCup &&
-							Data.Leagues[LeagueIndex].Division == CareerLeagueDivision::Amateur &&
-							Members[LeagueIndex].size() < CareerLeagueSize &&
-							(AmateurDestination == InvalidPlotIndex ||
-								Members[LeagueIndex].size() < Members[AmateurDestination].size()))
-							AmateurDestination = LeagueIndex;
-
-					if (AmateurDestination == InvalidPlotIndex)
-					{
-						CareerLeague NewLeague;
-						NewLeague.Id = Data.NextLeagueId++;
-						NewLeague.Name = MakeNextAmateurLeagueName(Data);
-						NewLeague.Division = CareerLeagueDivision::Amateur;
-						Data.Leagues.push_back(std::move(NewLeague));
-						Members.emplace_back();
-						AmateurDestination = Members.size() - 1;
-					}
-
-					MoveMember(Members, Division4Index, AmateurDestination, Runner);
+					const std::size_t Division4Vacancies = Members[Division4Index].size() < CareerLeagueSize
+						? CareerLeagueSize - Members[Division4Index].size() : 0;
+					for (Racer* Runner : GetLeagueRunnersByRank(Data, *Division3, false, Division4Vacancies))
+						MoveMember(Members, Division3Index, Division4Index, Runner);
 				}
 			}
 		}
+		ProcessAmateurFeederPromotions(Data, Members);
 
 		Data.PlayerLeagueId = 0;
 		for (CareerRacerState& State : Data.RacerStates)
@@ -2021,6 +2023,8 @@ void Game::Career::CareerOrchestrator::Init()
 		});
 	Data->Leagues.clear();
 	Data->NextLeagueId = 1;
+	std::array<std::uint64_t, 4> DivisionLeagueIds{};
+	std::size_t DivisionIndex = 0;
 	std::size_t EntrantOffset = 0;
 	for (const auto& Division : std::array<std::pair<CareerLeagueDivision, const char*>, 4>{{
 		{ CareerLeagueDivision::Division1, "Division 1" },
@@ -2035,29 +2039,40 @@ void Game::Career::CareerOrchestrator::Init()
 		std::vector<Race::Racer*> Entrants(ActiveRoster.begin() + EntrantOffset,
 			ActiveRoster.begin() + EntrantOffset + EntrantCount);
 		AddLeague(*Data, Division.second, Division.first, Entrants);
+		DivisionLeagueIds[DivisionIndex++] = Data->Leagues.back().Id;
 		EntrantOffset += EntrantCount;
 	}
+	for (std::size_t Index = 1; Index < DivisionLeagueIds.size(); ++Index)
+		if (CareerLeague* League = FindLeague(*Data, DivisionLeagueIds[Index]))
+			League->PromotionTargetLeagueId = DivisionLeagueIds[Index - 1];
 
 	std::vector<const char*> LeagueNames(AmateurLeagueNames.begin(), AmateurLeagueNames.end());
 	std::shuffle(LeagueNames.begin(), LeagueNames.end(), Data->WorldRandom);
 	std::vector<Race::Racer*> AmateurRoster(ActiveRoster.begin() + EntrantOffset, ActiveRoster.end());
 	std::shuffle(AmateurRoster.begin(), AmateurRoster.end(), Data->WorldRandom);
+	std::vector<std::uint64_t> AmateurLeagueIds;
+	AmateurLeagueIds.reserve(CareerAmateurLeagueCount);
 	std::size_t AmateurOffset = 0;
 	for (std::size_t LeagueIndex = 0; LeagueIndex < CareerAmateurLeagueCount; ++LeagueIndex)
 	{
+		const bool IsOpenLobby = LeagueIndex == CareerAmateurLeagueCount - 1;
+		const std::size_t EntrantLimit = CareerLeagueSize - (IsOpenLobby ? 1 : 0);
 		const std::size_t RemainingEntrants = AmateurOffset < AmateurRoster.size()
 			? AmateurRoster.size() - AmateurOffset : 0;
-		const std::size_t EntrantCount = std::min(CareerLeagueSize, RemainingEntrants);
+		const std::size_t EntrantCount = std::min(EntrantLimit, RemainingEntrants);
 		std::vector<Race::Racer*> Entrants(AmateurRoster.begin() + AmateurOffset,
 			AmateurRoster.begin() + AmateurOffset + EntrantCount);
-		AddLeague(*Data, LeagueNames[LeagueIndex], CareerLeagueDivision::Amateur, Entrants);
+		const std::uint64_t PromotionTargetLeagueId = LeagueIndex == 0 ? DivisionLeagueIds[3] :
+			LeagueIndex < 3 ? AmateurLeagueIds[0] : AmateurLeagueIds[1 + (LeagueIndex - 3) / 2];
+		AddLeague(*Data, LeagueNames[LeagueIndex], CareerLeagueDivision::Amateur, Entrants,
+			PromotionTargetLeagueId, IsOpenLobby);
+		AmateurLeagueIds.push_back(Data->Leagues.back().Id);
 		AmateurOffset += EntrantCount;
 	}
 
 	for (CareerLeague& League : Data->Leagues)
 		if (League.Entrants.size() == CareerLeagueSize)
 			StartLeagueSeason(*Data, League);
-	EnsureOpenAmateurLeague(*Data);
 	CareerLeague AmateurCup;
 	AmateurCup.Id = CareerAmateurCupId;
 	AmateurCup.Name = "Amateur Cup";
@@ -2277,6 +2292,7 @@ bool Game::Career::CareerOrchestrator::JoinLeague(std::uint64_t LeagueId)
 	Profile->MainFella.GUID.GUID = PlayerId;
 	Data->PlayerLeagueRacer = &Profile->MainFella;
 	Data->PlayerLeagueId = League->Id;
+	League->IsOpenLobby = false;
 	League->Entrants.push_back(Data->PlayerLeagueRacer);
 
 	Race::RacerNameMaker NameMaker;

@@ -152,7 +152,9 @@ namespace Game
 			std::uint64_t Id = 0;
 			std::string Name;
 			CareerLeagueDivision Division = CareerLeagueDivision::Amateur;
+			std::uint64_t PromotionTargetLeagueId = 0;
 			bool IsAmateurCup = false;
+			bool IsOpenLobby = false;
 			CareerLeagueState State = CareerLeagueState::Filling;
 			unsigned int Season = 0;
 			std::vector<Race::Racer*> Entrants;
