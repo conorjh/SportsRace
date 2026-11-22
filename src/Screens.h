@@ -17,7 +17,7 @@ namespace Game
 		{
 			Null, MainMenu, RaceScreen, RacerScreen, CareerHub, WorldMapScreen, BookiesScreen, GymScreen,
 			LicenseOfficeScreen, BreedingFarmScreen, RaceTrackScreen, StableScreen, RankingScreen,
-			NodeViewScreen, RacerDBScreen, OptionsScreen, SlotMachineScreen, RouletteScreen,
+			NodeViewScreen, PostRaceScreen, RacerDBScreen, OptionsScreen, SlotMachineScreen, RouletteScreen,
 			LeagueBrowserScreen
 		};
 		

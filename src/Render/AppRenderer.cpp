@@ -12,6 +12,7 @@ Game::App::Render::AppRenderer::AppRenderer(Game::App::AppData* Data, Screens::A
 	MainMenuRen(Data->RenderContext),
 	InRaceRen(Data->RenderContext),
 	NodeViewRen(Data->RenderContext),
+	PostRaceRen(Data->RenderContext),
 	CareerHubRen(Data->RenderContext),
 	WorldMapRen(Data->RenderContext),
 	BuildingRen(Data->RenderContext),
@@ -52,6 +53,12 @@ unsigned int Game::App::Render::AppRenderer::Render()
 		NodeViewScreen* NodeView_Screen = reinterpret_cast<NodeViewScreen*>(StateMachine->Top());
 		NodeViewRen.Screen = NodeView_Screen;
 		return NodeViewRen.Render();
+	}
+
+	case AppScreenType::PostRaceScreen:
+	{
+		PostRaceRen.Screen = static_cast<PostRaceScreen*>(StateMachine->Top());
+		return PostRaceRen.Render();
 	}
 
 	case AppScreenType::MainMenu:

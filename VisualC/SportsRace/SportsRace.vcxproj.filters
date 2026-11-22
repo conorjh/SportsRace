@@ -45,6 +45,9 @@
     <ClCompile Include="..\..\src\Screens\RaceScreen.cpp">
       <Filter>Screens</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\Screens\PostRaceScreen.cpp">
+      <Filter>Screens</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\Screens\NodeViewScreen.cpp">
       <Filter>Screens</Filter>
     </ClCompile>
@@ -96,6 +99,9 @@
       <Filter>Screens</Filter>
     </ClInclude> <ClInclude Include="..\..\src\Screens\WorldMapScreen.h"><Filter>Screens</Filter></ClInclude> <ClInclude Include="..\..\src\Screens\BuildingScreen.h"><Filter>Screens</Filter></ClInclude> <ClInclude Include="..\..\src\Screens\BookiesScreen.h"><Filter>Screens</Filter></ClInclude> <ClInclude Include="..\..\src\Screens\GymScreen.h"><Filter>Screens</Filter></ClInclude> <ClInclude Include="..\..\src\Screens\LicenseOfficeScreen.h"><Filter>Screens</Filter></ClInclude> <ClInclude Include="..\..\src\Screens\BreedingFarmScreen.h"><Filter>Screens</Filter></ClInclude> <ClInclude Include="..\..\src\Screens\RaceTrackScreen.h"><Filter>Screens</Filter></ClInclude> <ClInclude Include="..\..\src\Screens\StableScreen.h"><Filter>Screens</Filter></ClInclude>
     <ClInclude Include="..\..\src\Screens\RaceScreen.h">
+      <Filter>Screens</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Screens\PostRaceScreen.h">
       <Filter>Screens</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Screens\NodeViewScreen.h">

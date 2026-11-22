@@ -6,6 +6,7 @@
 #include "..\Screens\MainMenu.h"
 #include "..\Screens\RaceScreen.h"
 #include "..\Screens\NodeViewScreen.h"
+#include "..\Screens\PostRaceScreen.h"
 #include "..\Screens\CareerHub.h"
 #include "..\Screens\RacerScreen.h"
 #include "..\Screens\RankingScreen.h"
@@ -28,6 +29,7 @@ namespace Game
 				Game::Render::MainMenuRenderer MainMenuRen;
 				Game::Render::RaceScreenRenderer InRaceRen;
 				Game::Render::NodeViewRenderer NodeViewRen;
+				Game::Render::PostRaceRenderer PostRaceRen;
 				Game::Render::CareerHubRenderer CareerHubRen;
 				Game::Render::WorldMapRenderer WorldMapRen;
 				Game::Render::BuildingScreenRenderer BuildingRen;

@@ -5,7 +5,10 @@
 #include "..\Race.h"
 #include "..\RaceState.h"
 #include "..\Career.h"
+#include "PostRaceScreen.h"
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace Game
 {
@@ -19,11 +22,16 @@ namespace Game
 		class RaceScreen : public AppScreen
 		{
 			unsigned int LastFrameEnd;
-			bool ShowNodeViewOnComplete = false;
-			bool NodeViewShown = false;
+			bool ShowPostRaceOnComplete = false;
+			bool PostRaceShown = false;
 			bool PlayerRacerSupplied = false;
 			bool PlayerRaceResultSaved = false;
 			bool IsWorldRaceViewer = false;
+			std::vector<RacerProgressSnapshot> PreRaceProgress;
+			std::string RaceEventName;
+
+			void CapturePreRaceProgress();
+
 		public:
 			Race::RacerGUID PlayerGUID;
 			RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer);					//InRaceStateInitType::Training

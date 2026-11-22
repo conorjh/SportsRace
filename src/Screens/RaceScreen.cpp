@@ -1,8 +1,8 @@
 #include "RaceScreen.h"
-#include "NodeViewScreen.h"
 #include "..\Race.h"
 #include "..\App\App.h"
 #include "spdlog/spdlog.h"
+#include <algorithm>
 #include <cmath>
 #include <string>
 #include <utility>
@@ -140,7 +140,9 @@ Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppI
 	RaceSM(std::make_shared<Race::RaceStateMachine>(std::move(RaceToRun)))
 {
 	Type = AppScreenType::RaceScreen;
-	ShowNodeViewOnComplete = true;
+	ShowPostRaceOnComplete = true;
+	RaceEventName = "Exhibition race";
+	CapturePreRaceProgress();
 	LastFrameEnd = SDL_GetTicks();
 }
 
@@ -152,7 +154,11 @@ Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppI
 	LastFrameEnd = SDL_GetTicks();
 	PlayerGUID = PlayerRacer;
 	PlayerRacerSupplied = true;
-	ShowNodeViewOnComplete = true;
+	ShowPostRaceOnComplete = true;
+	RaceEventName = Data.Career != nullptr && Data.Career->PendingPlayerLeagueRace.Active &&
+		!Data.Career->PendingPlayerLeagueRace.EventName.empty()
+		? Data.Career->PendingPlayerLeagueRace.EventName : "Career race";
+	CapturePreRaceProgress();
 }
 
 Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO,
@@ -162,13 +168,39 @@ Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppI
 {
 	Type = AppScreenType::RaceScreen;
 	LastFrameEnd = SDL_GetTicks();
-	ShowNodeViewOnComplete = true;
+	ShowPostRaceOnComplete = true;
 	IsWorldRaceViewer = true;
+	RaceEventName = WorldRace->EventName.empty() ? "Career world race" : WorldRace->EventName;
+	CapturePreRaceProgress();
 }
 
 Game::Screens::RaceScreen::~RaceScreen()
 {
 
+}
+
+void Game::Screens::RaceScreen::CapturePreRaceProgress()
+{
+	PreRaceProgress.clear();
+	for (Race::Racer* Runner : RaceSM->Data.ThisRace.GetEntrants())
+	{
+		if (Runner == nullptr)
+			continue;
+		RacerProgressSnapshot Snapshot;
+		Snapshot.Runner = Runner;
+		Snapshot.Xp = Runner->Skills.Xp;
+		Snapshot.Wins = Runner->CareerRecord.Wins;
+		Snapshot.Losses = Runner->CareerRecord.Losses;
+		Snapshot.RacesEntered = Runner->CareerRecord.RacesEntered;
+		Snapshot.PositionPoints = Runner->CareerRecord.PositionPoints;
+		Snapshot.BestTimeMs = Runner->CareerRecord.BestTimeMs;
+		Snapshot.Reflex = Runner->Skills.Reflex;
+		Snapshot.Composure = Runner->Skills.Composure;
+		Snapshot.Acceleration = Runner->Skills.Acceleration;
+		Snapshot.Endurance = Runner->Skills.Endurance;
+		Snapshot.Speed = Runner->Skills.Speed;
+		PreRaceProgress.push_back(Snapshot);
+	}
 }
 
 void Game::Screens::RaceScreen::Entry()
@@ -200,14 +232,15 @@ Game::Screens::AppScreen* Game::Screens::RaceScreen::Update()
 		}
 
 	}
-	if (ShowNodeViewOnComplete && !NodeViewShown && RaceSM->State->Type == RaceStateType::Finished)
+	if (ShowPostRaceOnComplete && !PostRaceShown && RaceSM->State->Type == RaceStateType::Finished)
 	{
 		if (PlayerRacerSupplied)
 		{
 			SavePlayerRaceResult(Data, RaceSM->Data.ThisRace, PlayerGUID, PlayerRaceResultSaved);
 		}
-		NodeViewShown = true;
-		ScreenStack.Push(new NodeViewScreen(ScreenStack, IO, Data, RaceSM->Data.ThisRace));
+		PostRaceShown = true;
+		ScreenStack.Push(new PostRaceScreen(ScreenStack, IO, Data, RaceSM->Data.ThisRace,
+			std::move(PreRaceProgress), PlayerGUID, PlayerRacerSupplied, RaceEventName));
 		return ScreenStack.Top();
 	}
 

@@ -26,6 +26,7 @@ namespace
 	constexpr int LeagueContentBottom = 632;
 	constexpr int LeagueFixtureRowStep = 22;
 	constexpr int LeagueButtonY = 690;
+	constexpr std::uint64_t LeagueWorldDayMs = 24ull * 60 * 60 * 1000;
 	constexpr SDL_Color LeagueBackground{ 23, 22, 20, 255 };
 	constexpr SDL_Color LeaguePanelFill{ 34, 33, 30, 255 };
 	constexpr SDL_Color LeaguePanelBorder{ 75, 70, 60, 255 };
@@ -206,6 +207,7 @@ Game::Screens::AppScreen* Game::Screens::LeagueBrowserScreen::Update()
 			SelectedLeagueIndex = LeagueIndex;
 			FixtureScrollOffset = 0;
 			BracketScrollOffset = 0;
+			SelectedTab = League.IsAmateurCup ? LeagueBrowserTab::Playoffs : LeagueBrowserTab::Standings;
 			StatusMessage.clear();
 		}
 	}
@@ -406,9 +408,12 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 	}
 
 	const std::uint64_t WorldMinutes = CareerData->WorldClock.NowMs() / 60000;
+	const std::size_t LeagueCount = static_cast<std::size_t>(std::count_if(CareerData->Leagues.begin(),
+		CareerData->Leagues.end(), [](const Career::CareerLeague& League) { return !League.IsAmateurCup; }));
+	const std::uint64_t NextCupDay = CareerData->NextAmateurCupAtMs / LeagueWorldDayMs + 1;
 	const std::string Status = "World day " + std::to_string(WorldMinutes / 1440 + 1) + "  " +
 		GetWorldTime(CareerData->WorldClock.NowMs()) + "   |   " +
-		std::to_string(CareerData->Leagues.size()) + " leagues";
+		std::to_string(LeagueCount) + " leagues  |  Amateur Cup next day " + std::to_string(NextCupDay);
 	RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), Status, 28, 58, LeagueMuted);
 
 	const SDL_FRect LeaguePanel{ static_cast<float>(LeaguePanelLeft), static_cast<float>(LeaguePanelTop),
@@ -444,7 +449,8 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 	}
 	else
 	{
-		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), League->Name + "  |  Season " +
+		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), League->Name +
+			(League->IsAmateurCup ? "  |  Edition " : "  |  Season ") +
 			std::to_string(League->Season) + "  |  " + GetDivisionAndState(*League),
 			LeagueDetailLeft + 18, 78, LeagueText);
 		DrawButton(*this, Context, Screen->StandingsButton,
@@ -454,7 +460,11 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 		DrawButton(*this, Context, Screen->PlayoffsButton,
 			Screen->GetSelectedTab() == Screens::LeagueBrowserTab::Playoffs);
 
-		if (Screen->GetSelectedTab() == Screens::LeagueBrowserTab::Standings)
+		if (League->IsAmateurCup && Screen->GetSelectedTab() != Screens::LeagueBrowserTab::Playoffs)
+			RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont),
+				"The Amateur Cup is knockout-only. View its Playoffs bracket.", LeagueContentLeft,
+				LeagueContentTop, LeagueText);
+		else if (Screen->GetSelectedTab() == Screens::LeagueBrowserTab::Standings)
 		{
 			std::vector<const Career::CareerLeagueStanding*> Standings;
 			Standings.reserve(League->Standings.size());
@@ -560,8 +570,9 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 		{
 			const SportRaceCore::PlayoffBracket& Bracket = League->Playoffs;
 			if (Bracket.Rounds.empty())
-				RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont),
-					"Playoffs begin when the regular season is resolved.", LeagueContentLeft,
+				RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), League->IsAmateurCup
+					? "The next Amateur Cup starts on world day " + std::to_string(NextCupDay) + "."
+					: "Playoffs begin when the regular season is resolved.", LeagueContentLeft,
 					LeagueContentTop, LeagueText);
 			else
 			{

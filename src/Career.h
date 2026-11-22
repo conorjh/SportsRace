@@ -152,6 +152,7 @@ namespace Game
 			std::uint64_t Id = 0;
 			std::string Name;
 			CareerLeagueDivision Division = CareerLeagueDivision::Amateur;
+			bool IsAmateurCup = false;
 			CareerLeagueState State = CareerLeagueState::Filling;
 			unsigned int Season = 0;
 			std::vector<Race::Racer*> Entrants;
@@ -222,6 +223,7 @@ namespace Game
 			std::uint64_t NextWorldRaceId = 1;
 			std::uint64_t NextLeagueId = 1;
 			std::uint64_t NextOpenRaceAtMs = 0;
+			std::uint64_t NextAmateurCupAtMs = 0;
 			std::size_t TargetAiPopulation = 0;
 			std::uint64_t RealTimeMs = 0;
 			SportRaceCore::WorldClock WorldClock;

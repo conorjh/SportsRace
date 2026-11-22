@@ -185,6 +185,7 @@
     <ClCompile Include="..\..\src\Racer.cpp" />
     <ClCompile Include="..\..\src\Screens\RacerScreen.cpp" />
     <ClCompile Include="..\..\src\Screens\RaceScreen.cpp" />
+    <ClCompile Include="..\..\src\Screens\PostRaceScreen.cpp" />
     <ClCompile Include="..\..\src\Screens\NodeViewScreen.cpp" />
     <ClCompile Include="..\..\src\RaceState.cpp" />
     <ClCompile Include="..\..\src\Screens\RankingScreen.cpp" />
@@ -207,6 +208,7 @@
     <ClInclude Include="..\..\src\Race.h" />
     <ClInclude Include="..\..\src\Racer.h" />
     <ClInclude Include="..\..\src\Screens\RaceScreen.h" />
+    <ClInclude Include="..\..\src\Screens\PostRaceScreen.h" />
     <ClInclude Include="..\..\src\Screens\NodeViewScreen.h" />
     <ClInclude Include="..\..\src\RaceState.h" />
     <ClInclude Include="..\..\src\Screens\RankingScreen.h" />

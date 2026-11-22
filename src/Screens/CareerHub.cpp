@@ -279,6 +279,8 @@ unsigned int Game::Render::CareerHubRenderer::Render()
 			}
 			else
 			{
+				const bool FinishingFirstRaces = CareerData->InitialWorldMonthElapsedRealMs >=
+					CareerData->InitialWorldMonthTotalRealMs;
 				const double Progress = CareerData->InitialWorldMonthTotalRealMs == 0 ? 0.0 :
 					std::clamp(static_cast<double>(CareerData->InitialWorldMonthElapsedRealMs) /
 						static_cast<double>(CareerData->InitialWorldMonthTotalRealMs), 0.0, 1.0);
@@ -290,7 +292,8 @@ unsigned int Game::Render::CareerHubRenderer::Render()
 				SDL_SetRenderDrawColor(Context->MainRenderer, 192, 73, 52, 255);
 				SDL_RenderFillRect(Context->MainRenderer, &ProgressFill);
 				RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont),
-					"Simulating the first month of career life", 286, 310,
+					FinishingFirstRaces ? "Completing first races for active AI racers" :
+						"Simulating the first month of career life", 286, 310,
 					SDL_Color{ 239, 231, 214, 255 });
 				RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont),
 					std::to_string(static_cast<unsigned int>(Progress * 100.0)) + "%  |  " +
