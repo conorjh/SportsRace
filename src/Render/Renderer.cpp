@@ -3,6 +3,7 @@
 
 #include "SDL3_image/SDL_image.h"
 #include "spdlog/spdlog.h"
+#include <array>
 #include <cmath>
 #include <iostream>
 
@@ -46,6 +47,41 @@ bool Game::Assets::AssetStore::RegisterAll(Game::Render::BaseRenderer& Renderer)
 		Filename += std::to_string(Index) + ".png";
 		RegisterImage(static_cast<ImageAssetId>(ImageAssetCityTile000 + Index), Renderer.LoadImageFile(Filename));
 	}
+
+	const std::array<std::string, 4> IsometricLandscapeFiles{
+		"landscapeTiles_009.png", "landscapeTiles_010.png",
+		"landscapeTiles_019.png", "landscapeTiles_021.png"
+	};
+	for (std::size_t Index = 0; Index < IsometricLandscapeFiles.size(); ++Index)
+		RegisterImage(static_cast<ImageAssetId>(ImageAssetIsometricLandscape000 + Index),
+			Renderer.LoadImageFile("media/city/isometric/landscape/" + IsometricLandscapeFiles[Index]));
+
+	for (unsigned int Index = 0; Index < 12; ++Index)
+	{
+		std::string Filename = "media/city/isometric/city/cityTiles_";
+		Filename += Index < 10 ? "00" : "0";
+		Filename += std::to_string(Index) + ".png";
+		RegisterImage(static_cast<ImageAssetId>(ImageAssetIsometricCity000 + Index),
+			Renderer.LoadImageFile(Filename));
+	}
+
+	const std::array<std::string, 12> IsometricBuildingFiles{
+		"buildingTiles_001.png", "buildingTiles_002.png", "buildingTiles_003.png",
+		"buildingTiles_004.png", "buildingTiles_009.png", "buildingTiles_010.png",
+		"buildingTiles_011.png", "buildingTiles_014.png", "buildingTiles_017.png",
+		"buildingTiles_018.png", "buildingTiles_019.png", "buildingTiles_020.png"
+	};
+	for (std::size_t Index = 0; Index < IsometricBuildingFiles.size(); ++Index)
+		RegisterImage(static_cast<ImageAssetId>(ImageAssetIsometricBuilding000 + Index),
+			Renderer.LoadImageFile("media/city/isometric/buildings/" + IsometricBuildingFiles[Index]));
+
+	const std::array<std::string, 5> IsometricVehicleFiles{
+		"carBlack2_000.png", "carBlue2_000.png", "carGreen2_000.png",
+		"carRed2_000.png", "carSilver2_000.png"
+	};
+	for (std::size_t Index = 0; Index < IsometricVehicleFiles.size(); ++Index)
+		RegisterImage(static_cast<ImageAssetId>(ImageAssetIsometricVehicleBlack + Index),
+			Renderer.LoadImageFile("media/city/isometric/vehicles/" + IsometricVehicleFiles[Index]));
 
 	return true;
 }

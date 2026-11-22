@@ -4,6 +4,8 @@
 #include "..\Render\Renderer.h"
 #include "..\Screens.h"
 #include "..\Util.h"
+#include <array>
+#include <cstdint>
 
 namespace Game
 {
@@ -22,17 +24,32 @@ namespace Game
 			GUI::Button PopulationButton;
 			GUI::Button CareerHubButton;
 			GUI::Button LeagueBrowserButton;
+			struct CityTrafficCar
+			{
+				unsigned int RouteRow = 0;
+				unsigned int SpriteIndex = 0;
+				float RouteProgress = 0.0f;
+				float Speed = 0.0f;
+				std::uint64_t NextHonkAtMs = 0;
+				std::uint64_t HonkIntervalMs = 0;
+			};
+			std::array<CityTrafficCar, 6> CityTraffic{};
+			float CityZoom = 0.82f;
+			float CityCameraX = 0.0f;
+			float CityCameraY = 0.0f;
+			std::uint64_t LastCityInputUpdateMs = 0;
 			int HoveredPlotIndex = -1;
 			int InfoPlotIndex = -1;
 			int RightClickPlotIndex = -1;
 			unsigned int RightClickStartedAt = 0;
-			std::size_t CityScrollRow = 0;
-			float CityScrollRemainder = 0.0f;
+			bool CityCameraInitialized = false;
 			bool PlotInfoVisible = false;
 
-			SDL_FRect GetPlotBounds(std::size_t Index) const;
 			int GetPlotAt(float X, float Y) const;
-			std::size_t GetMaximumCityScrollRow() const;
+			void InitializeTraffic();
+			void UpdateCityCamera();
+			void ClampCityCamera();
+			void UpdateCityTraffic();
 
 		public:
 			WorldMapScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data);

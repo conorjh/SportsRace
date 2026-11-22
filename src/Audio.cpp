@@ -12,6 +12,13 @@ bool Game::Audio::AudioPlayer::Init()
 	this->Hover = Mix_LoadWAV("media/hover.wav");
 	this->Click = Mix_LoadWAV("media/click.wav");
 	this->StartersPistol = Mix_LoadWAV("media/starter_pistol.mp3");
+	this->CarHorn = Mix_LoadWAV("media/city/isometric/car_horn.wav");
+	if (CarHorn == nullptr)
+	{
+		spdlog::error("Failed to load ambient traffic horn: {}", SDL_GetError());
+		return false;
+	}
+	Mix_VolumeChunk(CarHorn, MIX_MAX_VOLUME / 4);
 
 	this->Catering = Mix_LoadMUS("media/catering.mp3");
 	this->Race = Mix_LoadMUS("media/race.mp3");
@@ -32,6 +39,9 @@ void Game::Audio::AudioPlayer::Play(BuiltInSounds Sound)
 		break;
 	case BuiltInSounds::StartersPistol:
 		Chunk = StartersPistol;
+		break;
+	case BuiltInSounds::CarHorn:
+		Chunk = CarHorn;
 		break;
 	default:
 		return;

@@ -104,11 +104,11 @@ Make a living in a satirical foot-racing world framed by British horse-racing cu
 
 ### Control scheme
 
-Players navigate and interact primarily with the mouse. Left-click enters an available building or activates a visible control; actions trigger once on the click edge. Hold right-click over a city plot for 300 ms to reveal its information panel. Escape or a visible Back control returns to the previous screen.
+Players navigate and interact primarily with the mouse. Left-click enters an available building or activates a visible control; actions trigger once on the click edge. Hold right-click over a city plot for 300 ms to reveal its information panel. Over the world map, move the pointer to a viewport edge to pan and use the mouse wheel to zoom around the pointer. Escape or a visible Back control returns to the previous screen.
 
 ### Camera and view
 
-The world map uses a top-down 2D view. Race simulations are shown in a side-on 2D view.
+The world map uses an isometric projection with edge scrolling and mouse-wheel zoom. Race simulations are shown in a side-on 2D view.
 
 ### Interaction rules
 
@@ -214,7 +214,7 @@ Players can fix races. Amateur and unlicensed races have no chance of detecting 
 
 The world simulation maintains the region, racer roster, venues, leagues, and live races. Before player creation, a new career simulates at least its first 30 world days (one in-game month), then continues until every active AI racer has completed a race so late fixtures do not leave the starting roster without history. The initial shared roster contains 256 racers: two belong to the player and 254 act autonomously. AI racers start with $1,000 and receive a location, cash balance, and activity state. The world calendar advances at 24x, so one real hour equals one world day; league schedules and seasons use this accelerated clock. Travel, training, recovery, and background race ticks use elapsed real time, so those activities are not accelerated with the calendar. Bankrupt racers retire, and each retirement immediately creates one replacement so the active AI population remains stable. Independent race ticks and per-racer activity updates run in parallel during both the career-start month and normal play; the main simulation thread applies completed race results, bankrupt replacements, and shared league/economy updates serially.
 
-The initial league world has one 20-racer league in each of Divisions 1-4; the AI population is assigned to additional regional amateur leagues as 20-place lobbies fill, with an open lobby kept available. The player can join a filling amateur lobby from the League Browser; AI entrants fill remaining places before its season starts, and a new lobby opens when one fills. The Browser also lets the player race their next scheduled fixture; each player race is a normal six-runner event and settles the paired league fixtures, racer histories, and AI finances. Full leagues run a 190-fixture round robin across the city's tracks. The top four enter a generated playoff bracket; season changes include promotion and relegation, and licensed amateur racers can progress into Division 4. Amateur racers seek $2,000 in savings before travelling to the license office and paying $1,000 for a racing license. Every world race has exactly six entrants, and tracks have no per-track concurrent-race cap. For paired fixtures and playoffs, only the designated league opponents determine the result; extra field entrants still race normally but do not alter league progression. Scheduled league races and periodic open races use the normal `RaceStateMachine`; independent races tick in parallel, then their results are applied serially to standings, cash, records, and progression. The world map reports racer activity, and a track building opens a scrollable list of all live races, letting the player inspect an existing race rather than starting a duplicate simulation.
+The initial league world has one 20-racer league in each of Divisions 1-4; the AI population is assigned to additional regional amateur leagues as 20-place lobbies fill, with an open lobby kept available. The player can join a filling amateur lobby from the League Browser; AI entrants fill remaining places before its season starts, and a new lobby opens when one fills. The Browser also lets the player race their next scheduled fixture; each player race is a normal six-runner event and settles the paired league fixtures, racer histories, and AI finances. Full leagues run a 190-fixture round robin across the city's tracks. The top four enter a generated playoff bracket; season changes include promotion and relegation, and licensed amateur racers progress into Division 4 through its usual two promotion places or enough promotions to fill attrition vacancies. Relegation removes only the surplus above the 20-racer Division 4 cap. Amateur racers seek $2,000 in savings before travelling to the license office and paying $1,000 for a racing license. Every world race has exactly six entrants, and tracks have no per-track concurrent-race cap. The scheduler batches up to three due head-to-head fixtures across leagues and tracks into one race, filling short batches with guests; only each fixture's designated opponents determine its standings result. Scheduled league races and periodic open races use the normal `RaceStateMachine`; independent races tick in parallel, then their results are applied serially to standings, cash, records, and progression. The world map reports racer activity, and a track building opens a scrollable list of all live races, letting the player inspect an existing race rather than starting a duplicate simulation.
 
 Every race entry awards 10 XP; first, second, and third place earn 15, 10, and 5 additional XP respectively. A pulled-up runner receives only the entry XP. XP is a 64-bit career counter that accumulates beyond 100; it is not a 0-100 skill rating. Finishes award 3, 2, or 1 positional points for first, second, or third place. Every result updates races entered, wins, losses, points, XP, and best finish time. Each racer retains up to 256 recent race-history entries with the world day, event, track distance, placing, and finish time; the Racer Database exposes those entries in a history view. The RacerDB rank is ordered by positional points, then wins, XP, best time, name, and racer ID. The world also retains a bounded history of race events for live-race viewing.
 
@@ -222,7 +222,7 @@ Press F3 to open the temporary career debug menu from any screen. Its spawn acti
 
 #### World map
 
-Each world starts as a randomly generated 8x5 city grid with municipal scenery, five vacant lots, a gym, bookmaker, license office, breeding clinic, player stable, and 13 race tracks for the initial 254 AI racers. Track count grows proportionally at one per 20 AI racers; vacant lots and scenery are converted first, then additional rows can be explored by scrolling the map. The world clock advances at 24x (one world day per real hour) while the career is running; live race ticks and timed racer activities use real elapsed time. An original illustrated borough map is released under CC0 at `media/city/sportsrace-borough-map.svg` and loaded from the rasterized `media/city/sportsrace-borough-map.png` because the current SDL_image build does not enable SVG. Kenney Isometric Tiles City graphics remain in use for city scenery, venue icons, and building backdrops under CC0. Their separate license notes are in `media/city/sportsrace-borough-map-LICENSE.txt` and `media/city/LICENSE.txt`. Hold right-click on a plot to inspect it; left-click enters an available building. Scenery is unavailable and vacant lots are not yet buildable. Each city track receives a generated length of 100, 200, 250, 500, or 1,000 metres and has no concurrent-race cap.
+Each world starts as a randomly generated 8x5 isometric city with municipal scenery, five vacant lots, a gym, bookmaker, license office, breeding clinic, player stable, and 13 race tracks for the initial 254 AI racers. Track count grows proportionally at one per 20 AI racers; vacant lots and scenery are converted first, then additional rows can be explored by panning. The map uses selected CC0 sprites from Kenney's Isometric Tiles Buildings, Landscape, City, and Vehicles packs. Random civilian cars circulate on the streets and occasionally sound a soft synthesized horn. Use the mouse wheel over the map to zoom around the pointer and move the pointer to a viewport edge to pan. Hold right-click on a plot to inspect it; left-click enters an available building. Scenery is unavailable and vacant lots are not yet buildable. Each city track receives a generated length of 100, 200, 250, 500, or 1,000 metres and has no concurrent-race cap. Asset sources and license details are in `media/city/LICENSE.txt`.
 
 #### Runner roster and ownership
 
@@ -306,7 +306,7 @@ This section catalogs world content; gameplay rules for races and buildings are 
 |---|---|---|---|
 | Main menu | Start a standalone race or career, open display options, or exit. | Application start | Race, Career, Options, or Exit |
 | CareerHubScreen | Main career screen for racing, racer details, training, rankings, the population database, and city access. | Main menu > Career, after racer creation for a new career | Open a racer, race, training, ranking, database, world map, or League Browser |
-| WorldMapScreen | Navigate the generated career city, inspect plot details, and view live world activity. | CareerHubScreen > World map | Inspect the clock and racer activity; enter buildings; hold right-click for plot details; open the population database or League Browser |
+| WorldMapScreen | Explore the isometric career city, inspect plot details, and view live world activity. | CareerHubScreen > World map | Edge-pan and wheel-zoom; enter buildings; hold right-click for plot details; open the population database or League Browser |
 | BookiesScreen | View race odds and place wagers; open the slot machine or roulette. | World map > bookmaker | Select a runner and stake; open either dedicated game screen; return to the city |
 | SlotMachineScreen | Play the bookmaker's slot-machine game. | BookiesScreen > slot machine | Set a stake and spin; return to the bookmaker |
 | RouletteScreen | Play the bookmaker's roulette game. | BookiesScreen > roulette | Set a stake and place a bet; return to the bookmaker |
@@ -349,14 +349,17 @@ Main menu > Career > (new-career month simulation with progress) > racer creatio
 
 | Asset | Use | Priority | Status / owner |
 |---|---|---|---|
-| Kenney Isometric Tiles City | City-map plot imagery and building backdrops. | Should | Selected CC0 PNGs in `media/city`; source and license in `media/city/LICENSE.txt` |
-| SportsRace Borough Map | Illustrated world-map background. | Should | Original CC0 SVG source and runtime PNG in `media/city`; license in `media/city/sportsrace-borough-map-LICENSE.txt` |
+| Kenney Isometric Tiles Buildings | Isometric venue and building sprites. | Should | Selected CC0 PNGs in `media/city/isometric/buildings`; source and license in `media/city/LICENSE.txt` |
+| Kenney Isometric Tiles Landscape | Isometric ground and terrain tiles. | Should | Selected CC0 PNGs in `media/city/isometric/landscape`; source and license in `media/city/LICENSE.txt` |
+| Kenney Isometric Tiles City | Isometric city scenery and plot sprites. | Should | Selected CC0 PNGs in `media/city/isometric/city`; source and license in `media/city/LICENSE.txt` |
+| Kenney Isometric Tiles Vehicles | Ambient civilian traffic sprites. | Should | Selected CC0 PNGs in `media/city/isometric/vehicles`; source and license in `media/city/LICENSE.txt` |
+| SportsRace Borough Map | Legacy illustrated world-map background. | Should | Original CC0 SVG and raster copy retained in `media/city`; license in `media/city/sportsrace-borough-map-LICENSE.txt` |
 
 ## 11. Audio and music
 
 ### Audio direction
 
-[Overall sound identity and player-facing goals.]
+World-map traffic occasionally plays a quiet, synthesized two-tone horn. It is intentionally infrequent and low-volume so it adds city ambience without competing with race audio.
 
 ### Music
 

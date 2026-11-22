@@ -1,7 +1,15 @@
-Kenney Isometric Tiles City graphics
+Kenney Isometric Tiles graphics
 
-Source: https://kenney.nl/assets/isometric-tiles-city
-The selected city tiles are released under Creative Commons CC0 1.0 Universal:
+Created by Kenney Vleugels for Kenney (https://kenney.nl). Selected PNG sprites
+are included from these official CC0 asset packs:
+
+- https://kenney.nl/assets/isometric-tiles-buildings
+- https://kenney.nl/assets/isometric-tiles-landscape
+- https://kenney.nl/assets/isometric-tiles-city
+- https://kenney.nl/assets/isometric-tiles-vehicles
+
+The selected graphics are released under Creative Commons CC0 1.0 Universal:
 https://creativecommons.org/publicdomain/zero/1.0/
 
-The PNG files in this folder are a small selection of the pack, fetched from the CC0 mirror at https://github.com/shorepine/kenney.
+Attribution is not required. The ambient car-horn WAV was synthesized for
+SportsRace and is not part of the Kenney packs.

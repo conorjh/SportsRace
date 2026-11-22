@@ -37,7 +37,22 @@ namespace Game
 			ImageAssetWorldMap,
 			ImageAssetCityTile000, ImageAssetCityTile001, ImageAssetCityTile002, ImageAssetCityTile003,
 			ImageAssetCityTile004, ImageAssetCityTile005, ImageAssetCityTile006, ImageAssetCityTile007,
-			ImageAssetCityTile008, ImageAssetCityTile009, ImageAssetCityTile010, ImageAssetCityTile011
+			ImageAssetCityTile008, ImageAssetCityTile009, ImageAssetCityTile010, ImageAssetCityTile011,
+			ImageAssetIsometricLandscape000, ImageAssetIsometricLandscape001,
+			ImageAssetIsometricLandscape002, ImageAssetIsometricLandscape003,
+			ImageAssetIsometricCity000, ImageAssetIsometricCity001, ImageAssetIsometricCity002,
+			ImageAssetIsometricCity003, ImageAssetIsometricCity004, ImageAssetIsometricCity005,
+			ImageAssetIsometricCity006, ImageAssetIsometricCity007, ImageAssetIsometricCity008,
+			ImageAssetIsometricCity009, ImageAssetIsometricCity010, ImageAssetIsometricCity011,
+			ImageAssetIsometricBuilding000, ImageAssetIsometricBuilding001,
+			ImageAssetIsometricBuilding002, ImageAssetIsometricBuilding003,
+			ImageAssetIsometricBuilding004, ImageAssetIsometricBuilding005,
+			ImageAssetIsometricBuilding006, ImageAssetIsometricBuilding007,
+			ImageAssetIsometricBuilding008, ImageAssetIsometricBuilding009,
+			ImageAssetIsometricBuilding010, ImageAssetIsometricBuilding011,
+			ImageAssetIsometricVehicleBlack, ImageAssetIsometricVehicleBlue,
+			ImageAssetIsometricVehicleGreen, ImageAssetIsometricVehicleRed,
+			ImageAssetIsometricVehicleSilver
 		};
 
 		class AssetStore
