@@ -309,6 +309,62 @@ namespace
 		}
 	}
 
+	std::string GetPlotTypeLabel(Game::Career::CityPlotType Type)
+	{
+		switch (Type)
+		{
+		case Game::Career::CityPlotType::Gym:
+			return "TRAINING GYM";
+		case Game::Career::CityPlotType::RaceTrack:
+			return "RACE TRACK";
+		case Game::Career::CityPlotType::Bookies:
+			return "BOOKMAKER";
+		case Game::Career::CityPlotType::LicenseOffice:
+			return "RACING LICENSE OFFICE";
+		case Game::Career::CityPlotType::BreedingFarm:
+			return "BREEDING CLINIC";
+		case Game::Career::CityPlotType::Stable:
+			return "STABLE";
+		case Game::Career::CityPlotType::VacantLot:
+			return "VACANT LOT";
+		default:
+			return "CITY SCENERY";
+		}
+	}
+
+	std::string GetPlotTooltipDetails(const Game::Career::CareerData& Data,
+		const Game::Career::CityPlot& Plot, std::size_t PlotIndex)
+	{
+		std::string Details;
+		switch (Plot.Type)
+		{
+		case Game::Career::CityPlotType::Gym:
+			Details = "Training and recovery for racers";
+			break;
+		case Game::Career::CityPlotType::RaceTrack:
+			Details = "Track length " + std::to_string(Plot.TrackLength / 50) + "m";
+			break;
+		case Game::Career::CityPlotType::Bookies:
+			Details = "Place bets on upcoming races";
+			break;
+		case Game::Career::CityPlotType::LicenseOffice:
+			Details = "Apply for a racing license";
+			break;
+		case Game::Career::CityPlotType::BreedingFarm:
+			Details = "Manage breeding";
+			break;
+		case Game::Career::CityPlotType::Stable:
+			Details = "View and manage your racer";
+			break;
+		case Game::Career::CityPlotType::VacantLot:
+			return "Available for future development";
+		default:
+			return "Decorative city scenery";
+		}
+		Details += "  |  " + GetPlotActivityStatus(Data, PlotIndex) + "  |  Click to enter";
+		return Details;
+	}
+
 	void DrawCityButton(Game::Render::BaseRenderer& Renderer, Game::Render::AppRenderContext* Context,
 		Game::GUI::Button& Button, bool Enabled)
 	{
@@ -387,29 +443,6 @@ Game::Screens::AppScreen* Game::Screens::WorldMapScreen::Update()
 	}
 
 	HoveredPlotIndex = GetPlotAt(IO.MousePosition.x, IO.MousePosition.y);
-	const Uint32 RightButtonMask = SDL_BUTTON_MASK(SDL_BUTTON_RIGHT);
-	if ((IO.MouseButtonsPressed & RightButtonMask) != 0)
-	{
-		RightClickPlotIndex = HoveredPlotIndex;
-		RightClickStartedAt = SDL_GetTicks();
-		PlotInfoVisible = false;
-	}
-	if ((IO.MouseButtons & RightButtonMask) == 0)
-	{
-		RightClickPlotIndex = -1;
-		PlotInfoVisible = false;
-	}
-	else if (HoveredPlotIndex != RightClickPlotIndex)
-	{
-		RightClickPlotIndex = HoveredPlotIndex;
-		RightClickStartedAt = SDL_GetTicks();
-		PlotInfoVisible = false;
-	}
-	else if (RightClickPlotIndex >= 0 && SDL_GetTicks() - RightClickStartedAt >= 300)
-	{
-		InfoPlotIndex = RightClickPlotIndex;
-		PlotInfoVisible = true;
-	}
 
 	if ((IO.MouseButtonsPressed & SDL_BUTTON_MASK(SDL_BUTTON_LEFT)) != 0 && HoveredPlotIndex >= 0 &&
 		Data.Career != nullptr)
@@ -597,10 +630,10 @@ int Game::Screens::WorldMapScreen::GetPlotAt(float X, float Y) const
 
 const Game::Career::CityPlot* Game::Screens::WorldMapScreen::GetInfoPlot() const
 {
-	if (!PlotInfoVisible || Data.Career == nullptr || InfoPlotIndex < 0 ||
-		static_cast<std::size_t>(InfoPlotIndex) >= Data.Career->CityPlots.size())
+	if (Data.Career == nullptr || HoveredPlotIndex < 0 ||
+		static_cast<std::size_t>(HoveredPlotIndex) >= Data.Career->CityPlots.size())
 		return nullptr;
-	return &Data.Career->CityPlots[static_cast<std::size_t>(InfoPlotIndex)];
+	return &Data.Career->CityPlots[static_cast<std::size_t>(HoveredPlotIndex)];
 }
 
 bool Game::Screens::WorldMapScreen::IsPlotInfoVisible() const
@@ -674,7 +707,7 @@ unsigned int Game::Render::WorldMapRenderer::Render()
 		"   Training " + std::to_string(TrainingCount) + "   In race " + std::to_string(InRaceCount) +
 		"   Waiting for league " + std::to_string(WaitingCount), 36, 78, CityMutedTextColor);
 	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
-		"MOUSE WHEEL: ZOOM   |   MOVE TO A MAP EDGE: PAN   |   CLICK A VENUE TO ENTER",
+		"MOUSE WHEEL: ZOOM   |   MOVE TO A MAP EDGE: PAN   |   HOVER TO INSPECT, CLICK TO ENTER",
 		36, 96, CityMutedTextColor);
 	const SDL_FRect MapBounds{ CityMapLeft, CityMapTop, CityMapWidth, CityMapHeight };
 	SDL_SetRenderDrawColor(Context->MainRenderer, 35, 44, 39, 255);
@@ -850,23 +883,16 @@ unsigned int Game::Render::WorldMapRenderer::Render()
 
 	if (const Career::CityPlot* InfoPlot = Screen->GetInfoPlot())
 	{
-		const SDL_FRect InfoBounds{ 288.0f, 624.0f, 440.0f, 52.0f };
+		const std::size_t PlotIndex = static_cast<std::size_t>(Screen->GetHoveredPlotIndex());
+		const SDL_FRect InfoBounds{ CityMapLeft, 624.0f, CityMapWidth, 52.0f };
 		SDL_SetRenderDrawColor(Context->MainRenderer, 34, 33, 30, 255);
 		SDL_RenderFillRect(Context->MainRenderer, &InfoBounds);
 		SDL_SetRenderDrawColor(Context->MainRenderer, 125, 111, 88, 255);
 		SDL_RenderRect(Context->MainRenderer, &InfoBounds);
-		std::string Description = InfoPlot->Name;
-		if (InfoPlot->Type == Career::CityPlotType::RaceTrack)
-			Description += " - " + std::to_string(InfoPlot->TrackLength / 50) + "m track";
-		else if (InfoPlot->Type == Career::CityPlotType::VacantLot)
-			Description += " - available for future development";
-		else if (InfoPlot->Type == Career::CityPlotType::Scenery)
-			Description += " - unavailable city scenery";
-		else
-			Description += " - hold right-click to inspect; left-click to enter";
-		Description += " | " + GetPlotActivityStatus(CareerData,
-			static_cast<std::size_t>(Screen->InfoPlotIndex));
-		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), Description, 302, 642, CityTextColor);
+		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont),
+			InfoPlot->Name + "  |  " + GetPlotTypeLabel(InfoPlot->Type), 50, 630, CityTextColor);
+		RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
+			GetPlotTooltipDetails(CareerData, *InfoPlot, PlotIndex), 50, 651, CityMutedTextColor);
 	}
 
 	DrawCityButton(*this, Context, Screen->PopulationButton, true);

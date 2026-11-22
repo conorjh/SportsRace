@@ -1631,16 +1631,23 @@ namespace
 
 	bool AllSeasonsReadyToAdvance(const CareerData& Data)
 	{
+		bool HasCompletedSeason = false;
 		for (const CareerLeague& League : Data.Leagues)
 		{
 			if (League.IsAmateurCup)
 				continue;
-			if (League.Division == CareerLeagueDivision::Amateur && League.State == CareerLeagueState::Filling)
+			if (League.State == CareerLeagueState::Complete)
+			{
+				HasCompletedSeason = true;
 				continue;
-			if (League.State != CareerLeagueState::Complete)
-				return false;
+			}
+			if (League.State == CareerLeagueState::Filling &&
+				(League.Division == CareerLeagueDivision::Amateur ||
+					League.Division == CareerLeagueDivision::Division4))
+				continue;
+			return false;
 		}
-		return true;
+		return HasCompletedSeason;
 	}
 
 	void MoveMember(std::vector<std::vector<Racer*>>& Members, std::size_t SourceIndex,
@@ -1692,7 +1699,15 @@ namespace
 				MoveMember(Members, Division2Index, Division3Index, Runner);
 			for (Racer* Runner : GetLeagueRunnersByRank(Data, *Division3, true, 2))
 				MoveMember(Members, Division3Index, Division2Index, Runner);
-			for (Racer* Runner : GetLeagueRunnersByRank(Data, *Division3, false, 2))
+			std::vector<Racer*> Division3Relegations = GetLeagueRunnersByRank(Data, *Division3, false, 2);
+			if (Division4->State == CareerLeagueState::Filling)
+			{
+				const std::size_t Vacancies = Members[Division4Index].size() < CareerLeagueSize
+					? CareerLeagueSize - Members[Division4Index].size() : 0;
+				if (Division3Relegations.size() > Vacancies)
+					Division3Relegations.resize(Vacancies);
+			}
+			for (Racer* Runner : Division3Relegations)
 				MoveMember(Members, Division3Index, Division4Index, Runner);
 			for (Racer* Runner : GetLeagueRunnersByRank(Data, *Division4, true, 2))
 				MoveMember(Members, Division4Index, Division3Index, Runner);
@@ -1717,8 +1732,8 @@ namespace
 				});
 			if (Division4 != nullptr)
 			{
-				const std::size_t StandardPromotionCount = std::min<std::size_t>(2,
-					LicensedAmateurRunners.size());
+				const std::size_t StandardPromotionCount = Division4->State == CareerLeagueState::Complete
+					? std::min<std::size_t>(2, LicensedAmateurRunners.size()) : 0;
 				const std::size_t Vacancies = Members[Division4Index].size() < CareerLeagueSize
 					? CareerLeagueSize - Members[Division4Index].size() : 0;
 				const std::size_t PromotionCount = std::min(LicensedAmateurRunners.size(),
@@ -1739,7 +1754,8 @@ namespace
 
 			if (Division4 != nullptr)
 			{
-				const std::size_t RelegationCount = Members[Division4Index].size() > CareerLeagueSize
+				const std::size_t RelegationCount = Division4->State == CareerLeagueState::Complete &&
+					Members[Division4Index].size() > CareerLeagueSize
 					? Members[Division4Index].size() - CareerLeagueSize : 0;
 				for (Racer* Runner : GetLeagueRunnersByRank(Data, *Division4, false, RelegationCount))
 				{

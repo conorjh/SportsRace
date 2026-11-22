@@ -39,11 +39,7 @@ namespace Game
 			float CityCameraY = 0.0f;
 			std::uint64_t LastCityInputUpdateMs = 0;
 			int HoveredPlotIndex = -1;
-			int InfoPlotIndex = -1;
-			int RightClickPlotIndex = -1;
-			unsigned int RightClickStartedAt = 0;
 			bool CityCameraInitialized = false;
-			bool PlotInfoVisible = false;
 
 			int GetPlotAt(float X, float Y) const;
 			void InitializeTraffic();
