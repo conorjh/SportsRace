@@ -33,7 +33,11 @@ namespace Game
 			ImageAssetTrack, ImageAssetHead, ImageAssetFellaRun, ImageAssetFellaStumble, ImageAssetFellaWait, ImageAssetScreen,
 
 			ImageAssetRacer, ImageAssetStadium, ImageAssetStartingBlock, ImageAssetClouds, ImageAssetMountains,
-			ImageAssetRaceBackground
+			ImageAssetRaceBackground,
+			ImageAssetWorldMap,
+			ImageAssetCityTile000, ImageAssetCityTile001, ImageAssetCityTile002, ImageAssetCityTile003,
+			ImageAssetCityTile004, ImageAssetCityTile005, ImageAssetCityTile006, ImageAssetCityTile007,
+			ImageAssetCityTile008, ImageAssetCityTile009, ImageAssetCityTile010, ImageAssetCityTile011
 		};
 
 		class AssetStore
@@ -56,12 +60,14 @@ namespace Game
 	{
 		struct AppRenderContext
 		{
-			unsigned int ScreenWidth = 800;
-			unsigned int ScreenHeight = 600;
+			unsigned int ScreenWidth = 1024;
+			unsigned int ScreenHeight = 768;
 
 			SDL_Window* MainWindow = nullptr;
 			SDL_Renderer* MainRenderer = nullptr;
 			SDL_Surface* MainSurface = nullptr;
+			bool ShowDebugMenu = false;
+			std::string DebugMenuStatus;
 			Game::Assets::AssetStore Store;
 		};
 

@@ -13,6 +13,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\Audio.cpp" />
+    <ClCompile Include="..\..\src\Appraisal.cpp" />
     <ClCompile Include="..\..\src\Career.cpp" />
     <ClCompile Include="..\..\src\Main.cpp" />
     <ClCompile Include="..\..\src\Race.cpp" />
@@ -47,8 +48,15 @@
     <ClCompile Include="..\..\src\Screens\NodeViewScreen.cpp">
       <Filter>Screens</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\Screens\RacerDBScreen.cpp">
+      <Filter>Screens</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Screens\OptionsScreen.cpp">
+      <Filter>Screens</Filter>
+    </ClCompile> <ClCompile Include="..\..\src\Screens\WorldMapScreen.cpp"><Filter>Screens</Filter></ClCompile> <ClCompile Include="..\..\src\Screens\BuildingScreen.cpp"><Filter>Screens</Filter></ClCompile> <ClCompile Include="..\..\src\Screens\BookiesScreen.cpp"><Filter>Screens</Filter></ClCompile> <ClCompile Include="..\..\src\Screens\GymScreen.cpp"><Filter>Screens</Filter></ClCompile> <ClCompile Include="..\..\src\Screens\LicenseOfficeScreen.cpp"><Filter>Screens</Filter></ClCompile> <ClCompile Include="..\..\src\Screens\BreedingFarmScreen.cpp"><Filter>Screens</Filter></ClCompile> <ClCompile Include="..\..\src\Screens\RaceTrackScreen.cpp"><Filter>Screens</Filter></ClCompile> <ClCompile Include="..\..\src\Screens\StableScreen.cpp"><Filter>Screens</Filter></ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\Appraisal.h" />
     <ClInclude Include="..\..\src\Career.h" />
     <ClInclude Include="..\..\src\Audio.h" />
     <ClInclude Include="..\..\src\Race.h" />
@@ -81,6 +89,12 @@
     <ClInclude Include="..\..\src\Screens\RankingScreen.h">
       <Filter>Screens</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\Screens\RacerDBScreen.h">
+      <Filter>Screens</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Screens\OptionsScreen.h">
+      <Filter>Screens</Filter>
+    </ClInclude> <ClInclude Include="..\..\src\Screens\WorldMapScreen.h"><Filter>Screens</Filter></ClInclude> <ClInclude Include="..\..\src\Screens\BuildingScreen.h"><Filter>Screens</Filter></ClInclude> <ClInclude Include="..\..\src\Screens\BookiesScreen.h"><Filter>Screens</Filter></ClInclude> <ClInclude Include="..\..\src\Screens\GymScreen.h"><Filter>Screens</Filter></ClInclude> <ClInclude Include="..\..\src\Screens\LicenseOfficeScreen.h"><Filter>Screens</Filter></ClInclude> <ClInclude Include="..\..\src\Screens\BreedingFarmScreen.h"><Filter>Screens</Filter></ClInclude> <ClInclude Include="..\..\src\Screens\RaceTrackScreen.h"><Filter>Screens</Filter></ClInclude> <ClInclude Include="..\..\src\Screens\StableScreen.h"><Filter>Screens</Filter></ClInclude>
     <ClInclude Include="..\..\src\Screens\RaceScreen.h">
       <Filter>Screens</Filter>
     </ClInclude>

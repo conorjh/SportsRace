@@ -16,7 +16,7 @@ namespace Game
 			Race::RacerDB Racers;
 
 		public:
-			GUI::Button RaceButton, CareerButton, ExitButton;
+			GUI::Button RaceButton, CareerButton, OptionsButton, ExitButton;
 
 			MainMenuScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data);
 			~MainMenuScreen();

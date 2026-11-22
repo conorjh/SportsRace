@@ -88,23 +88,18 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\sdl_net\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>SDL3.lib;SDL3_image.lib;SDL3_ttf.lib;SDL3_mixer.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\external\sdl\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_image\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_ttf\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_mixer\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_net\visualc\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL3_mixer-static.lib;SDL3_ttf-static.lib;SDL3_image-static.lib;SDL3-static.lib;kernel32.lib;user32.lib;gdi32.lib;winmm.lib;imm32.lib;ole32.lib;oleaut32.lib;version.lib;uuid.lib;advapi32.lib;setupapi.lib;shell32.lib;dinput8.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\external\static\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy $(SolutionDir)..\external\SDL\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\external\SDL_image\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\external\SDL_mixer\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\external\SDL_net\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\external\SDL_ttf\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\media\*.* $(OutDir)media /s /e /h /r /y</Command>
+      <Command>xcopy $(SolutionDir)..\media\*.* $(OutDir)media /s /e /h /r /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -115,7 +110,7 @@ xcopy $(SolutionDir)..\media\*.* $(OutDir)media /s /e /h /r /y</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\sdl_net\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -124,16 +119,11 @@ xcopy $(SolutionDir)..\media\*.* $(OutDir)media /s /e /h /r /y</Command>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>SDL3.lib;SDL3_image.lib;SDL3_ttf.lib;SDL3_mixer.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\external\sdl\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_image\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_ttf\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_mixer\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_net\visualc\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL3_mixer-static.lib;SDL3_ttf-static.lib;SDL3_image-static.lib;SDL3-static.lib;kernel32.lib;user32.lib;gdi32.lib;winmm.lib;imm32.lib;ole32.lib;oleaut32.lib;version.lib;uuid.lib;advapi32.lib;setupapi.lib;shell32.lib;dinput8.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\external\static\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy $(SolutionDir)..\external\SDL\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\external\SDL_image\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\external\SDL_mixer\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\external\SDL_net\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\external\SDL_ttf\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\media\*.* $(OutDir)media /s /e /h /r /y</Command>
+      <Command>xcopy $(SolutionDir)..\media\*.* $(OutDir)media /s /e /h /r /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -142,23 +132,18 @@ xcopy $(SolutionDir)..\media\*.* $(OutDir)media /s /e /h /r /y</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\sdl_net\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\external\sdl\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_image\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_ttf\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_mixer\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_net\visualc\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL3.lib;SDL3_image.lib;SDL3_ttf.lib;SDL3_mixer.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\external\static\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL3_mixer-static.lib;SDL3_ttf-static.lib;SDL3_image-static.lib;SDL3-static.lib;kernel32.lib;user32.lib;gdi32.lib;winmm.lib;imm32.lib;ole32.lib;oleaut32.lib;version.lib;uuid.lib;advapi32.lib;setupapi.lib;shell32.lib;dinput8.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy $(SolutionDir)..\external\SDL\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\external\SDL_image\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\external\SDL_mixer\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\external\SDL_net\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\external\SDL_ttf\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\media\*.* $(OutDir)media /s /e /h /r /y</Command>
+      <Command>xcopy $(SolutionDir)..\media\*.* $(OutDir)media /s /e /h /r /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -169,7 +154,7 @@ xcopy $(SolutionDir)..\media\*.* $(OutDir)media /s /e /h /r /y</Command>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\sdl_net\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\external\sdl\include;$(SolutionDir)..\external\sdl_image\include;$(SolutionDir)..\external\sdl_ttf\include;$(SolutionDir)..\external\sdl_mixer\include;$(SolutionDir)..\external\spdlog\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -178,24 +163,20 @@ xcopy $(SolutionDir)..\media\*.* $(OutDir)media /s /e /h /r /y</Command>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\external\sdl\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_image\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_ttf\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_mixer\visualc\$(Platform)\$(Configuration);$(SolutionDir)..\external\sdl_net\visualc\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL3.lib;SDL3_image.lib;SDL3_ttf.lib;SDL3_mixer.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\external\static\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL3_mixer-static.lib;SDL3_ttf-static.lib;SDL3_image-static.lib;SDL3-static.lib;kernel32.lib;user32.lib;gdi32.lib;winmm.lib;imm32.lib;ole32.lib;oleaut32.lib;version.lib;uuid.lib;advapi32.lib;setupapi.lib;shell32.lib;dinput8.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <Version>
       </Version>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy $(SolutionDir)..\external\SDL\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\external\SDL_image\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\external\SDL_mixer\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\external\SDL_net\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\external\SDL_ttf\VisualC\$(Platform)\$(Configuration)\*.dll $(OutDir) /s /e /h /r /y
-xcopy $(SolutionDir)..\media\*.* $(OutDir)media /s /e /h /r /y</Command>
+      <Command>xcopy $(SolutionDir)..\media\*.* $(OutDir)media /s /e /h /r /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\App\App.cpp" />
     <ClCompile Include="..\..\src\Render\AppRenderer.cpp" />
     <ClCompile Include="..\..\src\Audio.cpp" />
+    <ClCompile Include="..\..\src\Appraisal.cpp" />
     <ClCompile Include="..\..\src\Career.cpp" />
     <ClCompile Include="..\..\src\Screens\CareerHub.cpp" />
     <ClCompile Include="..\..\src\Main.cpp" />
@@ -207,6 +188,8 @@ xcopy $(SolutionDir)..\media\*.* $(OutDir)media /s /e /h /r /y</Command>
     <ClCompile Include="..\..\src\Screens\NodeViewScreen.cpp" />
     <ClCompile Include="..\..\src\RaceState.cpp" />
     <ClCompile Include="..\..\src\Screens\RankingScreen.cpp" />
+    <ClCompile Include="..\..\src\Screens\RacerDBScreen.cpp" />
+    <ClCompile Include="..\..\src\Screens\OptionsScreen.cpp" /> <ClCompile Include="..\..\src\Screens\WorldMapScreen.cpp" /> <ClCompile Include="..\..\src\Screens\BuildingScreen.cpp" /> <ClCompile Include="..\..\src\Screens\BookiesScreen.cpp" /> <ClCompile Include="..\..\src\Screens\GymScreen.cpp" /> <ClCompile Include="..\..\src\Screens\LicenseOfficeScreen.cpp" /> <ClCompile Include="..\..\src\Screens\BreedingFarmScreen.cpp" /> <ClCompile Include="..\..\src\Screens\RaceTrackScreen.cpp" /> <ClCompile Include="..\..\src\Screens\StableScreen.cpp" />
     <ClCompile Include="..\..\src\Render\Renderer.cpp" />
     <ClCompile Include="..\..\src\Screens.cpp" />
     <ClCompile Include="..\..\src\Util.cpp" />
@@ -215,6 +198,7 @@ xcopy $(SolutionDir)..\media\*.* $(OutDir)media /s /e /h /r /y</Command>
     <ClInclude Include="..\..\src\App\App.h" />
     <ClInclude Include="..\..\src\Render\AppRenderer.h" />
     <ClInclude Include="..\..\src\Career.h" />
+    <ClInclude Include="..\..\src\Appraisal.h" />
     <ClInclude Include="..\..\src\Screens\CareerHub.h" />
     <ClInclude Include="..\..\src\App\CommandLine.hpp" />
     <ClInclude Include="..\..\src\Audio.h" />
@@ -226,6 +210,8 @@ xcopy $(SolutionDir)..\media\*.* $(OutDir)media /s /e /h /r /y</Command>
     <ClInclude Include="..\..\src\Screens\NodeViewScreen.h" />
     <ClInclude Include="..\..\src\RaceState.h" />
     <ClInclude Include="..\..\src\Screens\RankingScreen.h" />
+    <ClInclude Include="..\..\src\Screens\RacerDBScreen.h" />
+    <ClInclude Include="..\..\src\Screens\OptionsScreen.h" /> <ClInclude Include="..\..\src\Screens\WorldMapScreen.h" /> <ClInclude Include="..\..\src\Screens\BuildingScreen.h" /> <ClInclude Include="..\..\src\Screens\BookiesScreen.h" /> <ClInclude Include="..\..\src\Screens\GymScreen.h" /> <ClInclude Include="..\..\src\Screens\LicenseOfficeScreen.h" /> <ClInclude Include="..\..\src\Screens\BreedingFarmScreen.h" /> <ClInclude Include="..\..\src\Screens\RaceTrackScreen.h" /> <ClInclude Include="..\..\src\Screens\StableScreen.h" />
     <ClInclude Include="..\..\src\Render\Renderer.h" />
     <ClInclude Include="..\..\src\Screens.h" />
     <ClInclude Include="..\..\src\TODO.h" />

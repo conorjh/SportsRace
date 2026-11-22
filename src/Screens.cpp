@@ -14,12 +14,36 @@ std::string Game::Screens::AppStateTypeToString(AppScreenType Type)
 		return "MainMenu";
 	case AppScreenType::CareerHub:
 		return "CareerHub";
+	case AppScreenType::WorldMapScreen:
+		return "WorldMapScreen";
+	case AppScreenType::BookiesScreen:
+		return "BookiesScreen";
+	case AppScreenType::GymScreen:
+		return "GymScreen";
+	case AppScreenType::LicenseOfficeScreen:
+		return "LicenseOfficeScreen";
+	case AppScreenType::BreedingFarmScreen:
+		return "BreedingFarmScreen";
+	case AppScreenType::RaceTrackScreen:
+		return "RaceTrackScreen";
+	case AppScreenType::StableScreen:
+		return "StableScreen";
 	case AppScreenType::RacerScreen:
 		return "RacerScreen";
 	case AppScreenType::RankingScreen:
 		return "RankingScreen";
 	case AppScreenType::NodeViewScreen:
 		return "NodeViewScreen";
+	case AppScreenType::RacerDBScreen:
+		return "RacerDBScreen";
+	case AppScreenType::OptionsScreen:
+		return "OptionsScreen";
+	case AppScreenType::SlotMachineScreen:
+		return "SlotMachineScreen";
+	case AppScreenType::RouletteScreen:
+		return "RouletteScreen";
+	case AppScreenType::LeagueBrowserScreen:
+		return "LeagueBrowserScreen";
 	}
 	return "";
 }

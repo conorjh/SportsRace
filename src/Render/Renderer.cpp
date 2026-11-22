@@ -38,6 +38,14 @@ bool Game::Assets::AssetStore::RegisterAll(Game::Render::BaseRenderer& Renderer)
 	RegisterImage(ImageAssetFellaStumble, Renderer.LoadImageFile("media/fellastumble.png"));
 	RegisterImage(ImageAssetFellaWait, Renderer.LoadImageFile("media/fellawait.png"));
 	RegisterImage(ImageAssetScreen, Renderer.LoadImageFile("media/screen.png"));
+	RegisterImage(ImageAssetWorldMap, Renderer.LoadImageFile("media/city/sportsrace-borough-map.png"));
+	for (unsigned int Index = 0; Index < 12; ++Index)
+	{
+		std::string Filename = "media/city/cityTiles_";
+		Filename += Index < 10 ? "00" : "0";
+		Filename += std::to_string(Index) + ".png";
+		RegisterImage(static_cast<ImageAssetId>(ImageAssetCityTile000 + Index), Renderer.LoadImageFile(Filename));
+	}
 
 	return true;
 }
@@ -79,13 +87,13 @@ Game::Render::Image* Game::Render::BaseRenderer::LoadImageFile(const std::string
 	spdlog::trace("Loading image: " + File);
 	if ((Img->Surface = IMG_Load(File.c_str())) == nullptr)
 	{
-		spdlog::error("Failed to load image: " + string(SDL_GetError()));
+		spdlog::error("Failed to load image '{}': {}", File, SDL_GetError());
 		return nullptr;
 	}
 
 	if ((Img->Texture = SDL_CreateTextureFromSurface(Context->MainRenderer, Img->Surface)) == nullptr)
 	{
-		spdlog::error("Failed to create texture: " + string(SDL_GetError()));
+		spdlog::error("Failed to create texture for '{}': {}", File, SDL_GetError());
 		return nullptr;
 	}
 	return Img;
@@ -141,6 +149,38 @@ void Game::Render::BaseRenderer::RenderText(TTF_Font* Font, std::string Text, in
 
 void Game::Render::BaseRenderer::Display()
 {
+	if (Context->ShowDebugMenu)
+	{
+		const SDL_FRect Backdrop{ 0.0f, 0.0f, static_cast<float>(Context->ScreenWidth),
+			static_cast<float>(Context->ScreenHeight) };
+		SDL_SetRenderDrawColor(Context->MainRenderer, 0, 0, 0, 170);
+		SDL_RenderFillRect(Context->MainRenderer, &Backdrop);
+
+		const SDL_FRect Panel{ 272.0f, 230.0f, 480.0f, 310.0f };
+		SDL_SetRenderDrawColor(Context->MainRenderer, 30, 28, 25, 248);
+		SDL_RenderFillRect(Context->MainRenderer, &Panel);
+		SDL_SetRenderDrawColor(Context->MainRenderer, 170, 96, 72, 255);
+		SDL_RenderRect(Context->MainRenderer, &Panel);
+
+		RenderText(Context->Store.GetFont(Game::Assets::FontAssetMainFont), "CAREER DEBUG MENU",
+			312, 264, SDL_Color{ 218, 112, 82, 255 });
+		RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont),
+			Context->DebugMenuStatus.empty() ? "Press 1 or click to spawn five AI racers." : Context->DebugMenuStatus,
+			312, 310, SDL_Color{ 220, 214, 201, 255 });
+
+		SDL_FRect SpawnButtonBounds;
+		SDL_RectToFRect(&Game::App::DebugMenuSpawnRacersButtonBounds, &SpawnButtonBounds);
+		SDL_SetRenderDrawColor(Context->MainRenderer, 104, 42, 36, 255);
+		SDL_RenderFillRect(Context->MainRenderer, &SpawnButtonBounds);
+		SDL_SetRenderDrawColor(Context->MainRenderer, 170, 96, 72, 255);
+		SDL_RenderRect(Context->MainRenderer, &SpawnButtonBounds);
+		RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont),
+			"SPAWN " + std::to_string(Game::App::DebugMenuSpawnRacerCount) + " AI RACERS",
+			370, 378, SDL_Color{ 239, 231, 214, 255 });
+		RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), "Press F3 to close.",
+			312, 470, SDL_Color{ 164, 155, 138, 255 });
+	}
+
 	SDL_RenderPresent(Context->MainRenderer);
 
 	const auto FrameEnd = std::chrono::steady_clock::now();

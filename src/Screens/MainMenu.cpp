@@ -3,6 +3,7 @@
 #include "CareerHub.h"
 #include "RaceScreen.h"
 #include "RacerScreen.h"
+#include "OptionsScreen.h"
 #include "SDL3/SDL.h"
 #include "SDL3_mixer/SDL_mixer.h"
 #include "..\App\App.h"
@@ -11,6 +12,7 @@ Game::Screens::MainMenuScreen::MainMenuScreen(AppScreenStateMachine& _Machine, A
 	: AppScreen(_Machine, _IO, _Data),
 	RaceButton(_IO, "Race", 100, 100, 210, 80),
 	CareerButton(_IO, "Career", 100, 200, 290, 80),
+	OptionsButton(_IO, "Options", 100, 300, 210, 80),
 	ExitButton(_IO, "Exit", 100, 400, 180, 80)
 {
 	Type = AppScreenType::MainMenu;
@@ -40,21 +42,19 @@ Game::Screens::AppScreen* Game::Screens::MainMenuScreen::Update()
 	CareerButton.Update();
 	if (CareerButton.HasMouseClicked())
 	{
-		//check if we dont have a saved profile
 		if (Data.Profile == nullptr)
-		{
-			//create a new profile + career
 			Data.Profile = new Career::CareerProfile();
+		if (Data.Career == nullptr)
 			Data.Career = new Career::CareerData();
+		const bool IsNewCareer = Data.Career->CityPlots.empty();
+		ScreenStack.Push(new CareerHubScreen(ScreenStack, IO, Data, IsNewCareer));
+		return ScreenStack.Top();
+	}
 
-			// Place the hub beneath the editor so finishing setup returns to the career menu.
-			ScreenStack.Push(new CareerHubScreen(ScreenStack, IO, Data));
-			ScreenStack.Push(new RacerScreen(ScreenStack, IO, Data, &Data.Profile->MainFella, RacerScreenStateInitType::RacerCreation));
-			return ScreenStack.Top();
-		}
-
-		//run career hub with it
-		ScreenStack.Push(new CareerHubScreen(ScreenStack, IO, Data));
+	OptionsButton.Update();
+	if (OptionsButton.HasMouseClicked())
+	{
+		ScreenStack.Push(new OptionsScreen(ScreenStack, IO, Data));
 		return ScreenStack.Top();
 	}
 
@@ -130,6 +130,14 @@ unsigned int Game::Render::MainMenuRenderer::Render()
 	SDL_FRect CareerButtonFRect; SDL_RectToFRect(&Screen->CareerButton.Rect, &CareerButtonFRect);
 	SDL_RenderRect(Context->MainRenderer, &CareerButtonFRect);
 	RenderText(Context->Store.GetFont(Assets::FontAssetMainMenuFont), Screen->CareerButton.Text.c_str(), Screen->CareerButton.x + 5, Screen->CareerButton.y + 5, Screen->CareerButton.Color);
+
+	// Options button
+	SDL_FillSurfaceRect(Context->MainSurface, &Screen->OptionsButton.Rect, RedColor);
+	SDL_SetRenderDrawColor(Context->MainRenderer, 255, 255, 255, 255);
+	SDL_FRect OptionsButtonFRect; SDL_RectToFRect(&Screen->OptionsButton.Rect, &OptionsButtonFRect);
+	SDL_RenderRect(Context->MainRenderer, &OptionsButtonFRect);
+	RenderText(Context->Store.GetFont(Assets::FontAssetMainMenuFont), Screen->OptionsButton.Text.c_str(),
+		Screen->OptionsButton.x + 5, Screen->OptionsButton.y + 5, Screen->OptionsButton.Color);
 
 	//exit button
 	SDL_FillSurfaceRect(Context->MainSurface, &Screen->ExitButton.Rect, RedColor);

@@ -1,0 +1,10 @@
+SportsRace Borough Map
+
+This original vector map was created for SportsRace. It is released under the
+Creative Commons CC0 1.0 Universal dedication (public domain dedication).
+
+https://creativecommons.org/publicdomain/zero/1.0/
+
+No attribution or royalty payment is required.
+
+The accompanying PNG is a rasterized runtime copy of this vector map and is released under the same CC0 dedication.

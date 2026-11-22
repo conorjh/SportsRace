@@ -8,6 +8,7 @@
 #include "SDL3_image/SDL_image.h"
 #include "SDL3_mixer/SDL_mixer.h"
 #include "spdlog/spdlog.h"
+#include <algorithm>
 #include <filesystem>
 
 using namespace std;
@@ -108,7 +109,7 @@ bool Game::App::Application::Init()
 {
 	spdlog::trace("Application init");
 
-	if (!SDLInit(Data.RenderContext, 1024, 768))
+	if (!SDLInit(Data.RenderContext, Data.WindowedWidth, Data.WindowedHeight))
 	{
 		Halt(AppErrorCode::SDLInitFailed);
 		return false;	//critical error, cannot continue
@@ -121,6 +122,7 @@ bool Game::App::Application::Init()
 	}
 
 	Data.ScreenStack.Push(new MainMenuScreen(Data.ScreenStack, IO, Data));
+	LastCareerSimulationUpdateMs = SDL_GetTicks();
 
 	spdlog::trace("Application init complete");
 	return true;
@@ -146,12 +148,25 @@ bool Game::App::Application::SDLInit(Game::Render::AppRenderContext* RenderConte
 	}
 
 	spdlog::debug("SDL Init - Creating main window {}, {}", ScreenWidth, ScreenHeight);
-	if (!SDL_CreateWindowAndRenderer("SportsRace", ScreenWidth, ScreenHeight, NULL, &RenderContext->MainWindow, &RenderContext->MainRenderer))
+	SDL_WindowFlags WindowFlags = SDL_WINDOW_RESIZABLE;
+	if (Data.Fullscreen)
+		WindowFlags |= SDL_WINDOW_FULLSCREEN;
+	if (!SDL_CreateWindowAndRenderer("SportsRace", static_cast<int>(ScreenWidth), static_cast<int>(ScreenHeight),
+		WindowFlags, &RenderContext->MainWindow, &RenderContext->MainRenderer))
 	{
 		spdlog::critical("SDL init error, SDL_CreateWindowAndRenderer(): {}", SDL_GetError());
 		return false;
 	}
-	RenderContext->MainSurface = SDL_CreateSurface(ScreenWidth, ScreenHeight, SDL_GetWindowPixelFormat(RenderContext->MainWindow));
+	RenderContext->ScreenWidth = 1024;
+	RenderContext->ScreenHeight = 768;
+	if (!SDL_SetRenderLogicalPresentation(RenderContext->MainRenderer, RenderContext->ScreenWidth,
+		RenderContext->ScreenHeight, SDL_LOGICAL_PRESENTATION_LETTERBOX))
+	{
+		spdlog::critical("SDL init error, SDL_SetRenderLogicalPresentation(): {}", SDL_GetError());
+		return false;
+	}
+	RenderContext->MainSurface = SDL_CreateSurface(RenderContext->ScreenWidth, RenderContext->ScreenHeight,
+		SDL_GetWindowPixelFormat(RenderContext->MainWindow));
 	SDL_SetRenderDrawColor(RenderContext->MainRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
 	spdlog::debug("SDL Init - Init TTF");
@@ -194,6 +209,49 @@ bool Game::App::Application::SDLClose(Game::Render::AppRenderContext* RenderCont
 void Game::App::Application::Update()
 {
 	IO.Update();
+	if (IO.DebugMenuTogglePressed)
+	{
+		Data.DebugMenuOpen = !Data.DebugMenuOpen;
+		if (Data.DebugMenuOpen)
+		{
+			if (Data.Career != nullptr && Data.Career->WorldSimulationInitialized)
+			{
+				Career::CareerOrchestrator Orchestrator(Data.Career, Data.Profile);
+				Data.DebugMenuStatus = "Active AI racers: " + std::to_string(Orchestrator.GetActiveRacerCount()) +
+					". Press 1 or click to spawn racers.";
+			}
+			else
+				Data.DebugMenuStatus = "Start a career before spawning world racers.";
+		}
+		else
+			Data.DebugMenuStatus.clear();
+	}
+	if (Data.DebugMenuOpen && IO.DebugSpawnRacersPressed)
+	{
+		Career::CareerOrchestrator Orchestrator(Data.Career, Data.Profile);
+		const std::size_t SpawnedCount = Orchestrator.SpawnRacers(DebugMenuSpawnRacerCount);
+		Data.DebugMenuStatus = SpawnedCount == 0
+			? "No racers spawned. Start a career first."
+			: "Spawned " + std::to_string(SpawnedCount) + " AI racers; active: " +
+			std::to_string(Orchestrator.GetActiveRacerCount()) + ".";
+	}
+
+	const Uint64 Now = SDL_GetTicks();
+	if (Data.Career != nullptr && (Data.Career->InitialWorldMonthSimulationInProgress ||
+		Data.Career->InitialWorldMonthSimulationFailed))
+		LastCareerSimulationUpdateMs = Now;
+	else if (Data.Career != nullptr && Data.Career->InitialWorldMonthClockResetPending)
+	{
+		Data.Career->InitialWorldMonthClockResetPending = false;
+		LastCareerSimulationUpdateMs = Now;
+	}
+	else if (Data.Career != nullptr && Data.Career->WorldSimulationInitialized &&
+		LastCareerSimulationUpdateMs != 0 && Now > LastCareerSimulationUpdateMs)
+	{
+		Career::CareerOrchestrator Orchestrator(Data.Career, Data.Profile);
+		Orchestrator.Update(Now - LastCareerSimulationUpdateMs);
+	}
+	LastCareerSimulationUpdateMs = Now;
 
 	Data.ScreenStack.Update();
 }
@@ -222,6 +280,10 @@ void Game::App::AppIO::Update()
 {
 	Esc = false;
 	MouseButtons = 0;
+	MouseButtonsPressed = 0;
+	MouseWheelY = 0.0f;
+	DebugMenuTogglePressed = false;
+	DebugSpawnRacersPressed = false;
 
 	// Drain queued input events for this frame, then refresh the pointer position for screen updates.
 	SDL_Event Event;
@@ -229,14 +291,30 @@ void Game::App::AppIO::Update()
 		switch (Event.type)
 		{
 		case SDL_EVENT_KEY_DOWN:
-			// Handle any key presses here.
 			if (Event.key.scancode == SDL_SCANCODE_ESCAPE)
 				Esc = true;
+			if (!Event.key.repeat && Event.key.scancode == SDL_SCANCODE_F3)
+				DebugMenuTogglePressed = true;
+			if (Data.DebugMenuOpen && !Event.key.repeat && Event.key.scancode == SDL_SCANCODE_1)
+				DebugSpawnRacersPressed = true;
 			break;
 
 		case SDL_EVENT_MOUSE_BUTTON_DOWN:
-			// Handle mouse clicks here.
-			MouseButtons = Event.button.button;
+			MouseButtonsPressed |= SDL_BUTTON_MASK(Event.button.button);
+			break;
+
+		case SDL_EVENT_MOUSE_WHEEL:
+			MouseWheelY += Event.wheel.y *
+				(Event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -1.0f : 1.0f);
+			break;
+
+		case SDL_EVENT_WINDOW_RESIZED:
+			if (!Data.Fullscreen && Data.RenderContext != nullptr && Data.RenderContext->MainWindow != nullptr &&
+				Event.window.windowID == SDL_GetWindowID(Data.RenderContext->MainWindow))
+			{
+				Data.WindowedWidth = static_cast<unsigned int>(std::max(Event.window.data1, 1));
+				Data.WindowedHeight = static_cast<unsigned int>(std::max(Event.window.data2, 1));
+			}
 			break;
 
 		case SDL_EVENT_QUIT:
@@ -244,16 +322,113 @@ void Game::App::AppIO::Update()
 			break;
 		}
 
-	//MouseButtons =
-	SDL_GetMouseState(&MousePosition.x, &MousePosition.y);
+	float WindowMouseX = 0.0f;
+	float WindowMouseY = 0.0f;
+	MouseButtons = SDL_GetMouseState(&WindowMouseX, &WindowMouseY);
+	if (Data.RenderContext != nullptr && Data.RenderContext->MainRenderer != nullptr)
+	{
+		if (!SDL_RenderCoordinatesFromWindow(Data.RenderContext->MainRenderer, WindowMouseX, WindowMouseY,
+			&MousePosition.x, &MousePosition.y))
+		{
+			spdlog::warn("Could not convert mouse position to logical render coordinates: {}", SDL_GetError());
+			MousePosition = { -1.0f, -1.0f };
+		}
+	}
+	else
+		MousePosition = { WindowMouseX, WindowMouseY };
+
+	if (Data.DebugMenuOpen && (MouseButtonsPressed & SDL_BUTTON_MASK(SDL_BUTTON_LEFT)) != 0)
+	{
+		const SDL_Point MousePoint{ static_cast<int>(MousePosition.x), static_cast<int>(MousePosition.y) };
+		if (SDL_PointInRect(&MousePoint, &DebugMenuSpawnRacersButtonBounds))
+			DebugSpawnRacersPressed = true;
+	}
+	if (Data.DebugMenuOpen || DebugMenuTogglePressed)
+	{
+		Esc = false;
+		MouseButtons = 0;
+		MouseButtonsPressed = 0;
+		MouseWheelY = 0.0f;
+	}
 }
 
 Game::App::AppData::AppData()
-	:	ScreenStack(),
+	: ScreenStack(),
 	RaceStateOutput(),
-	RenderContext(new Game::Render::AppRenderContext()),
+	Career(new Game::Career::CareerData()),
 	Profile(new Game::Career::CareerProfile()),
-	Career(new Game::Career::CareerData())
+	RenderContext(new Game::Render::AppRenderContext())
 {
 
+}
+
+bool Game::App::AppData::SetWindowedResolution(unsigned int Width, unsigned int Height)
+{
+	if (Width == 0 || Height == 0)
+	{
+		spdlog::error("Cannot set an invalid window resolution: {}x{}", Width, Height);
+		return false;
+	}
+	if (Fullscreen)
+	{
+		WindowedWidth = Width;
+		WindowedHeight = Height;
+		return true;
+	}
+	if (RenderContext == nullptr || RenderContext->MainWindow == nullptr)
+	{
+		spdlog::error("Cannot set the window resolution before SDL has created the main window.");
+		return false;
+	}
+	if (!SDL_SetWindowSize(RenderContext->MainWindow, static_cast<int>(Width), static_cast<int>(Height)))
+	{
+		spdlog::error("Could not set the window resolution to {}x{}: {}", Width, Height, SDL_GetError());
+		return false;
+	}
+	WindowedWidth = Width;
+	WindowedHeight = Height;
+	return true;
+}
+
+bool Game::App::AppData::SetFullscreen(bool Enabled)
+{
+	if (Fullscreen == Enabled)
+		return true;
+	if (RenderContext == nullptr || RenderContext->MainWindow == nullptr)
+	{
+		spdlog::error("Cannot change fullscreen mode before SDL has created the main window.");
+		return false;
+	}
+	if (Enabled)
+	{
+		int CurrentWidth = 0;
+		int CurrentHeight = 0;
+		if (SDL_GetWindowSize(RenderContext->MainWindow, &CurrentWidth, &CurrentHeight))
+		{
+			WindowedWidth = static_cast<unsigned int>(std::max(CurrentWidth, 1));
+			WindowedHeight = static_cast<unsigned int>(std::max(CurrentHeight, 1));
+		}
+		if (!SDL_SetWindowFullscreen(RenderContext->MainWindow, true))
+		{
+			spdlog::error("Could not enable fullscreen mode: {}", SDL_GetError());
+			return false;
+		}
+		Fullscreen = true;
+		return true;
+	}
+
+	if (!SDL_SetWindowFullscreen(RenderContext->MainWindow, false))
+	{
+		spdlog::error("Could not leave fullscreen mode: {}", SDL_GetError());
+		return false;
+	}
+	Fullscreen = false;
+	if (!SDL_SetWindowSize(RenderContext->MainWindow, static_cast<int>(WindowedWidth),
+		static_cast<int>(WindowedHeight)))
+	{
+		spdlog::error("Could not restore the windowed resolution to {}x{}: {}",
+			WindowedWidth, WindowedHeight, SDL_GetError());
+		return false;
+	}
+	return true;
 }

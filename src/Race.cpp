@@ -1,5 +1,6 @@
 #include "Race.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -9,9 +10,8 @@
 
 namespace
 {
-	constexpr unsigned int SimulationStepMs = 50;
-	constexpr unsigned int EventIntervalMs = 1000;
 	constexpr unsigned int MillisecondsPerSecond = 1000;
+	constexpr double MillisecondsPerSecondDouble = 1000.0;
 	constexpr unsigned int SecondsPerMinute = 60;
 	constexpr unsigned int MaximumRaceDurationMinutes = 30;
 	constexpr unsigned int MaximumRaceDurationMs = MaximumRaceDurationMinutes * SecondsPerMinute * MillisecondsPerSecond;
@@ -27,12 +27,15 @@ namespace
 	constexpr double MinimumAccelerationDurationMs = 1500.0;
 	constexpr double MaximumAccelerationDurationMs = 6000.0;
 	constexpr double AccelerationDurationReductionMsPerPoint = 45.0;
-	constexpr unsigned int AccelerationCurveRewindIterations = 32;
 	constexpr double BaseEnduranceDurationMs = 90000.0;
 	constexpr double EnduranceDurationMsPerPoint = 1200.0;
 	constexpr double EnduranceDurationReferenceRating = 80.0;
 	constexpr double EmptyEndurancePaceMultiplier = 0.2;
-	constexpr double TrapezoidalIntegrationFactor = 0.5;
+	constexpr double MinimumMotionDurationMs = 1.0;
+	constexpr double MotionIntegrationTolerance = 1e-5;
+	constexpr unsigned int MaximumIntegrationDepth = 8;
+	constexpr double FinishTimeToleranceMs = 0.01;
+	constexpr double TimeBoundaryToleranceMs = 1e-8;
 	constexpr double MaximumFatigueGain = 0.6;
 	constexpr double BaseFatigueGain = 0.1;
 	constexpr double FatigueGainPerSecond = 0.004;
@@ -50,6 +53,13 @@ namespace
 	constexpr std::uint32_t RacerIndexSeedSalt = 0x9e3779b9u;
 	constexpr std::uint32_t SeedMixFirstMultiplier = 0x7feb352du;
 	constexpr std::uint32_t SeedMixSecondMultiplier = 0x846ca68bu;
+	constexpr std::uint32_t StumbleSeedSalt = 0x1b873593u;
+	constexpr std::uint32_t ThoughtSeedSalt = 0x85ebca6bu;
+	constexpr std::uint32_t SecondWindSeedSalt = 0xc2b2ae35u;
+	constexpr unsigned int MinimumStumbleDurationMs = 300;
+	constexpr unsigned int MaximumStumbleDurationMs = 900;
+	constexpr unsigned int MinimumThoughtDurationMs = 2000;
+	constexpr unsigned int MaximumThoughtDurationMs = 4000;
 
 	double Clamp01(double Value)
 	{
@@ -65,7 +75,7 @@ namespace
 		double CycleDurationMs, double CycleReserve)
 	{
 		// Restart the endurance curve from the reserve available at this cycle's start.
-		const double DurationMs = std::max<double>(SimulationStepMs, CycleDurationMs);
+		const double DurationMs = std::max(MinimumMotionDurationMs, CycleDurationMs);
 		const double Progress = (TimeMs - CycleStartMs) / DurationMs;
 		return CycleReserve * Curve.Evaluate(Progress);
 	}
@@ -88,6 +98,71 @@ namespace
 		Value *= SeedMixSecondMultiplier;
 		Value ^= Value >> SeedMixInitialShift;
 		return Value;
+	}
+
+	template <typename Function>
+	double GaussLegendre4(const Function& Evaluate, double StartTimeMs, double EndTimeMs)
+	{
+		static constexpr std::array<double, 2> Nodes = { 0.8611363115940526, 0.3399810435848563 };
+		static constexpr std::array<double, 2> Weights = { 0.3478548451374538, 0.6521451548625461 };
+		const double Midpoint = (StartTimeMs + EndTimeMs) * 0.5;
+		const double HalfWidth = (EndTimeMs - StartTimeMs) * 0.5;
+		double Sum = 0.0;
+		for (std::size_t Index = 0; Index < Nodes.size(); ++Index)
+			Sum += Weights[Index] * (Evaluate(Midpoint - HalfWidth * Nodes[Index]) +
+				Evaluate(Midpoint + HalfWidth * Nodes[Index]));
+		return Sum * HalfWidth;
+	}
+
+	template <typename Function>
+	double GaussLegendre8(const Function& Evaluate, double StartTimeMs, double EndTimeMs)
+	{
+		static constexpr std::array<double, 4> Nodes =
+			{ 0.9602898564975363, 0.7966664774136267, 0.5255324099163290, 0.1834346424956498 };
+		static constexpr std::array<double, 4> Weights =
+			{ 0.1012285362903763, 0.2223810344533745, 0.3137066458778870, 0.3626837833783620 };
+		const double Midpoint = (StartTimeMs + EndTimeMs) * 0.5;
+		const double HalfWidth = (EndTimeMs - StartTimeMs) * 0.5;
+		double Sum = 0.0;
+		for (std::size_t Index = 0; Index < Nodes.size(); ++Index)
+			Sum += Weights[Index] * (Evaluate(Midpoint - HalfWidth * Nodes[Index]) +
+				Evaluate(Midpoint + HalfWidth * Nodes[Index]));
+		return Sum * HalfWidth;
+	}
+
+	template <typename Function>
+	double IntegrateMotionSegment(const Function& Evaluate, double StartTimeMs, double EndTimeMs,
+		double Tolerance = MotionIntegrationTolerance, unsigned int Depth = MaximumIntegrationDepth)
+	{
+		if (EndTimeMs <= StartTimeMs)
+			return 0.0;
+
+		const double CoarseEstimate = GaussLegendre4(Evaluate, StartTimeMs, EndTimeMs);
+		const double FineEstimate = GaussLegendre8(Evaluate, StartTimeMs, EndTimeMs);
+		if (Depth == 0 || std::abs(FineEstimate - CoarseEstimate) <= Tolerance)
+			return FineEstimate;
+
+		const double Midpoint = (StartTimeMs + EndTimeMs) * 0.5;
+		return IntegrateMotionSegment(Evaluate, StartTimeMs, Midpoint, Tolerance * 0.5, Depth - 1) +
+			IntegrateMotionSegment(Evaluate, Midpoint, EndTimeMs, Tolerance * 0.5, Depth - 1);
+	}
+
+	double EventRatePerSecond(double ProbabilityPerSecond)
+	{
+		const double Probability = std::clamp(ProbabilityPerSecond, 0.0,
+			std::nextafter(1.0, 0.0));
+		return Probability == 0.0 ? 0.0 : -std::log1p(-Probability);
+	}
+
+	double SampleNextEventTimeMs(double CurrentTimeMs, double ProbabilityPerSecond, std::mt19937& Random)
+	{
+		const double Rate = EventRatePerSecond(ProbabilityPerSecond);
+		if (Rate == 0.0)
+			return std::numeric_limits<double>::infinity();
+
+		std::exponential_distribution<double> WaitingTime(Rate);
+		const double WaitMs = std::max(MinimumMotionDurationMs, WaitingTime(Random) * MillisecondsPerSecondDouble);
+		return CurrentTimeMs + WaitMs;
 	}
 
 	struct EffectiveRacerStats
@@ -154,19 +229,8 @@ namespace
 
 		const double TargetPace = Runner.AccelerationCurve.Evaluate(CurveProgress) *
 			Clamp01(StumblePaceMultiplier);
-		// Find the curve progress that matches the reduced pace so recovery does not jump back to normal pace.
-		double LowerProgress = 0.0;
-		double UpperProgress = CurveProgress;
-		for (unsigned int Iteration = 0; Iteration < AccelerationCurveRewindIterations; ++Iteration)
-		{
-			const double MiddleProgress = (LowerProgress + UpperProgress) * 0.5;
-			if (Runner.AccelerationCurve.Evaluate(MiddleProgress) < TargetPace)
-				LowerProgress = MiddleProgress;
-			else
-				UpperProgress = MiddleProgress;
-		}
-
-		const double ReducedCurveTimeMs = Stats.ResponseDelayMs + UpperProgress * Stats.AccelerationDurationMs;
+		const double ReducedCurveProgress = Runner.AccelerationCurve.TimeAtValue(TargetPace);
+		const double ReducedCurveTimeMs = Stats.ResponseDelayMs + ReducedCurveProgress * Stats.AccelerationDurationMs;
 		return StumbleEndTimeMs - ReducedCurveTimeMs;
 	}
 
@@ -189,11 +253,6 @@ namespace
 		static constexpr double EnduranceThreshold = 0.1;
 		static constexpr double DeclineDurationMs = 8000.0;
 		static constexpr double PaceDeclineFraction = 0.8;
-
-		bool ShouldStart(double EnduranceReserve) const
-		{
-			return EnduranceReserve <= EnduranceThreshold;
-		}
 
 		double HeldEnduranceReserve() const
 		{
@@ -226,10 +285,6 @@ namespace
 				(MaximumGassingDurationMs - MinimumGassingDurationMs) * Resilience;
 		}
 
-		bool ShouldPullUp(double GassingDurationMs, double Confidence, double Composure) const
-		{
-			return GassingDurationMs >= GassingTimeLimitMs(Confidence, Composure);
-		}
 	};
 
 	class StumbleEvent
@@ -251,18 +306,17 @@ namespace
 		}
 
 	public:
-		bool TryRoll(double Confidence, double Fatigue, std::mt19937& Random,
-			unsigned int& DurationMs, double& PaceMultiplier) const
+		double ChancePerSecond(double Confidence, double Fatigue) const
 		{
-			std::uniform_real_distribution<double> Unit(0.0, 1.0);
-			if (Unit(Random) >= Chance(Confidence, Fatigue))
-				return false;
+			return Chance(Confidence, Fatigue);
+		}
 
-			std::uniform_int_distribution<unsigned int> DurationSteps(MinimumDurationSteps, MaximumDurationSteps);
+		void RollEffect(std::mt19937& Random, unsigned int& DurationMs, double& PaceMultiplier) const
+		{
+			std::uniform_int_distribution<unsigned int> Duration(MinimumStumbleDurationMs, MaximumStumbleDurationMs);
 			std::uniform_real_distribution<double> PaceMultipliers(MinimumPaceMultiplier, MaximumPaceMultiplier);
-			DurationMs = DurationSteps(Random) * SimulationStepMs;
+			DurationMs = Duration(Random);
 			PaceMultiplier = PaceMultipliers(Random);
-			return true;
 		}
 	};
 
@@ -274,8 +328,6 @@ namespace
 		static constexpr double ChanceScale = 0.1;
 		static constexpr double MinimumPaceMultiplier = 0.85;
 		static constexpr double MaximumPaceMultiplier = 0.93;
-		static constexpr unsigned int MinimumDurationSteps = 40;
-		static constexpr unsigned int MaximumDurationSteps = 80;
 
 		double Chance(double Confidence) const
 		{
@@ -290,17 +342,12 @@ namespace
 			return Chance(Confidence);
 		}
 
-		bool TryRoll(double Confidence, double Roll, std::mt19937& Random,
-			unsigned int& DurationMs, double& PaceMultiplier) const
+		void RollEffect(std::mt19937& Random, unsigned int& DurationMs, double& PaceMultiplier) const
 		{
-			if (Roll >= Chance(Confidence))
-				return false;
-
-			std::uniform_int_distribution<unsigned int> DurationSteps(MinimumDurationSteps, MaximumDurationSteps);
+			std::uniform_int_distribution<unsigned int> Duration(MinimumThoughtDurationMs, MaximumThoughtDurationMs);
 			std::uniform_real_distribution<double> PaceMultipliers(MinimumPaceMultiplier, MaximumPaceMultiplier);
-			DurationMs = DurationSteps(Random) * SimulationStepMs;
+			DurationMs = Duration(Random);
 			PaceMultiplier = PaceMultipliers(Random);
-			return true;
 		}
 	};
 
@@ -312,8 +359,6 @@ namespace
 		static constexpr double ChanceScale = 0.1;
 		static constexpr double MinimumPaceMultiplier = 1.03;
 		static constexpr double MaximumPaceMultiplier = 1.08;
-		static constexpr unsigned int MinimumDurationSteps = 40;
-		static constexpr unsigned int MaximumDurationSteps = 80;
 
 		double Chance(double Confidence) const
 		{
@@ -323,17 +368,17 @@ namespace
 		}
 
 	public:
-		bool TryRoll(double Confidence, double Roll, std::mt19937& Random,
-			double PreviousEventChance, unsigned int& DurationMs, double& PaceMultiplier) const
+		double ChancePerSecond(double Confidence) const
 		{
-			if (Roll >= PreviousEventChance + Chance(Confidence))
-				return false;
+			return Chance(Confidence);
+		}
 
-			std::uniform_int_distribution<unsigned int> DurationSteps(MinimumDurationSteps, MaximumDurationSteps);
+		void RollEffect(std::mt19937& Random, unsigned int& DurationMs, double& PaceMultiplier) const
+		{
+			std::uniform_int_distribution<unsigned int> Duration(MinimumThoughtDurationMs, MaximumThoughtDurationMs);
 			std::uniform_real_distribution<double> PaceMultipliers(MinimumPaceMultiplier, MaximumPaceMultiplier);
-			DurationMs = DurationSteps(Random) * SimulationStepMs;
+			DurationMs = Duration(Random);
 			PaceMultiplier = PaceMultipliers(Random);
-			return true;
 		}
 	};
 
@@ -356,12 +401,11 @@ namespace
 
 	public:
 		static constexpr double EffectDisplayDurationMs = 1000.0;
-		static constexpr double PaceOverrideDurationMs = SimulationStepMs;
+		static constexpr double PaceOverrideDurationMs = 50.0;
 
-		bool TryRoll(double Confidence, double Luck, std::mt19937& Random) const
+		double ChancePerSecond(double Confidence, double Luck) const
 		{
-			std::uniform_real_distribution<double> Unit(0.0, 1.0);
-			return Unit(Random) < Chance(Confidence, Luck);
+			return Chance(Confidence, Luck);
 		}
 
 		double RestoredReserve(double Confidence, double Luck) const
@@ -510,7 +554,7 @@ namespace
 		}
 		else
 		{
-			const double EnduranceCycleDurationMs = std::max<double>(SimulationStepMs,
+			const double EnduranceCycleDurationMs = std::max<double>(MinimumMotionDurationMs,
 				Stats.FullEnduranceDurationMs * EnduranceCycleReserve);
 			State.Endurance = EvaluateEnduranceReserve(Runner.EnduranceCurve, TimeMs, EnduranceCycleStartMs,
 				EnduranceCycleDurationMs, EnduranceCycleReserve);
@@ -575,16 +619,22 @@ namespace
 
 		Game::Race::RacerRaceTimeline Build()
 		{
-			// Precompute a complete outcome so playback can sample it without rolling events again.
+			// Build one immutable race outcome for both background simulation and renderer playback.
 			Runner->Reset();
 			Stats = CalculateEffectiveRacerStats(*Runner);
 			Timeline.PreRaceConfidence = Stats.Confidence;
 			Timeline.PreRaceFatigue = Stats.Fatigue;
 			Timeline.PreRaceInjury = Stats.Injury;
-			EventRandom.seed(MixSeed(LockedSeed, Runner->GUID.GUID, RacerIndex));
+			const unsigned int EventSeed = MixSeed(LockedSeed, Runner->GUID.GUID, RacerIndex);
+			StumbleRandom.seed(EventSeed ^ StumbleSeedSalt);
+			ThoughtRandom.seed(EventSeed ^ ThoughtSeedSalt);
+			SecondWindRandom.seed(EventSeed ^ SecondWindSeedSalt);
 			Timeline.Entrant = Runner;
 			Timeline.RacerIndex = static_cast<unsigned int>(RacerIndex);
 			InitializeTimelineNodes();
+			ScheduleNextStumbleEvent(0.0);
+			ScheduleNextThoughtEvent(0.0);
+			NextGassingTimeMs = CalculateNextGassingTime();
 			Simulate();
 			Timeline.FinalDistance = Distance;
 			return std::move(Timeline);
@@ -607,7 +657,32 @@ namespace
 			AccelerationNode.EndPace = Stats.MaximumPace;
 			Timeline.Nodes.push_back(AccelerationNode);
 			AccelerationTimelineNode = &Timeline.Nodes.back();
-			EnduranceCycleDurationMs = Stats.FullEnduranceDurationMs;
+			EnduranceCycleDurationMs = std::max(MinimumMotionDurationMs, Stats.FullEnduranceDurationMs);
+		}
+
+		double CalculateNextGassingTime() const
+		{
+			if (Gassing)
+				return std::numeric_limits<double>::infinity();
+			if (EnduranceCycleReserve <= GassingRule.EnduranceThreshold)
+				return EnduranceCycleStartMs;
+
+			const double TargetCurveReserve = GassingRule.EnduranceThreshold / EnduranceCycleReserve;
+			const double CurveProgress = Runner->EnduranceCurve.TimeAtValue(TargetCurveReserve);
+			return EnduranceCycleStartMs + EnduranceCycleDurationMs * CurveProgress;
+		}
+
+		void ScheduleNextStumbleEvent(double TimeMs)
+		{
+			NextStumbleEventTimeMs = SampleNextEventTimeMs(TimeMs,
+				StumbleRule.ChancePerSecond(Stats.Confidence, Stats.Fatigue), StumbleRandom);
+		}
+
+		void ScheduleNextThoughtEvent(double TimeMs)
+		{
+			const double ChancePerSecond = LostBeliefRule.ChanceFor(Stats.Confidence) +
+				BeliefRule.ChancePerSecond(Stats.Confidence);
+			NextThoughtEventTimeMs = SampleNextEventTimeMs(TimeMs, ChancePerSecond, ThoughtRandom);
 		}
 
 		double NormalPace(double TimeMs) const
@@ -656,6 +731,149 @@ namespace
 			return Pace * EffectMultiplier(TimeMs);
 		}
 
+		double IntegratePace(double StartTimeMs, double EndTimeMs) const
+		{
+			if (EndTimeMs <= StartTimeMs)
+				return 0.0;
+			if (WindOverrideActive && (StartTimeMs + EndTimeMs) * 0.5 < WindOverrideUntilMs)
+				return WindOverridePace * (EndTimeMs - StartTimeMs) / MillisecondsPerSecondDouble;
+
+			const double EffectScale = EffectMultiplier((StartTimeMs + EndTimeMs) * 0.5);
+			if (Gassing)
+			{
+				const double StartElapsedMs = std::max(0.0, StartTimeMs - GassingStartMs);
+				const double EndElapsedMs = std::max(0.0, EndTimeMs - GassingStartMs);
+				const double DeclineEndMs = std::min(EndElapsedMs, GassingRule.DeclineDurationMs);
+				double Distance = 0.0;
+				if (DeclineEndMs > StartElapsedMs)
+				{
+					const double LinearAreaMs = DeclineEndMs - StartElapsedMs -
+						GassingRule.PaceDeclineFraction *
+						(DeclineEndMs * DeclineEndMs - StartElapsedMs * StartElapsedMs) /
+						(2.0 * GassingRule.DeclineDurationMs);
+					Distance += GassingEntryBasePace * LinearAreaMs / MillisecondsPerSecondDouble;
+				}
+				if (EndElapsedMs > GassingRule.DeclineDurationMs)
+				{
+					const double PlateauStartMs = std::max(StartElapsedMs, GassingRule.DeclineDurationMs);
+					Distance += GassingEntryBasePace * (1.0 - GassingRule.PaceDeclineFraction) *
+						(EndElapsedMs - PlateauStartMs) / MillisecondsPerSecondDouble;
+				}
+				return EffectScale * Distance;
+			}
+
+			const double AccelerationDistance = IntegrateAccelerationPace(StartTimeMs, EndTimeMs);
+			const auto EndurancePacePerMillisecond = [this](double TimeMs)
+			{
+				return NormalPace(TimeMs) * EnduranceReserve(TimeMs) / MillisecondsPerSecondDouble;
+			};
+			const double EnduranceDistance = IntegrateMotionSegment(EndurancePacePerMillisecond,
+				StartTimeMs, EndTimeMs);
+			return EffectScale * (EmptyEndurancePaceMultiplier * AccelerationDistance +
+				(1.0 - EmptyEndurancePaceMultiplier) * EnduranceDistance);
+		}
+
+		double IntegrateAccelerationPace(double StartTimeMs, double EndTimeMs) const
+		{
+			if (Stats.MaximumPace <= 0.0)
+				return 0.0;
+
+			const double CurveStartTimeMs = Stats.ResponseDelayMs + AccelerationCurveTimeOffsetMs;
+			const double CurveEndTimeMs = CurveStartTimeMs + Stats.AccelerationDurationMs;
+			const double CurvePartStartMs = std::max(StartTimeMs, CurveStartTimeMs);
+			const double CurvePartEndMs = std::min(EndTimeMs, CurveEndTimeMs);
+			double NormalizedCurveAreaMs = 0.0;
+			if (CurvePartEndMs > CurvePartStartMs)
+			{
+				const double StartProgress = (CurvePartStartMs - CurveStartTimeMs) / Stats.AccelerationDurationMs;
+				const double EndProgress = (CurvePartEndMs - CurveStartTimeMs) / Stats.AccelerationDurationMs;
+				NormalizedCurveAreaMs = Stats.AccelerationDurationMs *
+					Runner->AccelerationCurve.Integrate(StartProgress, EndProgress);
+			}
+			const double PlateauStartMs = std::max(StartTimeMs, CurveEndTimeMs);
+			if (EndTimeMs > PlateauStartMs)
+				NormalizedCurveAreaMs += EndTimeMs - PlateauStartMs;
+			return Stats.MaximumPace * NormalizedCurveAreaMs / MillisecondsPerSecondDouble;
+		}
+
+		double FindFinishTime(double StartTimeMs, double EndTimeMs, double RemainingDistance) const
+		{
+			double Low = StartTimeMs;
+			double High = EndTimeMs;
+			while (High - Low > FinishTimeToleranceMs)
+			{
+				const double Midpoint = (Low + High) * 0.5;
+				if (IntegratePace(StartTimeMs, Midpoint) < RemainingDistance)
+					Low = Midpoint;
+				else
+					High = Midpoint;
+			}
+			return (Low + High) * 0.5;
+		}
+
+		void AppendMotionSegment(double StartTimeMs, double EndTimeMs)
+		{
+			if (EndTimeMs > StartTimeMs)
+				Timeline.MotionSegments.push_back({ StartTimeMs, EndTimeMs, Distance });
+		}
+
+		double GetNextBoundaryTime(double TimeMs) const
+		{
+			double NextTimeMs = static_cast<double>(MaximumRaceDurationMs);
+			const auto Consider = [&NextTimeMs, TimeMs](double CandidateTimeMs)
+			{
+				if (CandidateTimeMs > TimeMs + TimeBoundaryToleranceMs)
+					NextTimeMs = std::min(NextTimeMs, CandidateTimeMs);
+			};
+
+			Consider(NextStumbleEventTimeMs);
+			Consider(NextThoughtEventTimeMs);
+			if (StumbleTimelineNode != nullptr)
+				Consider(StumbleUntilMs);
+			if (LostBeliefUntilMs > TimeMs)
+				Consider(LostBeliefUntilMs);
+			if (BeliefUntilMs > TimeMs)
+				Consider(BeliefUntilMs);
+			if (WindOverrideActive)
+				Consider(WindOverrideUntilMs);
+
+			if (Gassing)
+			{
+				Consider(NextSecondWindEventTimeMs);
+				Consider(GassingPullUpTimeMs);
+			}
+			else
+			{
+				Consider(NextGassingTimeMs);
+			}
+
+			Consider(Stats.ResponseDelayMs + AccelerationCurveTimeOffsetMs);
+			Consider(Stats.ResponseDelayMs + Stats.AccelerationDurationMs + AccelerationCurveTimeOffsetMs);
+			return NextTimeMs;
+		}
+
+		bool ProcessEventsAtTime(double TimeMs)
+		{
+			CompleteStumbleIfDue(TimeMs);
+			if (!Gassing && NextGassingTimeMs <= TimeMs + TimeBoundaryToleranceMs)
+				StartGassingIfDue(TimeMs);
+
+			if (NextStumbleEventTimeMs <= TimeMs + TimeBoundaryToleranceMs)
+			{
+				TryStumble(TimeMs);
+				ScheduleNextStumbleEvent(TimeMs);
+			}
+			if (NextThoughtEventTimeMs <= TimeMs + TimeBoundaryToleranceMs)
+			{
+				TryThoughtEvent(TimeMs);
+				ScheduleNextThoughtEvent(TimeMs);
+			}
+			if (Gassing && NextSecondWindEventTimeMs <= TimeMs + TimeBoundaryToleranceMs)
+				TrySecondWind(TimeMs);
+
+			return TryPullUp(TimeMs);
+		}
+
 		Game::Race::RaceEvent CreateEventRecord(Game::Race::RaceEventType Type,
 			double TimeMs, unsigned int DurationMs, double Magnitude) const
 		{
@@ -695,11 +913,16 @@ namespace
 		{
 			using namespace Game::Race;
 
-			if (Gassing || !GassingRule.ShouldStart(EnduranceReserve(TimeMs)))
+			if (Gassing)
 				return;
 
 			Gassing = true;
+			NextGassingTimeMs = std::numeric_limits<double>::infinity();
 			GassingStartMs = TimeMs;
+			GassingPullUpTimeMs = TimeMs + PullingUpRule.GassingTimeLimitMs(
+				Stats.Confidence, Runner->Skills.Composure);
+			NextSecondWindEventTimeMs = SampleNextEventTimeMs(TimeMs,
+				SecondWindRule.ChancePerSecond(Stats.Confidence, Stats.Luck), SecondWindRandom);
 			GassingEntryBasePace = GassingRule.EntryPace(NormalPace(TimeMs));
 			GassingEntryPace = GassingEntryBasePace * EffectMultiplier(TimeMs);
 			const RaceEvent Event = CreateEventRecord(RaceEventType::Gassing, TimeMs, 0, GassingEntryPace);
@@ -716,8 +939,7 @@ namespace
 
 			unsigned int DurationMs = 0;
 			double PaceMultiplier = 1.0;
-			if (!StumbleRule.TryRoll(Stats.Confidence, Stats.Fatigue, EventRandom, DurationMs, PaceMultiplier))
-				return;
+			StumbleRule.RollEffect(StumbleRandom, DurationMs, PaceMultiplier);
 
 			StumbleUntilMs = TimeMs + DurationMs;
 			StumblePaceMultiplier = PaceMultiplier;
@@ -751,14 +973,19 @@ namespace
 		{
 			using namespace Game::Race;
 
-			std::uniform_real_distribution<double> Unit(0.0, 1.0);
-			// Reuse one roll to make the two thought events mutually exclusive.
-			const double ThoughtRoll = Unit(EventRandom);
 			const double LostBeliefChance = LostBeliefRule.ChanceFor(Stats.Confidence);
+			const double BeliefChance = BeliefRule.ChancePerSecond(Stats.Confidence);
+			const double TotalChance = LostBeliefChance + BeliefChance;
+			if (TotalChance <= 0.0)
+				return;
+
+			std::uniform_real_distribution<double> Unit(0.0, TotalChance);
+			const bool IsLostBelief = Unit(ThoughtRandom) < LostBeliefChance;
 			unsigned int DurationMs = 0;
 			double PaceMultiplier = 1.0;
-			if (LostBeliefRule.TryRoll(Stats.Confidence, ThoughtRoll, EventRandom, DurationMs, PaceMultiplier))
+			if (IsLostBelief)
 			{
+				LostBeliefRule.RollEffect(ThoughtRandom, DurationMs, PaceMultiplier);
 				CloseThoughtNode(BeliefTimelineNode, TimeMs);
 				CloseThoughtNode(LostBeliefTimelineNode, TimeMs);
 				LostBeliefUntilMs = TimeMs + DurationMs;
@@ -768,9 +995,9 @@ namespace
 				LostBeliefTimelineNode = AddEvent(CreateEventRecord(RaceEventType::LostBelief,
 					TimeMs, DurationMs, PaceMultiplier));
 			}
-			else if (BeliefRule.TryRoll(Stats.Confidence, ThoughtRoll, EventRandom,
-				LostBeliefChance, DurationMs, PaceMultiplier))
+			else
 			{
+				BeliefRule.RollEffect(ThoughtRandom, DurationMs, PaceMultiplier);
 				CloseThoughtNode(LostBeliefTimelineNode, TimeMs);
 				CloseThoughtNode(BeliefTimelineNode, TimeMs);
 				BeliefUntilMs = TimeMs + DurationMs;
@@ -786,20 +1013,22 @@ namespace
 		{
 			using namespace Game::Race;
 
-			if (!Gassing || !SecondWindRule.TryRoll(Stats.Confidence, Stats.Luck, EventRandom))
+			if (!Gassing)
 				return;
 
 			// Restart endurance from the restored reserve, using a brief pace override to bridge the change.
 			CloseGassingEvent(TimeMs);
+			NextSecondWindEventTimeMs = std::numeric_limits<double>::infinity();
 			const double RestoredReserve = SecondWindRule.RestoredReserve(Stats.Confidence, Stats.Luck);
 			WindOverridePace = GassingEntryPace;
 			WindOverrideUntilMs = TimeMs + SecondWindEvent::PaceOverrideDurationMs;
 			WindOverrideActive = true;
 			Gassing = false;
 			EnduranceCycleStartMs = TimeMs;
-			EnduranceCycleDurationMs = std::max<double>(SimulationStepMs,
+			EnduranceCycleDurationMs = std::max<double>(MinimumMotionDurationMs,
 				Stats.FullEnduranceDurationMs * RestoredReserve);
 			EnduranceCycleReserve = RestoredReserve;
+			NextGassingTimeMs = CalculateNextGassingTime();
 			RaceTimelineNode* SecondWindNode = AddEvent(CreateEventRecord(RaceEventType::SecondWind,
 				TimeMs, 0, RestoredReserve));
 			SecondWindNode->EndTimeMs = TimeMs + SecondWindEvent::PaceOverrideDurationMs;
@@ -810,8 +1039,7 @@ namespace
 			using namespace Game::Race;
 
 			// A racer can pull up only while gassing, after a confidence- and composure-dependent limit.
-			if (!Gassing || !PullingUpRule.ShouldPullUp(TimeMs - GassingStartMs,
-				Stats.Confidence, Runner->Skills.Composure))
+			if (!Gassing || TimeMs + TimeBoundaryToleranceMs < GassingPullUpTimeMs)
 				return false;
 
 			const double GassingDurationMs = TimeMs - GassingStartMs;
@@ -829,76 +1057,56 @@ namespace
 			return true;
 		}
 
-		void ProcessEventChecks(double TimeMs)
-		{
-			// Run event rolls on the fixed one-second cadence independently of movement integration steps.
-			while (NextEventCheckMs <= TimeMs)
-			{
-				TryStumble(TimeMs);
-				TryThoughtEvent(TimeMs);
-				TrySecondWind(TimeMs);
-				NextEventCheckMs += EventIntervalMs;
-			}
-		}
-
-		bool AdvanceRace(double TimeMs)
+		void Simulate()
 		{
 			using namespace Game::Race;
 
-			const double NextTimeMs = std::min(TimeMs + SimulationStepMs, static_cast<double>(MaximumRaceDurationMs));
-			const double StepDurationMs = NextTimeMs - TimeMs;
-			const double PaceAtStart = CurrentPace(TimeMs);
-			const double PaceAtEnd = CurrentPace(NextTimeMs);
-			// Average endpoint paces, then interpolate a track crossing to its exact time within the step.
-			const double DistanceStep = (PaceAtStart + PaceAtEnd) * TrapezoidalIntegrationFactor *
-				StepDurationMs / MillisecondsPerSecond;
-
-			if (DistanceStep > 0.0 && Distance + DistanceStep >= TrackLength)
+			double TimeMs = 0.0;
+			while (TimeMs < MaximumRaceDurationMs)
 			{
-				const double Fraction = (TrackLength - Distance) / DistanceStep;
-				const double FinishTimeMs = TimeMs + StepDurationMs * Fraction;
-				Timeline.Finished = true;
-				Timeline.FinishTimeMs = FinishTimeMs;
-				if (AccelerationTimelineNode->EndTimeMs > FinishTimeMs)
+				if (ProcessEventsAtTime(TimeMs))
+					break;
+
+				const double NextTimeMs = GetNextBoundaryTime(TimeMs);
+				if (NextTimeMs <= TimeMs + TimeBoundaryToleranceMs)
+					break;
+
+				const double DistanceStep = IntegratePace(TimeMs, NextTimeMs);
+				if (DistanceStep > 0.0 && Distance + DistanceStep >= TrackLength)
 				{
-					AccelerationTimelineNode->EndTimeMs = FinishTimeMs;
-					AccelerationTimelineNode->EndPace = NormalPace(FinishTimeMs);
+					const double FinishTimeMs = FindFinishTime(TimeMs, NextTimeMs, TrackLength - Distance);
+					AppendMotionSegment(TimeMs, FinishTimeMs);
+					TimeMs = FinishTimeMs;
+					Timeline.Finished = true;
+					Timeline.FinishTimeMs = FinishTimeMs;
+					if (AccelerationTimelineNode->EndTimeMs > FinishTimeMs)
+					{
+						AccelerationTimelineNode->EndTimeMs = FinishTimeMs;
+						AccelerationTimelineNode->EndPace = NormalPace(FinishTimeMs);
+					}
+					Distance = TrackLength;
+					if (Gassing)
+						CloseGassingEvent(FinishTimeMs);
+
+					RaceTimelineNode FinishNode;
+					FinishNode.Type = RaceTimelineNodeType::Finish;
+					FinishNode.StartTimeMs = FinishTimeMs;
+					FinishNode.EndTimeMs = FinishTimeMs;
+					FinishNode.Distance = static_cast<double>(TrackLength);
+					FinishNode.StartPace = CurrentPace(FinishTimeMs);
+					FinishNode.EndPace = FinishNode.StartPace;
+					Timeline.Nodes.push_back(FinishNode);
+					break;
 				}
-				Distance = TrackLength;
-				if (Gassing)
-					CloseGassingEvent(FinishTimeMs);
 
-				RaceTimelineNode FinishNode;
-				FinishNode.Type = RaceTimelineNodeType::Finish;
-				FinishNode.StartTimeMs = FinishTimeMs;
-				FinishNode.EndTimeMs = FinishTimeMs;
-				FinishNode.Distance = static_cast<double>(TrackLength);
-				FinishNode.StartPace = CurrentPace(FinishTimeMs);
-				FinishNode.EndPace = FinishNode.StartPace;
-				Timeline.Nodes.push_back(FinishNode);
-				return true;
-			}
-
-			Distance += DistanceStep;
-			return false;
-		}
-
-		void Simulate()
-		{
-			// Resolve event transitions before the pull-up check and distance integration at each fixed step.
-			for (double TimeMs = 0.0; TimeMs < MaximumRaceDurationMs; TimeMs += SimulationStepMs)
-			{
-				CompleteStumbleIfDue(TimeMs);
-				StartGassingIfDue(TimeMs);
-				ProcessEventChecks(TimeMs);
-				if (TryPullUp(TimeMs))
-					break;
-				if (AdvanceRace(TimeMs))
-					break;
+				AppendMotionSegment(TimeMs, NextTimeMs);
+				Distance += DistanceStep;
+				TimeMs = NextTimeMs;
 			}
 
 			if (Gassing)
-				CloseGassingEvent(Timeline.Finished ? Timeline.FinishTimeMs : MaximumRaceDurationMs);
+				CloseGassingEvent(Timeline.Finished ? Timeline.FinishTimeMs :
+					Timeline.PulledUp ? Timeline.PullUpTimeMs : MaximumRaceDurationMs);
 		}
 
 		Game::Race::Racer* Runner;
@@ -907,7 +1115,9 @@ namespace
 		unsigned int TrackLength;
 		Game::Race::RacerRaceTimeline Timeline;
 		EffectiveRacerStats Stats;
-		std::mt19937 EventRandom;
+		std::mt19937 StumbleRandom;
+		std::mt19937 ThoughtRandom;
+		std::mt19937 SecondWindRandom;
 		GassingEvent GassingRule;
 		PullingUpEvent PullingUpRule;
 		StumbleEvent StumbleRule;
@@ -930,13 +1140,17 @@ namespace
 		double GassingStartMs = 0.0;
 		double GassingEntryPace = 0.0;
 		double GassingEntryBasePace = 0.0;
+		double GassingPullUpTimeMs = 0.0;
+		double NextStumbleEventTimeMs = std::numeric_limits<double>::infinity();
+		double NextThoughtEventTimeMs = std::numeric_limits<double>::infinity();
+		double NextSecondWindEventTimeMs = std::numeric_limits<double>::infinity();
+		double NextGassingTimeMs = std::numeric_limits<double>::infinity();
 		bool Gassing = false;
 		Game::Race::RaceTimelineNode* AccelerationTimelineNode = nullptr;
 		Game::Race::RaceTimelineNode* StumbleTimelineNode = nullptr;
 		Game::Race::RaceTimelineNode* GassingTimelineNode = nullptr;
 		Game::Race::RaceTimelineNode* LostBeliefTimelineNode = nullptr;
 		Game::Race::RaceTimelineNode* BeliefTimelineNode = nullptr;
-		unsigned int NextEventCheckMs = EventIntervalMs;
 		double Distance = 0.0;
 	};
 }
@@ -1073,8 +1287,13 @@ bool Game::Race::Race::Contains(RacerGUID Guid)
 }
 
 Game::Race::Race::Race()
+	: Race(static_cast<unsigned int>(std::rand()))
+{
+}
+
+Game::Race::Race::Race(unsigned int RaceSeed)
 	: TimelineReady(false), ConditionsApplied(false), Complete(false), PlaybackTimeMs(0.0), TimelineDurationMs(0.0),
-	LockedSeed(0), LockedTrackLength(0), Seed(static_cast<unsigned int>(std::rand())), CurrentTick(0), ThisTrack(new Track())
+	LockedSeed(0), LockedTrackLength(0), Seed(RaceSeed), CurrentTick(0), ThisTrack(std::make_shared<Track>())
 {
 	GUID.GUID = Seed;
 	Result.GUID = GUID;
@@ -1148,6 +1367,18 @@ bool Game::Race::Race::GetTimelineStateAt(const Racer* Runner, double TimeMs, Ra
 	return true;
 }
 
+bool Game::Race::Race::GetTimelinePositionAt(const Racer* Runner, double TimeMs, double& Position) const
+{
+	const RacerRaceTimeline* Timeline = GetTimelineFor(Runner);
+	if (Timeline == nullptr || !std::isfinite(TimeMs))
+		return false;
+
+	const double TimelineEndTimeMs = Timeline->Finished ? Timeline->FinishTimeMs :
+		Timeline->PulledUp ? Timeline->PullUpTimeMs : TimelineDurationMs;
+	Position = GetTimelineDistanceAt(*Timeline, std::clamp(TimeMs, 0.0, TimelineEndTimeMs));
+	return true;
+}
+
 Game::Race::RaceError Game::Race::Race::Precompute()
 {
 	// Lock race inputs, precompute every entrant, and assemble shared playback data before playback begins.
@@ -1160,6 +1391,7 @@ Game::Race::RaceError Game::Race::Race::Precompute()
 	}
 
 	LockedTrackLength = static_cast<unsigned int>(ThisTrack->Length);
+	Result.TrackLength = LockedTrackLength;
 	if (LockedTrackLength == 0)
 	{
 		Result.Error = RaceError::ZeroLengthTrack;
@@ -1342,6 +1574,33 @@ void Game::Race::Race::RecordResultsThrough(double TimeMs)
 	}
 }
 
+double Game::Race::Race::GetTimelineDistanceAt(const RacerRaceTimeline& Timeline, double TimeMs) const
+{
+	if (Timeline.Finished && TimeMs >= Timeline.FinishTimeMs)
+		return static_cast<double>(LockedTrackLength);
+	if (Timeline.PulledUp && TimeMs >= Timeline.PullUpTimeMs)
+		return Timeline.PullUpDistance;
+	if (Timeline.MotionSegments.empty())
+		return 0.0;
+
+	auto Segment = std::upper_bound(Timeline.MotionSegments.begin(), Timeline.MotionSegments.end(), TimeMs,
+		[](double Time, const RaceMotionSegment& Entry)
+		{
+			return Time < Entry.StartTimeMs;
+		});
+	if (Segment != Timeline.MotionSegments.begin())
+		--Segment;
+
+	const double TargetTimeMs = std::clamp(TimeMs, Segment->StartTimeMs, Segment->EndTimeMs);
+	const auto PacePerMillisecond = [&Timeline](double Time)
+	{
+		return EvaluateTimelinePlaybackState(Timeline, Time).Pace / MillisecondsPerSecondDouble;
+	};
+	const double Distance = Segment->StartDistance +
+		IntegrateMotionSegment(PacePerMillisecond, Segment->StartTimeMs, TargetTimeMs);
+	return std::clamp(Distance, 0.0, static_cast<double>(LockedTrackLength));
+}
+
 void Game::Race::Race::UpdatePlaybackStateAt(double TimeMs)
 {
 	for (RacerRaceTimeline& Timeline : Timelines)
@@ -1349,72 +1608,13 @@ void Game::Race::Race::UpdatePlaybackStateAt(double TimeMs)
 		if (Timeline.Entrant == nullptr)
 			continue;
 
-		const bool HasTerminalTime = Timeline.Finished || Timeline.PulledUp;
-		const double TerminalTimeMs = Timeline.Finished ? Timeline.FinishTimeMs : Timeline.PullUpTimeMs;
-		const double TargetTimeMs = HasTerminalTime ? std::min(TimeMs, TerminalTimeMs) : TimeMs;
-		// Consume complete fixed intervals once, regardless of the caller's playback tick size.
-		while (Timeline.PlaybackIntegratedTimeMs + SimulationStepMs <= TargetTimeMs)
-		{
-			const double StepStartMs = Timeline.PlaybackIntegratedTimeMs;
-			const double StepEndMs = StepStartMs + SimulationStepMs;
-			if (HasTerminalTime && StepEndMs > TerminalTimeMs)
-				break;
+		const double TerminalTimeMs = Timeline.Finished ? Timeline.FinishTimeMs :
+			Timeline.PulledUp ? Timeline.PullUpTimeMs : TimelineDurationMs;
+		const double SampleTimeMs = std::clamp(TimeMs, 0.0, TerminalTimeMs);
+		const double Distance = GetTimelineDistanceAt(Timeline, SampleTimeMs);
+		const TimelinePlaybackState State = EvaluateTimelinePlaybackState(Timeline, SampleTimeMs);
 
-			const TimelinePlaybackState StartState = EvaluateTimelinePlaybackState(Timeline, StepStartMs);
-			const TimelinePlaybackState EndState = EvaluateTimelinePlaybackState(Timeline, StepEndMs, false);
-			Timeline.PlaybackDistance += (StartState.Pace + EndState.Pace) * TrapezoidalIntegrationFactor *
-				SimulationStepMs / MillisecondsPerSecond;
-			Timeline.PlaybackIntegratedTimeMs = StepEndMs;
-		}
-
-		double Distance = Timeline.PlaybackDistance;
-		TimelinePlaybackState State;
-		if (Timeline.Finished && TimeMs >= Timeline.FinishTimeMs)
-		{
-			Distance = static_cast<double>(LockedTrackLength);
-			Timeline.PlaybackDistance = Distance;
-			Timeline.PlaybackIntegratedTimeMs = Timeline.FinishTimeMs;
-			State = EvaluateTimelinePlaybackState(Timeline, Timeline.FinishTimeMs);
-		}
-		else if (Timeline.PulledUp && TimeMs >= Timeline.PullUpTimeMs)
-		{
-			Distance = Timeline.PullUpDistance;
-			Timeline.PlaybackDistance = Distance;
-			Timeline.PlaybackIntegratedTimeMs = Timeline.PullUpTimeMs;
-			State = EvaluateTimelinePlaybackState(Timeline, Timeline.PullUpTimeMs);
-		}
-		else if (Timeline.PlaybackIntegratedTimeMs < TargetTimeMs)
-		{
-			// Interpolate the remaining partial interval while respecting the entrant's terminal time.
-			const double StepStartMs = Timeline.PlaybackIntegratedTimeMs;
-			const double GridStepEndMs = StepStartMs + SimulationStepMs;
-			const bool EndsDuringStep = HasTerminalTime && GridStepEndMs > TerminalTimeMs;
-			const double StepEndMs = EndsDuringStep ? TerminalTimeMs : GridStepEndMs;
-			const double StepDurationMs = StepEndMs - StepStartMs;
-			const double Fraction = StepDurationMs > 0.0 ? (TargetTimeMs - StepStartMs) / StepDurationMs : 0.0;
-			const TimelinePlaybackState StartState = EvaluateTimelinePlaybackState(Timeline, StepStartMs);
-			const TimelinePlaybackState EndState = EvaluateTimelinePlaybackState(Timeline, StepEndMs);
-			const TimelinePlaybackState IntegrationEndState = EvaluateTimelinePlaybackState(Timeline, StepEndMs, false);
-			if (Timeline.Finished && EndsDuringStep)
-			{
-				Distance += (static_cast<double>(LockedTrackLength) - Distance) * Fraction;
-			}
-			else
-			{
-				const double StepDistance = (StartState.Pace + IntegrationEndState.Pace) * TrapezoidalIntegrationFactor *
-					StepDurationMs / MillisecondsPerSecond;
-				Distance += StepDistance * Fraction;
-			}
-			State.Pace = StartState.Pace + (EndState.Pace - StartState.Pace) * Fraction;
-			State.Endurance = StartState.Endurance + (EndState.Endurance - StartState.Endurance) * Fraction;
-			State.ActiveEffects = StartState.ActiveEffects;
-		}
-		else
-		{
-			State = EvaluateTimelinePlaybackState(Timeline, TargetTimeMs);
-		}
-
-		Timeline.Entrant->Pos.X = static_cast<int>(std::lround(std::clamp(Distance, 0.0, static_cast<double>(LockedTrackLength))));
+		Timeline.Entrant->Pos.X = static_cast<int>(std::lround(Distance));
 		Timeline.Entrant->Pos.Velocity = State.Pace;
 		Timeline.CurrentEndurance = State.Endurance;
 		Timeline.ActiveEffects = State.ActiveEffects;
@@ -1473,15 +1673,17 @@ Game::Race::RaceStatus Game::Race::Race::Tick(unsigned int Ms, RaceStatus Type)
 
 Game::Race::RaceResult Game::Race::Race::Sim()
 {
-	// Reuse Tick so one-shot simulation and animated playback resolve the same timeline identically.
 	if (Precompute() != RaceError::None)
 		return Result;
 	if (Complete)
 		return Result;
 
-	RaceStatus Status = FinishedCount() > 0 ? RaceStatus::Finishing : RaceStatus::Racing;
-	while (Status != RaceStatus::Finished && Status != RaceStatus::Failed)
-		Status = Tick(RaceTickIntervalMs, Status);
+	PlaybackTimeMs = TimelineDurationMs;
+	CurrentTick = ToMilliseconds(PlaybackTimeMs);
+	UpdatePlaybackStateAt(PlaybackTimeMs);
+	RecordResultsThrough(PlaybackTimeMs);
+	Complete = true;
+	ApplyPersistentConditions();
 	return Result;
 }
 
@@ -1489,6 +1691,7 @@ void Game::Race::Race::Reset()
 {
 	Result.RacerResults.clear();
 	Result.GUID = GUID;
+	Result.TrackLength = 0;
 	Result.Error = RaceError::None;
 	Timelines.clear();
 	LockedEntrants.clear();
@@ -1532,6 +1735,8 @@ std::string Game::Race::RaceErrorToString(RaceError Error)
 		return "Cannot precompute a race without a track.";
 	case RaceError::ZeroLengthTrack:
 		return "Cannot precompute a race with a zero-length track.";
+	case RaceError::SimulationFailed:
+		return "Career race simulation failed.";
 	default:
 		return "Unknown race error.";
 	}

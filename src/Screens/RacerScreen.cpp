@@ -4,6 +4,8 @@
 #include "..\Render\RaceCurveVisualization.h"
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
+#include <sstream>
 #include <string>
 
 namespace
@@ -24,12 +26,12 @@ namespace
 	constexpr int RacerScreenConditionsPanelHeight = 170;
 	constexpr int RacerScreenProfilePanelHeight = 218;
 	constexpr int RacerScreenDetailsPanelTop = 326;
-	constexpr int RacerScreenDetailsPanelHeight = 134;
-	constexpr int RacerScreenCurvesPanelTop = 476;
-	constexpr int RacerScreenCurvesPanelHeight = 154;
-	constexpr int RacerScreenCurvePlotTop = 506;
-	constexpr int RacerScreenCurvePlotHeight = 72;
-	constexpr int RacerScreenCurveTitleTop = 488;
+	constexpr int RacerScreenDetailsPanelHeight = 164;
+	constexpr int RacerScreenCurvesPanelTop = 496;
+	constexpr int RacerScreenCurvesPanelHeight = 134;
+	constexpr int RacerScreenCurvePlotTop = 526;
+	constexpr int RacerScreenCurvePlotHeight = 54;
+	constexpr int RacerScreenCurveTitleTop = 508;
 	constexpr int RacerScreenCurveLegendTop = 589;
 	constexpr int RacerScreenHeaderTop = 26;
 	constexpr int RacerScreenSkillTitleTop = 112;
@@ -74,6 +76,8 @@ namespace
 	constexpr int RacerScreenDetailTitleTop = 342;
 	constexpr int RacerScreenDetailFirstRowTop = 370;
 	constexpr int RacerScreenDetailSecondRowTop = 414;
+	constexpr int RacerScreenDetailRecordTop = 449;
+	constexpr int RacerScreenDetailRaceHistoryTop = 466;
 	constexpr int RacerScreenDetailSecondColumnOffset = 155;
 	constexpr int RacerScreenDetailThirdColumnOffset = 310;
 	constexpr int RacerScreenDetailValueVerticalOffset = 17;
@@ -110,6 +114,17 @@ namespace
 		const SDL_FRect AccentBounds{ Bounds.x, Bounds.y, RacerScreenPanelAccentWidth, Bounds.h };
 		SDL_SetRenderDrawColor(Renderer, AccentColor.r, AccentColor.g, AccentColor.b, AccentColor.a);
 		SDL_RenderFillRect(Renderer, &AccentBounds);
+	}
+
+	std::string FormatBestTime(unsigned int TimeMs)
+	{
+		if (TimeMs == 0)
+			return "n/a";
+
+		std::ostringstream FormattedTime;
+		FormattedTime << std::fixed << std::setprecision(2) <<
+			static_cast<double>(TimeMs) / 1000.0 << 's';
+		return FormattedTime.str();
 	}
 
 	void DrawRacerScreenBar(Game::Render::BaseRenderer& Renderer, Game::Render::AppRenderContext* Context,
@@ -333,6 +348,30 @@ unsigned int Game::Render::RacerScreenRenderer::Render()
 		RacerScreenRightColumnX + RacerScreenDetailThirdColumnOffset, RacerScreenDetailFirstRowTop);
 	DrawRacerScreenDetail(*this, Context, "CAREER CASH", "$" + std::to_string(RacerProfile->Financials.Cash),
 		RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenDetailSecondRowTop);
+	RenderText(Context->Store.GetFont(FontAssetDebugFont),
+		"Career " + std::to_string(Runner.CareerRecord.Wins) + "W / " +
+		std::to_string(Runner.CareerRecord.Losses) + "L   Best " +
+		FormatBestTime(Runner.CareerRecord.BestTimeMs),
+		RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenDetailRecordTop, RacerScreenMutedTextColor);
+	if (Runner.CareerRecord.History.empty())
+		RenderText(Context->Store.GetFont(FontAssetDebugFont), "No race history yet",
+			RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenDetailRaceHistoryTop,
+			RacerScreenMutedTextColor);
+	else
+	{
+		constexpr std::uint64_t MillisecondsPerWorldDay = 86400000;
+		const Game::Race::RacerCareerHistoryEntry& LastRace = Runner.CareerRecord.History.back();
+		const std::string Place = LastRace.Position == Game::Race::PulledUpPosition
+			? "DNF" : "#" + std::to_string(LastRace.Position);
+		const std::string Distance = LastRace.TrackLength == 0 ? "?m" :
+			std::to_string(LastRace.TrackLength * 100 /
+				static_cast<unsigned int>(Game::Race::TrackLength::Standard100m)) + "m";
+		RenderText(Context->Store.GetFont(FontAssetDebugFont),
+			"Last: Day " + std::to_string(LastRace.WorldTimeMs / MillisecondsPerWorldDay + 1) + " " +
+			Place + " " + Distance,
+			RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenDetailRaceHistoryTop,
+			RacerScreenMutedTextColor);
+	}
 
 	const SDL_FRect CurvesPanel{ static_cast<float>(RacerScreenRightColumnX),
 		static_cast<float>(RacerScreenCurvesPanelTop), static_cast<float>(RacerScreenPanelWidth),

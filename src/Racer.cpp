@@ -1,8 +1,10 @@
 #include "Racer.h"
 #include <algorithm>
+#include <array>
 #include <random>
 #include <cmath>
 #include <cstdlib>
+#include <limits>
 
 using namespace Game;
 using namespace Game::Race;
@@ -28,6 +30,7 @@ namespace
 	constexpr double WeightHeightCoefficientKg = 9.0;
 	constexpr double WeightResidualStandardDeviationKg = 7.3;
 	constexpr unsigned int MillisecondsPerSecond = 1000;
+	constexpr std::size_t RacerCareerHistoryLimit = 256;
 	constexpr double AnimationBaseFrameTimeMs = 350.0;
 	constexpr double AnimationFrameTimeReductionPerPace = 0.1;
 	constexpr double MinimumAnimationFrameTimeMs = 80.0;
@@ -37,6 +40,10 @@ namespace
 	constexpr double CurveSubdivisionCount = 2.0;
 	constexpr unsigned int DescendingCurveSeedSalt = 0x9e3779b9u;
 	constexpr double MinimumAccelerationP1Y = 0.4;
+	constexpr std::uint64_t RaceEntryXp = 10;
+	constexpr std::uint64_t FirstPlaceXpBonus = 15;
+	constexpr std::uint64_t SecondPlaceXpBonus = 10;
+	constexpr std::uint64_t ThirdPlaceXpBonus = 5;
 
 	unsigned int GenerateRating(std::mt19937& Generator, std::normal_distribution<double>& Distribution,
 		unsigned int Minimum, unsigned int Maximum)
@@ -44,6 +51,63 @@ namespace
 		const long RoundedValue = std::lround(Distribution(Generator));
 		return static_cast<unsigned int>(std::clamp(RoundedValue,
 			static_cast<long>(Minimum), static_cast<long>(Maximum)));
+	}
+
+	double EvaluateBezierCoordinate(double Parameter, double Start, double First, double Second, double End)
+	{
+		const double Remaining = 1.0 - Parameter;
+		return Remaining * Remaining * Remaining * Start +
+			BezierControlPointWeight * Remaining * Remaining * Parameter * First +
+			BezierControlPointWeight * Remaining * Parameter * Parameter * Second +
+			Parameter * Parameter * Parameter * End;
+	}
+
+	double EvaluateBezierDerivative(double Parameter, double Start, double First, double Second, double End)
+	{
+		const double Remaining = 1.0 - Parameter;
+		return BezierControlPointWeight * Remaining * Remaining * (First - Start) +
+			2.0 * BezierControlPointWeight * Remaining * Parameter * (Second - First) +
+		BezierControlPointWeight * Parameter * Parameter * (End - Second);
+	}
+
+	double InvertBezierCoordinate(double Value, double Start, double First, double Second, double End, bool Increasing)
+	{
+		double Low = 0.0;
+		double High = 1.0;
+		double Parameter = std::clamp((Value - Start) / (End - Start), 0.0, 1.0);
+		for (unsigned int Iteration = 0; Iteration < 8; ++Iteration)
+		{
+			const double Coordinate = EvaluateBezierCoordinate(Parameter, Start, First, Second, End);
+			const double Error = Coordinate - Value;
+			if (std::abs(Error) <= 1e-14)
+				return Parameter;
+
+			if (Increasing ? Coordinate < Value : Coordinate > Value)
+				Low = Parameter;
+			else
+				High = Parameter;
+
+			const double Derivative = EvaluateBezierDerivative(Parameter, Start, First, Second, End);
+			double Candidate = Derivative != 0.0 ? Parameter - Error / Derivative :
+				std::numeric_limits<double>::quiet_NaN();
+			if (!std::isfinite(Candidate) || Candidate <= Low || Candidate >= High)
+				Candidate = (Low + High) / CurveSubdivisionCount;
+			Parameter = Candidate;
+		}
+
+		for (unsigned int Iteration = 0; Iteration < CurveInversionIterations; ++Iteration)
+		{
+			Parameter = (Low + High) / CurveSubdivisionCount;
+			const double Coordinate = EvaluateBezierCoordinate(Parameter, Start, First, Second, End);
+			if (std::abs(Coordinate - Value) <= 1e-14)
+				return Parameter;
+
+			if (Increasing ? Coordinate < Value : Coordinate > Value)
+				Low = Parameter;
+			else
+				High = Parameter;
+		}
+		return (Low + High) / CurveSubdivisionCount;
 	}
 }
 
@@ -86,23 +150,74 @@ void Game::Race::Racer::Reset()
 	this->Pos.Velocity = 0.0;
 }
 
+void Game::Race::Racer::RecordCareerResult(unsigned int Position, unsigned int FinishTimeMs)
+{
+	++CareerRecord.RacesEntered;
+	Skills.Xp += RaceEntryXp;
+	if (Position == 1)
+	{
+		++CareerRecord.Wins;
+		CareerRecord.PositionPoints += 3;
+		Skills.Xp += FirstPlaceXpBonus;
+	}
+	else
+	{
+		++CareerRecord.Losses;
+		if (Position == 2)
+		{
+			CareerRecord.PositionPoints += 2;
+			Skills.Xp += SecondPlaceXpBonus;
+		}
+		else if (Position == 3)
+		{
+			++CareerRecord.PositionPoints;
+			Skills.Xp += ThirdPlaceXpBonus;
+		}
+	}
+
+	if (FinishTimeMs > 0 && (CareerRecord.BestTimeMs == 0 || FinishTimeMs < CareerRecord.BestTimeMs))
+		CareerRecord.BestTimeMs = FinishTimeMs;
+}
+
+void Game::Race::Racer::RecordCareerResult(unsigned int Position, unsigned int FinishTimeMs,
+	const RacerCareerHistoryEntry& HistoryEntry)
+{
+	RecordCareerResult(Position, FinishTimeMs);
+
+	RacerCareerHistoryEntry RecordedEntry = HistoryEntry;
+	RecordedEntry.Position = Position;
+	RecordedEntry.FinishTimeMs = FinishTimeMs;
+	CareerRecord.History.push_back(RecordedEntry);
+	if (CareerRecord.History.size() > RacerCareerHistoryLimit)
+		CareerRecord.History.erase(CareerRecord.History.begin());
+}
+
 Game::Race::RacerNameMaker::RacerNameMaker()
 {
 	FirstNames =
 	{
-		"Larry", "Barry", "Steve", "Mickey Boy", "Don", "Fat Steve", "Terry", "Darren", "Mick", "Phil", "Bill",
-		"Johnson", "Ian", "Nigel", "Colin", "Nathan", "Adam", "Josh","Davey", "David", "Dave", "Dim Clive",
-		"Clive", "Clifford", "Jimmy", "Jimbob", "Seth", "Ivan", "Dudley", "McLovin", "Potle", "Woozle", "Elvis",
-		"Elmer", "Jussie", "James",
-		"Pong Whiffy", "Peter"
+		"Alfie", "Andrew", "Archie", "Arthur", "Barry", "Ben", "Callum", "Cameron", "Charlie", "Colin",
+		"Connor", "Craig", "Daniel", "Darren", "David", "Dean", "Edward", "Elliot", "Ewan", "Finlay",
+		"Frank", "Freddie", "Gareth", "George", "Graham", "Harry", "Ian", "Jack", "James", "Jamie",
+		"John", "Josh", "Lewis", "Liam", "Luke", "Martin", "Matthew", "Michael", "Mick", "Nathan",
+		"Neil", "Nigel", "Oliver", "Owen", "Peter", "Phil", "Reece", "Richard", "Robert", "Rory",
+		"Ryan", "Samuel", "Scott", "Sean", "Shaun", "Simon", "Stephen", "Stuart", "Terry", "Thomas",
+		"Timothy", "Toby", "William"
 	};
 
 	SecondNames =
 	{
-		"Routledge", "Philips", "Johnson", "Andrews", "Munster", "Jones", "Smith", "Burns", "Simpson", "Mickleover",
-		"Romero", "Kerridge", "Fenwick", "Bittlesby", "MacGregor", "Batty", "Harris", "Harrison", "Smithwick",
-		"Chibley", "Schneebly", "Bobert", "Jamieson", "Leeds", "Lawrence", "Nigelson", "Trevors", "Redbridge",
-		"Brooks", "Battersby", "Clark", "Ramsay", "Berry", "Beard", "Redford", "Cousins", "Chapman", "Boobles"
+		"Andrews", "Atkinson", "Battersby", "Bennett", "Booth", "Bradshaw", "Briggs", "Brooks", "Burns",
+		"Campbell", "Cartwright", "Chapman", "Clark", "Clarke", "Clegg", "Cooper", "Cousins", "Curran",
+		"Davies", "Denton", "Dodd", "Douglas", "Dunne", "Edwards", "Elliott", "Evans", "Fenwick",
+		"Fletcher", "Foster", "Galloway", "Graham", "Greaves", "Hall", "Harding", "Harris", "Harrison",
+		"Hartley", "Hargreaves", "Hutton", "Irving", "Jackson", "Jamieson", "Jones", "Kelly", "Kerridge",
+		"Kershaw", "Lancaster", "Lawrence", "Lawson", "Leach", "MacGregor", "McAllister", "McBride",
+		"McKenna", "McLean", "McNally", "Mercer", "Metcalfe", "Milner", "Mitchell", "Morley", "Murray",
+		"Needham", "O'Neill", "Parkinson", "Patterson", "Pearson", "Pennington", "Philips", "Pritchard",
+		"Ramsay", "Rawlings", "Redford", "Redbridge", "Rigby", "Robson", "Routledge", "Rowe", "Shepherd",
+		"Simpson", "Simmonds", "Sinclair", "Smith", "Spencer", "Sykes", "Tate", "Thompson", "Thorpe",
+		"Tindall", "Walker", "Walsh", "Watson", "Whittaker", "Wilcox", "Williams", "Wilson", "Yates"
 	};
 }
 
@@ -122,13 +237,20 @@ Racer* Game::Race::RacerDB::Make(std::string Name)
 				: new Racer(Name);
 
 	// Retry random identifiers that are already in use so each database entry stays addressable.
-	while (Container.find((R->GUID.GUID = rand())) != Container.end())
+	do
 	{
-	}
+		R->GUID.GUID = static_cast<unsigned int>(rand());
+	} while (R->GUID.GUID == 0 || Container.find(R->GUID.GUID) != Container.end());
 
 	Container.insert(make_pair(R->GUID.GUID, R));
 
 	return R;
+}
+
+Game::Race::RacerDB::~RacerDB()
+{
+	for (const auto& Entry : Container)
+		delete Entry.second;
 }
 
 Racer* Game::Race::RacerDB::Get(unsigned int GUID)
@@ -137,6 +259,32 @@ Racer* Game::Race::RacerDB::Get(unsigned int GUID)
 		return nullptr;
 
 	return Container.find(GUID)->second;
+}
+
+const Game::Race::Racer* Game::Race::RacerDB::Get(unsigned int GUID) const
+{
+	const auto Racer = Container.find(GUID);
+	return Racer == Container.end() ? nullptr : Racer->second;
+}
+
+std::vector<Game::Race::Racer*> Game::Race::RacerDB::GetAll() const
+{
+	std::vector<Racer*> Racers;
+	Racers.reserve(Container.size());
+	for (const auto& Entry : Container)
+		Racers.push_back(Entry.second);
+	std::sort(Racers.begin(), Racers.end(), [](const Racer* Left, const Racer* Right)
+		{
+			if (Left->Name != Right->Name)
+				return Left->Name < Right->Name;
+			return Left->GUID.GUID < Right->GUID.GUID;
+		});
+	return Racers;
+}
+
+std::size_t Game::Race::RacerDB::Size() const
+{
+	return Container.size();
 }
 
 void Game::Race::RacerDB::Add(Racer* R)
@@ -226,22 +374,70 @@ Game::Race::RaceCurve Game::Race::RaceCurve::Generate(unsigned int Seed, bool De
 
 double Game::Race::RaceCurve::Evaluate(double Time) const
 {
-	// Invert the Bezier x-coordinate so the curve can be sampled by elapsed-time fraction.
 	Time = std::clamp(Time, 0.0, 1.0);
 	if (Time == 0.0) return Descending ? 1.0 : 0.0;
 	if (Time == 1.0) return Descending ? 0.0 : 1.0;
-	double Low = 0.0, High = 1.0;
-	for (unsigned int I = 0; I < CurveInversionIterations; ++I)
+	const double Parameter = InvertBezierCoordinate(Time, 0.0, X1, X2, 1.0, true);
+	return EvaluateBezierCoordinate(Parameter, Descending ? 1.0 : 0.0, Y1, Y2, Descending ? 0.0 : 1.0);
+}
+
+double Game::Race::RaceCurve::TimeAtValue(double Value) const
+{
+	Value = std::clamp(Value, 0.0, 1.0);
+	const double Start = Descending ? 1.0 : 0.0;
+	const double End = Descending ? 0.0 : 1.0;
+	if (Value == Start)
+		return 0.0;
+	if (Value == End)
+		return 1.0;
+	const double Parameter = InvertBezierCoordinate(Value, Start, Y1, Y2, End, !Descending);
+	return EvaluateBezierCoordinate(Parameter, 0.0, X1, X2, 1.0);
+}
+
+double Game::Race::RaceCurve::Integrate(double StartTime, double EndTime) const
+{
+	if (!std::isfinite(StartTime) || !std::isfinite(EndTime))
+		return 0.0;
+	StartTime = std::clamp(StartTime, 0.0, 1.0);
+	EndTime = std::clamp(EndTime, 0.0, 1.0);
+	if (StartTime == EndTime)
+		return 0.0;
+	if (StartTime > EndTime)
+		return -Integrate(EndTime, StartTime);
+
+	const double StartValue = Descending ? 1.0 : 0.0;
+	const double EndValue = Descending ? 0.0 : 1.0;
+	const double StartParameter = InvertBezierCoordinate(StartTime, 0.0, X1, X2, 1.0, true);
+	const double EndParameter = InvertBezierCoordinate(EndTime, 0.0, X1, X2, 1.0, true);
+	const std::array<double, 4> YCoefficients =
 	{
-		const double T = (Low + High) / CurveSubdivisionCount;
-		const double S = 1.0 - T;
-		const double X = BezierControlPointWeight * S * S * T * X1 + BezierControlPointWeight * S * T * T * X2 + T * T * T;
-		if (X < Time) Low = T; else High = T;
+		StartValue,
+		BezierControlPointWeight * (Y1 - StartValue),
+		BezierControlPointWeight * (StartValue - 2.0 * Y1 + Y2),
+		-StartValue + BezierControlPointWeight * Y1 - BezierControlPointWeight * Y2 + EndValue
+	};
+	const std::array<double, 3> XDerivativeCoefficients =
+	{
+		BezierControlPointWeight * X1,
+		2.0 * BezierControlPointWeight * (X2 - 2.0 * X1),
+		BezierControlPointWeight * (1.0 + 3.0 * X1 - 3.0 * X2)
+	};
+	std::array<double, 6> ProductCoefficients{};
+	for (std::size_t YIndex = 0; YIndex < YCoefficients.size(); ++YIndex)
+		for (std::size_t XIndex = 0; XIndex < XDerivativeCoefficients.size(); ++XIndex)
+			ProductCoefficients[YIndex + XIndex] += YCoefficients[YIndex] * XDerivativeCoefficients[XIndex];
+
+	double Integral = 0.0;
+	double StartPower = StartParameter;
+	double EndPower = EndParameter;
+	for (std::size_t Degree = 0; Degree < ProductCoefficients.size(); ++Degree)
+	{
+		Integral += ProductCoefficients[Degree] * (EndPower - StartPower) /
+			static_cast<double>(Degree + 1);
+		StartPower *= StartParameter;
+		EndPower *= EndParameter;
 	}
-	const double T = (Low + High) / CurveSubdivisionCount;
-	const double S = 1.0 - T;
-	return S * S * S * (Descending ? 1.0 : 0.0) + BezierControlPointWeight * S * S * T * Y1 +
-		BezierControlPointWeight * S * T * T * Y2 + T * T * T * (Descending ? 0.0 : 1.0);
+	return Integral;
 }
 
 Racer* Game::Race::RacerMaker::Make()

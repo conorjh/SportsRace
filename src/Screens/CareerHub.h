@@ -12,15 +12,19 @@ namespace Game
 		class CareerHubScreen : public AppScreen
 		{
 			Career::CareerOrchestrator Orchestrator;
+			bool PlayerCreationPending = false;
 		public:
 			GUI::IconButton RacerIcon, RaceIcon, TrainingIcon, RankingIcon;
+			GUI::Button RacerDBButton, WorldMapButton, LeagueBrowserButton;
 
-			CareerHubScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data);
+			CareerHubScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data,
+				bool _PlayerCreationPending = false);
 			~CareerHubScreen();
 
 			void Entry(), Exit();
 
 			AppScreen* Update();
+			Career::CareerData* GetCareerData() const;
 		};
 	}
 

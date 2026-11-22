@@ -2,8 +2,10 @@
 #include "NodeViewScreen.h"
 #include "..\Race.h"
 #include "..\App\App.h"
+#include "spdlog/spdlog.h"
 #include <cmath>
 #include <string>
+#include <utility>
 
 namespace
 {
@@ -47,43 +49,87 @@ namespace
 		return Text;
 	}
 
-	void SavePlayerRaceResult(Game::App::AppData& Data, Game::Race::Race& CurrentRace, Game::Race::RacerGUID PlayerGUID)
+	void SavePlayerRaceResult(Game::App::AppData& Data, Game::Race::Race& CurrentRace,
+		Game::Race::RacerGUID PlayerGUID, bool& ResultSaved)
 	{
-		if (Data.Profile == nullptr)
+		if (ResultSaved)
 			return;
 
 		Game::Race::Racer* Player = CurrentRace.Get(PlayerGUID);
-		if (Player == nullptr || !CurrentRace.IsPrecomputed())
+		if (Player == nullptr)
 			return;
 
-		if (!CurrentRace.IsComplete())
-			CurrentRace.Sim();
+		const Game::Race::RaceResult RaceResult = CurrentRace.Sim();
+		if (RaceResult.Error != Game::Race::RaceError::None)
+		{
+			spdlog::error("Could not save career race results: {}",
+				Game::Race::RaceErrorToString(RaceResult.Error));
+			if (Data.Career != nullptr && Data.Profile != nullptr)
+			{
+				Game::Career::CareerOrchestrator Orchestrator(Data.Career, Data.Profile);
+				Orchestrator.CompletePlayerLeagueRace(RaceResult);
+			}
+			return;
+		}
 		if (!CurrentRace.IsComplete())
 			return;
 
-		// Settle the player's entry fee and placing prize only after the race outcome is final.
-		Data.Profile->Financials.Cash -= CurrentRace.Financials.EntranceFee;
+		bool PlayerResultFound = false;
 		for (const auto& Result : CurrentRace.Result.RacerResults)
 		{
+			if (Result.Racer == nullptr)
+				continue;
+
+			const bool Finished = Result.Position != Game::Race::PulledUpPosition;
+			Game::Race::RacerCareerHistoryEntry HistoryEntry;
+			HistoryEntry.WorldTimeMs = Data.Career == nullptr ? 0 : Data.Career->WorldClock.NowMs();
+			HistoryEntry.EventName = Data.Career != nullptr &&
+				Data.Career->PendingPlayerLeagueRace.Active
+				? Data.Career->PendingPlayerLeagueRace.EventName : "Career Race";
+			HistoryEntry.TrackLength = CurrentRace.Result.TrackLength;
+			HistoryEntry.Position = Result.Position;
+			HistoryEntry.FinishTimeMs = Finished ? Result.Ms : 0;
+			Result.Racer->RecordCareerResult(Result.Position, HistoryEntry.FinishTimeMs, HistoryEntry);
 			if (Result.Racer != Player)
 				continue;
 
-			if (Result.Position == Game::Race::FirstPlaceRank)
-				Data.Profile->Financials.Cash += CurrentRace.Financials.FirstPlacePrize;
-			else if (Result.Position == Game::Race::SecondPlaceRank)
-				Data.Profile->Financials.Cash += CurrentRace.Financials.SecondPlacePrize;
-			else if (Result.Position == Game::Race::ThirdPlaceRank)
-				Data.Profile->Financials.Cash += CurrentRace.Financials.ThirdPlacePrize;
-			break;
+			PlayerResultFound = true;
+			if (Data.Profile != nullptr)
+			{
+				// Settle entry fees and placing prizes only after the final result is known.
+				Data.Profile->Financials.Cash -= CurrentRace.Financials.EntranceFee;
+				if (Result.Position == Game::Race::FirstPlaceRank)
+					Data.Profile->Financials.Cash += CurrentRace.Financials.FirstPlacePrize;
+				else if (Result.Position == Game::Race::SecondPlaceRank)
+					Data.Profile->Financials.Cash += CurrentRace.Financials.SecondPlacePrize;
+				else if (Result.Position == Game::Race::ThirdPlaceRank)
+					Data.Profile->Financials.Cash += CurrentRace.Financials.ThirdPlacePrize;
+			}
+		}
+		if (!PlayerResultFound)
+		{
+			spdlog::error("Could not save career race results: the player's result is missing.");
+			if (Data.Career != nullptr && Data.Profile != nullptr)
+			{
+				Game::Career::CareerOrchestrator Orchestrator(Data.Career, Data.Profile);
+				Orchestrator.CompletePlayerLeagueRace(CurrentRace.Result);
+			}
+			return;
 		}
 
+		if (Data.Career != nullptr && Data.Profile != nullptr)
+		{
+			Game::Career::CareerOrchestrator Orchestrator(Data.Career, Data.Profile);
+			Orchestrator.CompleteUpcomingRace(CurrentRace.Result);
+		}
 		Data.RaceStateOutput = CurrentRace.Result;
+		ResultSaved = true;
 	}
 }
 
 Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer) 
 	: AppScreen(_Machine, _IO, _Data), 
-	RaceSM(*new Race::Race())
+	RaceSM(std::make_shared<Race::RaceStateMachine>(Race::Race()))
 {
 	Type = AppScreenType::RaceScreen;
 	LastFrameEnd = SDL_GetTicks();
@@ -91,7 +137,7 @@ Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppI
 
 Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun) 
 	:AppScreen(_Machine, _IO, _Data), 
-	RaceSM(RaceToRun)
+	RaceSM(std::make_shared<Race::RaceStateMachine>(std::move(RaceToRun)))
 {
 	Type = AppScreenType::RaceScreen;
 	ShowNodeViewOnComplete = true;
@@ -100,12 +146,24 @@ Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppI
 
 Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun, Race::RacerGUID PlayerRacer) 
 	: AppScreen(_Machine, _IO, _Data), 
-	RaceSM(RaceToRun)
+	RaceSM(std::make_shared<Race::RaceStateMachine>(std::move(RaceToRun)))
 {
 	Type = AppScreenType::RaceScreen;
 	LastFrameEnd = SDL_GetTicks();
 	PlayerGUID = PlayerRacer;
 	PlayerRacerSupplied = true;
+	ShowNodeViewOnComplete = true;
+}
+
+Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO,
+	App::AppData& _Data, const std::shared_ptr<Career::CareerWorldRace>& WorldRace)
+	: AppScreen(_Machine, _IO, _Data),
+	RaceSM(WorldRace->StateMachine)
+{
+	Type = AppScreenType::RaceScreen;
+	LastFrameEnd = SDL_GetTicks();
+	ShowNodeViewOnComplete = true;
+	IsWorldRaceViewer = true;
 }
 
 Game::Screens::RaceScreen::~RaceScreen()
@@ -129,10 +187,10 @@ Game::Screens::AppScreen* Game::Screens::RaceScreen::Update()
 	using namespace Game::Audio;
 
 	// Consume fixed-size race ticks to keep simulation cadence independent of render frame rate.
-	while (SDL_GetTicks() > LastFrameEnd + RaceTickIntervalMs)
+	while (!IsWorldRaceViewer && SDL_GetTicks() > LastFrameEnd + RaceTickIntervalMs)
 	{
-		auto OldType = RaceSM.State->Type;
-		auto NewType = RaceSM.Tick(RaceTickIntervalMs);
+		auto OldType = RaceSM->State->Type;
+		auto NewType = RaceSM->Tick(RaceTickIntervalMs);
 		LastFrameEnd += RaceTickIntervalMs;
 
 		if (NewType != OldType && NewType == RaceStateType::Racing)
@@ -142,10 +200,14 @@ Game::Screens::AppScreen* Game::Screens::RaceScreen::Update()
 		}
 
 	}
-	if (ShowNodeViewOnComplete && !NodeViewShown && RaceSM.State->Type == RaceStateType::Finished)
+	if (ShowNodeViewOnComplete && !NodeViewShown && RaceSM->State->Type == RaceStateType::Finished)
 	{
+		if (PlayerRacerSupplied)
+		{
+			SavePlayerRaceResult(Data, RaceSM->Data.ThisRace, PlayerGUID, PlayerRaceResultSaved);
+		}
 		NodeViewShown = true;
-		ScreenStack.Push(new NodeViewScreen(ScreenStack, IO, Data, RaceSM.Data.ThisRace));
+		ScreenStack.Push(new NodeViewScreen(ScreenStack, IO, Data, RaceSM->Data.ThisRace));
 		return ScreenStack.Top();
 	}
 
@@ -154,7 +216,7 @@ Game::Screens::AppScreen* Game::Screens::RaceScreen::Update()
 		IO.Player.Play(BuiltInSounds::Click);
 
 		if (PlayerRacerSupplied)
-			SavePlayerRaceResult(Data, RaceSM.Data.ThisRace, PlayerGUID);
+			SavePlayerRaceResult(Data, RaceSM->Data.ThisRace, PlayerGUID, PlayerRaceResultSaved);
 
 		//go back to main menu
 		ScreenStack.Pop();
@@ -163,7 +225,6 @@ Game::Screens::AppScreen* Game::Screens::RaceScreen::Update()
 
 	return this;
 }
-
 
 Game::Render::RaceScreenRenderer::RaceScreenRenderer(Game::Render::AppRenderContext* Context) 
 	: Screen(nullptr), 
@@ -211,7 +272,7 @@ void Game::Render::RaceScreenRenderer::DrawRacer(const Race::Racer& Racer, unsig
 		xOffset = 150 - Camera.CameraX > 0 ? 150 - Camera.CameraX : 0;
 	const int XDraw = xOffset + Racer.Pos.X -
 		Camera.CameraX - static_cast<int>(StaggerOffset);
-	const unsigned int ActiveEffects = Screen->RaceSM.Data.ThisRace.GetActiveEffects(&Racer);
+	const unsigned int ActiveEffects = Screen->RaceSM->Data.ThisRace.GetActiveEffects(&Racer);
 	const bool PulledUp = (ActiveEffects & RaceEffectPulledUp) != 0;
 	const bool Stumbling = (ActiveEffects & RaceEffectStumble) != 0;
 	const auto RunningImageId = Stumbling ? Assets::ImageAssetFellaStumble : Assets::ImageAssetFellaRun;
@@ -220,7 +281,7 @@ void Game::Render::RaceScreenRenderer::DrawRacer(const Race::Racer& Racer, unsig
 	SDL_Rect RenderQuad = { XDraw, static_cast<int>(yOffset), RacerSpriteFrameWidth, RacerSpriteFrameHeight };
 
 	SDL_Rect RenderQuad2 = { XDraw  ,  yOffset + 79, 144,107 };
-	if (Screen->RaceSM.State->Type == RaceStateType::StartersOrders || PulledUp)
+	if (Screen->RaceSM->State->Type == RaceStateType::StartersOrders || PulledUp)
 		RenderImage(Context->Store.GetImage(Assets::ImageAssetFellaWait)->Texture, NULL, &RenderQuad2);	//starters orders
 	else
 	{
@@ -244,7 +305,7 @@ void Game::Render::RaceScreenRenderer::DrawRacer(const Race::Racer& Racer, unsig
 void Game::Render::RaceScreenRenderer::DrawWinners()
 {
 	using namespace std;
-	auto& Race = Screen->RaceSM.Data.ThisRace;
+	auto& Race = Screen->RaceSM->Data.ThisRace;
 	const auto& Results = Race.Result.RacerResults;
 
 	// Keep standings hidden until the career racer's outcome is known; full completion also resolves a pull-up.
@@ -354,7 +415,7 @@ void Game::Render::RaceScreenRenderer::DrawProgressBar()
 	SDL_RectToFRect(&fillRect, &fillRectF);
 	SDL_RenderFillRect(Context->MainRenderer, &fillRectF);
 
-	auto& Race = Screen->RaceSM.Data.ThisRace;
+	auto& Race = Screen->RaceSM->Data.ThisRace;
 	const unsigned int TrackLength = Race.GetTrackLength();
 	if (TrackLength == 0)
 		return;
@@ -383,7 +444,7 @@ unsigned int Game::Render::RaceScreenRenderer::Render()
 	//start timer
 	auto StartTime = SDL_GetTicks();
 
-	auto& CurrentRace = Screen->RaceSM.Data.ThisRace;
+	auto& CurrentRace = Screen->RaceSM->Data.ThisRace;
 	Camera.TrackLength = CurrentRace.GetTrackLength();
 	Race::Racer* PlayerRacer = Screen->HasPlayerRacer() && CurrentRace.Contains(Screen->PlayerGUID)
 		? CurrentRace.Get(Screen->PlayerGUID) : nullptr;
@@ -402,7 +463,7 @@ unsigned int Game::Render::RaceScreenRenderer::Render()
 	DrawBackground();
 
 	//draw racers
-	const auto& Racers = Screen->RaceSM.Data.ThisRace.GetEntrants();
+	const auto& Racers = Screen->RaceSM->Data.ThisRace.GetEntrants();
 	for (std::size_t t = 0; t < Racers.size(); ++t)
 		if (Racers[t] != nullptr)
 			DrawRacer(*Racers[t], static_cast<unsigned int>(t));
@@ -410,8 +471,6 @@ unsigned int Game::Render::RaceScreenRenderer::Render()
 	DrawProgressBar();
 
 	DrawWinners();
-
-
 	RenderDebugText();
 
 	Display();
@@ -422,23 +481,23 @@ unsigned int Game::Render::RaceScreenRenderer::Render()
 void Game::Render::RaceScreenRenderer::RenderDebugText()
 {
 	using namespace std;
-	auto* Winner = Screen->RaceSM.Data.ThisRace.CurrentWinner();
+	auto* Winner = Screen->RaceSM->Data.ThisRace.CurrentWinner();
 
 	//top right
 	string Body = "AppScreen: " + AppStateTypeToString(Screen->Type) + "\n" +
-		"RaceState: " + RaceStateTypeToString(Screen->RaceSM.State->Type) + "\n" + (Screen->RaceSM.State->Type == Game::Race::RaceStateType::Failed ? "Race error: " + Game::Race::RaceErrorToString(Screen->RaceSM.Data.ThisRace.Result.Error) + "\n" : std::string()) +
-		"Finished: " + to_string(Screen->RaceSM.Data.ThisRace.FinishedCount()) + "\n" +
+		"RaceState: " + RaceStateTypeToString(Screen->RaceSM->State->Type) + "\n" + (Screen->RaceSM->State->Type == Game::Race::RaceStateType::Failed ? "Race error: " + Game::Race::RaceErrorToString(Screen->RaceSM->Data.ThisRace.Result.Error) + "\n" : std::string()) +
+		"Finished: " + to_string(Screen->RaceSM->Data.ThisRace.FinishedCount()) + "\n" +
 		"Leader: " + (Winner != nullptr ? Winner->Name : "-") + "\n" +
-		"Entrance Fee: " + to_string(Screen->RaceSM.Data.ThisRace.Financials.EntranceFee) + "\n" +
-		"1st Prize: " + to_string(Screen->RaceSM.Data.ThisRace.Financials.FirstPlacePrize) + "\n" +
+		"Entrance Fee: " + to_string(Screen->RaceSM->Data.ThisRace.Financials.EntranceFee) + "\n" +
+		"1st Prize: " + to_string(Screen->RaceSM->Data.ThisRace.Financials.FirstPlacePrize) + "\n" +
 		"Camera.CameraX: " + to_string(Camera.CameraX) + "\n" +
 		"Camera.CameraX2: " + to_string(Camera.CameraX2) + "\n";
 	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), Body, 850, 10, {255,0,0});
 
 	//middle top
-	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "CurrentTick: " + to_string(Screen->RaceSM.Data.CurrentTick), 400, 10, { 255,255,255 });
+	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "CurrentTick: " + to_string(Screen->RaceSM->Data.CurrentTick), 400, 10, { 255,255,255 });
 	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "SDL_GetTicks(): " + to_string(SDL_GetTicks()), 400, 22, { 255,255,255 });
-	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "Race.CurrentTick: " + to_string(Screen->RaceSM.Data.ThisRace.CurrentTick), 400, 34, { 255,255,255 });
+	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "Race.CurrentTick: " + to_string(Screen->RaceSM->Data.ThisRace.CurrentTick), 400, 34, { 255,255,255 });
 
 	//top left
 	//if (Data->ShowFPS)	//TODO FIXME

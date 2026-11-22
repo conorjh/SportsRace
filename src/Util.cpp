@@ -65,7 +65,7 @@ void Game::GUI::Button::Update()
 		Color = { 0, 0, 0, 255 };
 }
 
-bool Game::GUI::Button::IsMouseOver()
+bool Game::GUI::Button::IsMouseOver() const
 {
 	SDL_Point MousePositionInt;
 
@@ -77,7 +77,7 @@ bool Game::GUI::Button::IsMouseOver()
 
 bool Game::GUI::Button::HasMouseClicked()
 {
-	return IsMouseOver() && SDL_BUTTON_MASK(IO.MouseButtons) == 1;
+	return IsMouseOver() && (IO.MouseButtonsPressed & SDL_BUTTON_LMASK) != 0;
 }
 
 Game::GUI::IconButton::IconButton(App::AppIO& _IO, IconButtonType _Type, int _x, int _y, int _w, int _h) 
@@ -120,5 +120,5 @@ bool Game::GUI::IconButton::IsMouseOver()
 
 bool Game::GUI::IconButton::HasMouseClicked()
 {
-	return IsMouseOver() && IO.MouseButtons == 1;
+	return IsMouseOver() && (IO.MouseButtonsPressed & SDL_BUTTON_LMASK) != 0;
 }

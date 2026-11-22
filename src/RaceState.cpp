@@ -1,9 +1,5 @@
 #include "RaceState.h"
-#include "SDL3/SDL.h"
 #include "spdlog/spdlog.h"
-#include "Audio.h"
-#include "App\App.h"
-#include "Screens\MainMenu.h"
 #include <string>
 
 namespace
@@ -35,8 +31,20 @@ Game::Race::RaceStateMachine::RaceStateMachine(Race TheRace) : Data(TheRace), St
     Push(new RaceState_PreRace(Data));
 }
 
+Game::Race::RaceStateMachine::~RaceStateMachine()
+{
+    if (State != nullptr)
+    {
+        State->Exit();
+        delete State;
+    }
+}
+
 Game::Race::RaceStateType Game::Race::RaceStateMachine::Tick(unsigned int TickTimeMs)
 {
+    if (State == nullptr)
+        return RaceStateType::Failed;
+
     Data.CurrentTick += TickTimeMs;
 
     // A state returns itself to continue or a new state to transition; discard the old state on transition.
@@ -45,8 +53,10 @@ Game::Race::RaceStateType Game::Race::RaceStateMachine::Tick(unsigned int TickTi
 
     if (OldState != NewState)
     {
+        OldState->Exit();
         State = NewState;
         delete OldState;
+        State->Entry();
     }
 
     return State->Type;

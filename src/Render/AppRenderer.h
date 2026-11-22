@@ -9,6 +9,13 @@
 #include "..\Screens\CareerHub.h"
 #include "..\Screens\RacerScreen.h"
 #include "..\Screens\RankingScreen.h"
+#include "..\Screens\RacerDBScreen.h"
+#include "..\Screens\OptionsScreen.h"
+#include "..\Screens\WorldMapScreen.h"
+#include "..\Screens\LeagueBrowserScreen.h"
+#include "..\Screens\BuildingScreen.h"
+#include "..\Screens\SlotMachineScreen.h"
+#include "..\Screens\RouletteScreen.h"
 
 namespace Game
 {
@@ -22,8 +29,15 @@ namespace Game
 				Game::Render::RaceScreenRenderer InRaceRen;
 				Game::Render::NodeViewRenderer NodeViewRen;
 				Game::Render::CareerHubRenderer CareerHubRen;
+				Game::Render::WorldMapRenderer WorldMapRen;
+				Game::Render::BuildingScreenRenderer BuildingRen;
+				Game::Render::SlotMachineScreenRenderer SlotMachineRen;
+				Game::Render::RouletteScreenRenderer RouletteRen;
 				Game::Render::RacerScreenRenderer RacerScreenRen;
 				Game::Render::RankingScreenRenderer RankingScreenRen;
+				Game::Render::RacerDBScreenRenderer RacerDBScreenRen;
+				Game::Render::LeagueBrowserRenderer LeagueBrowserRen;
+				Game::Render::OptionsScreenRenderer OptionsScreenRen;
 
 				Game::App::AppData* Data;
 			public:

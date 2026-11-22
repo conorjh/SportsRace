@@ -3,7 +3,7 @@
 > **Document status:** Draft
 > **Owner:** TBD
 > **Version:** 0.1
-> **Last updated:** 2026-11-14
+> **Last updated:** 2026-12-01
 > **Repository / project:** SportsRace
 
 > **How to use this template:** Replace bracketed text with project-specific information. Remove sections that do not apply, or mark them **Not applicable**. Clearly label ideas as **confirmed**, **proposed**, or **open** so the document distinguishes decisions from unresolved ideas.
@@ -16,7 +16,7 @@ SportsRace is a satirical sports-business sandbox built around stats-driven foot
 
 ### Elevator pitch
 
-Players inhabit a continuously simulated racing world and choose how to make money: own, breed, develop, buy, sell, and race runners; bet on or fix races; or own businesses such as bookies, tracks, and other venues. Races are shared events at the center of the world: players can enter them, bet on any race, or watch any active race from a bookie. Single-player uses AI agents; a longer-term multiplayer version adds network clients to the same simulation engine.
+Players inhabit a continuously simulated racing world and choose how to make money: own, breed, develop, buy, sell, and race runners; bet on or fix races; or own businesses such as bookies, tracks, and other venues. Races are shared events at the center of the world: players can enter them, bet on races, or watch an active race at its track. Single-player uses AI agents; a longer-term multiplayer version adds network clients to the same simulation engine.
 
 | Item | Description |
 |---|---|
@@ -89,7 +89,7 @@ Make a living in a satirical foot-racing world framed by British horse-racing cu
 **Target world gameplay loop (proposed):**
 
 1. Pursue one or more ways to make money: own, breed, develop, buy, sell, or race runners; bet on or fix races; or operate bookies, tracks, gyms, and other venues.
-2. Use the world and its buildings to act: enter a scheduled or open race, bet on a race, or watch an active race from a bookie.
+2. Use the world and its buildings to act: enter a scheduled or open race, bet on a race, or watch an active race at its track.
 3. Resolve every race type as a stats-driven simulation; race results determine placings, prizes, and betting outcomes.
 4. Earn and spend money on runner purchases, development and care, race entries, performance-enhancing drugs, and businesses or venues. Larger leagues and championships pay more.
 5. Purchase activity licenses at dedicated buildings to unlock restricted activities.
@@ -104,7 +104,7 @@ Make a living in a satirical foot-racing world framed by British horse-racing cu
 
 ### Control scheme
 
-Players navigate and interact primarily by clicking. Both left-click and right-click are used; their exact actions by context remain to be specified.
+Players navigate and interact primarily with the mouse. Left-click enters an available building or activates a visible control; actions trigger once on the click edge. Hold right-click over a city plot for 300 ms to reveal its information panel. Escape or a visible Back control returns to the previous screen.
 
 ### Camera and view
 
@@ -112,7 +112,7 @@ The world map uses a top-down 2D view. Race simulations are shown in a side-on 2
 
 ### Interaction rules
 
-Deferred. Contextual interactions, selection, confirmation, cancellation, and other shared rules will be specified later.
+City buildings open with a left-click; vacant and scenery plots do not. A held right-click reveals a plot's name, type, and track length or availability. Building actions use single click-edge activation. Gym and dance activities accept their on-screen mouse controls. Escape or Back closes the current screen without selecting another action.
 
 ## 6. Gameplay systems and mechanics
 
@@ -189,7 +189,7 @@ These are temporary race effects; persistent runner conditions are listed under 
 |---|---|
 | Confidence modifier | During a race, Confidence provides a small temporary bonus to all effective runner stats without changing base stats; exact bonus scaling remains TBD. |
 | Stumble | Race-only event that temporarily reduces pace for a short, randomly determined duration and plays the stumble animation while active. At the end, the runner continues from the reduced pace along their acceleration curve instead of snapping back to their pre-stumble pace. Its trigger rate is increased; higher Fatigue and lower Confidence increase its odds. Exact odds, pace loss, and duration remain TBD. |
-| Second Wind | While Gassing, the runner rolls once per second for Second Wind. The base chance is 0.01%; Confidence adds up to 0.125 percentage points and Luck up to 0.25 percentage points, for a maximum of 0.385% per roll. On success, Gassing ends, pace is overridden to its pre-Gassing level for one 50 ms simulation step, and Endurance reserve is restored to 35–50% of its full amount. Luck adds up to 5 percentage points and Confidence up to 10 percentage points to the 35% base restoration. The “Second wind” label remains visible for one second. A later depletion can start another Gassing period and allow another Second Wind; there is no race-wide restoration cap. |
+| Second Wind | While Gassing, Second Wind is sampled as a continuous-time event with the stated per-second chance: the base chance is 0.01%; Confidence adds up to 0.125 percentage points and Luck up to 0.25 percentage points, for a maximum of 0.385% per second. On success, Gassing ends, pace is overridden to its pre-Gassing level for 50 ms, and Endurance reserve is restored to 35–50% of its full amount. Luck adds up to 5 percentage points and Confidence up to 10 percentage points to the 35% base restoration. The “Second wind” label remains visible for one second. A later depletion can start another Gassing period and allow another Second Wind; there is no race-wide restoration cap. |
 | Pulling up | A runner pulls up if a continuous Gassing period reaches its limit: 1 second when both Composure and Confidence are zero, up to 5 seconds when both are at their maximum. The limit interpolates linearly from the mean of normalized Composure (0–100) and Confidence (0–1). A Second Wind ends that Gassing period and its timer; a later Gassing period starts a new timer. A pull-up stops the runner, records a “Pulled-up” result without a numeric placing or placing prize, and does not stop the remaining runners. |
 | Lost Belief (working name) | Race-only condition that lowers pace; it can occur only below 0.2 Confidence, with lower Confidence increasing its odds. |
 | Believes in Self (working name) | Positive race-only trait that raises pace through a small stat boost; it can occur only above 0.8 Confidence, with higher Confidence increasing its odds. |
@@ -204,7 +204,7 @@ Players can fix races. Amateur and unlicensed races have no chance of detecting 
 
 #### Race flow and resolution
 
-1. **Entry and lock:** Scheduled races close entry at their start. Open races start when the minimum entrant count is reached; that count remains TBD. Entrants, track, finish distance, and race seed lock at that point. Racer stats, conditions, and curve handles remain unchanged during the race and are read directly from each entrant.
+1. **Entry and lock:** Career-world races start only with a six-runner field. Other race modes close entry at their configured start. Entrants, track, finish distance, and race seed lock at that point. Racer stats, conditions, and curve handles remain unchanged during the race and are read directly from each entrant.
 2. **Runner timeline:** Initialize each runner at distance zero and evaluate the Acceleration and Endurance curves using the entrant's existing stats, conditions, and curves. Derive effective stats for the race without changing base stats. Use the race seed for event rolls; trigger timing and simultaneous-effect priority remain open.
 3. **Movement and finish or pull-up:** At each event boundary, update active effects and calculate effective pace from the curve state and those effects. Integrate effective pace between boundaries to update distance; a runner finishes when its distance reaches the track's finish distance. A runner that remains Gassing beyond its Composure/Confidence-based limit pulls up and stops; other runners continue. Record distance, pace, active effects, and event times throughout the race.
 4. **Race result:** Resolve the complete timeline before playback. Rank finishers by finish time and record pulled-up runners as “Pulled-up” without a numeric placing. Pass the results to the world simulation. Tie, disqualification, and other non-finish rules remain open.
@@ -212,49 +212,57 @@ Players can fix races. Amateur and unlicensed races have no chance of detecting 
 
 ### World simulation
 
-The world simulation maintains the region, runner roster, and buildings around the race simulation. It supplies race entrants and facilities, and applies race results to related systems such as development, rewards, betting, and progression.
+The world simulation maintains the region, racer roster, venues, leagues, and live races. Before player creation, a new career simulates its first 30 world days (one in-game month) to build race history. The initial shared roster contains 1,000 racers: two belong to the player and 998 act autonomously. AI racers start with $1,000 and receive a location, cash balance, and activity state. The world calendar advances at 24x, so one real hour equals one world day; league schedules and seasons use this accelerated clock. Travel, training, recovery, and background race ticks use elapsed real time, so those activities are not accelerated with the calendar. Bankrupt racers retire, and each retirement immediately creates one replacement so the active AI population remains stable. Independent background races advance in parallel; the main simulation thread applies completed results and updates shared league and economy state.
+
+The initial league world has one 20-racer league in each of Divisions 1-4; the AI population is assigned to additional regional amateur leagues as 20-place lobbies fill, with an open lobby kept available. The player can join a filling amateur lobby from the League Browser; AI entrants fill remaining places before its season starts, and a new lobby opens when one fills. The Browser also lets the player race their next scheduled fixture; each player race is a normal six-runner event and settles the paired league fixtures, racer histories, and AI finances. Full leagues run a 190-fixture round robin across the city's tracks. The top four enter a generated playoff bracket; season changes include promotion and relegation, and licensed amateur racers can progress into Division 4. Amateur racers seek $2,000 in savings before travelling to the license office and paying $1,000 for a racing license. Every world race has exactly six entrants, and tracks have no per-track concurrent-race cap. For paired fixtures and playoffs, only the designated league opponents determine the result; extra field entrants still race normally but do not alter league progression. Scheduled league races and periodic open races use the normal `RaceStateMachine`; independent races tick in parallel, then their results are applied serially to standings, cash, records, and progression. The world map reports racer activity, and a track building opens a scrollable list of all live races, letting the player inspect an existing race rather than starting a duplicate simulation.
+
+Every race entry awards 10 XP; first, second, and third place earn 15, 10, and 5 additional XP respectively. A pulled-up runner receives only the entry XP. XP is a 64-bit career counter that accumulates beyond 100; it is not a 0-100 skill rating. Finishes award 3, 2, or 1 positional points for first, second, or third place. Every result updates races entered, wins, losses, points, XP, and best finish time. Each racer retains up to 256 recent race-history entries with the world day, event, track distance, placing, and finish time; the Racer Database exposes those entries in a history view. The RacerDB rank is ordered by positional points, then wins, XP, best time, name, and racer ID. The world also retains a bounded history of race events for live-race viewing.
+
+Press F3 to open the temporary career debug menu from any screen. Its spawn action adds five named AI racers to the active world; those racers receive starting cash, a location, and normal career-world scheduling.
 
 #### World map
 
-Each world is a randomly generated region containing tracks and buildings. The accelerated calendar runs while the server is online, including when no players are connected, and pauses during downtime. One in-game day per real hour is a candidate rate; the final conversion is deferred to prototyping. Each region includes at least one premium gym and multiple lower-quality gyms. Other map-generation rules and the full building list remain open.
+Each world starts as a randomly generated 8x5 city grid with municipal scenery, five vacant lots, a gym, bookmaker, license office, breeding clinic, player stable, and 50 race tracks for the initial 998 AI racers. Track count grows proportionally at one per 20 AI racers; vacant lots and scenery are converted first, then additional rows can be explored by scrolling the map. The world clock advances at 24x (one world day per real hour) while the career is running; live race ticks and timed racer activities use real elapsed time. An original illustrated borough map is released under CC0 at `media/city/sportsrace-borough-map.svg` and loaded from the rasterized `media/city/sportsrace-borough-map.png` because the current SDL_image build does not enable SVG. Kenney Isometric Tiles City graphics remain in use for city scenery, venue icons, and building backdrops under CC0. Their separate license notes are in `media/city/sportsrace-borough-map-LICENSE.txt` and `media/city/LICENSE.txt`. Hold right-click on a plot to inspect it; left-click enters an available building. Scenery is unavailable and vacant lots are not yet buildable. Each city track receives a generated length of 100, 200, 250, 500, or 1,000 metres and has no concurrent-race cap.
 
 #### Runner roster and ownership
 
-Players can own, buy, sell, and enter runners. Race participation awards every finisher growth across physical stats, scaled by finishing position and capped by Potential; race-based growth is faster than gym-based growth. Exact growth rates, placement scaling, runner-market rules, and ownership details remain open for prototyping.
+Players can own and enter runners; the two starter runners remain part of the shared 1,000-racer database, while the stable filters to player-owned runners. AI runners have independent cash and league membership, and can train, travel, rest, race, earn a racing license, retire, and be replaced. Breeding adds its offspring to both the population database and the owned stable. Acquiring, buying, and selling runners remain future work. Race participation awards every finisher growth across physical stats, scaled by finishing position and capped by Potential; race-based growth is faster than gym-based growth. Exact growth rates, placement scaling, and market rules remain open for prototyping.
 
 #### Training and recuperating (gym)
 
-Gyms provide runner training and recovery. Players choose training focus through machines; standard machines target one stat, while higher-quality machines may affect multiple but never all stats. Rest and gym use recover Fatigue and Injury; gym recovery is faster and paid. Gym owners can buy machines and earn membership fees. Machine types, effects, purchase prices, membership fees, and recovery rates remain open.
+The prototype gym has three point-and-click minigames for an owned runner: a five-rep treadmill timing game trains Endurance, a narrower timing window on the weights trains Acceleration, and a five-direction dance sequence trains Reflex, Composure, Acceleration, Endurance, and Speed when completed perfectly. Successful timing improves the focused stat by 0.2 per good rep and adds Fatigue; a perfect dance raises each of the five skills by 1. Skills remain capped at 100. Recovery, gym ownership, machine tiers, and membership fees remain future work.
 
 #### Breeding
 
-Breeding requires the breeding license. Offspring blend both parents' developable stats and hidden traits with random variation. Inheritance weights and further breeding rules remain open for prototyping.
+Breeding requires the breeding license. The prototype breeding clinic costs $1,000 per pairing and accepts two distinct owned runners. Offspring inherit the mean of both parents' skill ratings, Potential, Trainability, and Luck, with normally distributed mutation (standard deviation 4) clamped to 0-100; height and weight are averaged and the offspring starts at age zero. Inheritance weights, aging, and further breeding rules remain open for prototyping.
 
 #### Bookies and betting
 
-Players can bet on any race and watch any active race from a bookie. Bets close before a race starts; in-running bets are not allowed. Operating a bookie requires the bookie-operator license. Bookie odds, the pre-race cutoff, payouts, operating costs, and other bookie features remain open.
+The prototype bookmaker displays odds for the scheduled six-runner race and accepts a pre-race wager on one runner. It estimates each runner's strength directly from Speed, Acceleration, Reflex, Endurance, Composure, Luck, and race-day conditions; longer tracks shift weight from acceleration to endurance. Relative strength scores produce estimated win probabilities without simulating races. The bookmaker has 98% appraisal accuracy; a small deterministic estimation drift and a 10% house margin are applied when producing decimal odds. A wager is settled against the final race result. The screen also contains a $25 slot-machine minigame (a pair pays $50; three matching symbols pay $250) and $25 red/black European roulette (a winning color returns $50). Bookie operation and operating costs remain future work; live world races can be viewed at their track buildings. Placing a basic wager does not require the operator license.
 
 #### Licenses
 
-License buildings sell access licenses for licensed-league racing, breeding, bookie operation, and track operation. Licenses provide no player-stat bonuses. The racing license grants licensed-league access without a qualifier; basic betting, runner trading, amateur or unlicensed racing, and spectating remain available without licenses. Prices and other license rules remain open for prototyping.
+The player-facing license office sells four independent activity licenses: Racing ($500), Breeding ($1,000), Bookie Operator ($2,500), and Track Operator ($4,000). These are prototype prices and provide no player-stat bonuses. Basic betting remains available without a license; breeding is gated by the Breeding license. AI amateurs aim to save twice their $1,000 starting cash, then pay $1,000 for the racing license; licensed amateurs can qualify for Division 4 as league places open. Player entry into the AI league seasons and venue operation remain future work.
 
 #### Tracks
 
-Track buildings host races and may be player-owned; operating a track requires the track-operator license. Race formats and entry timing are described under Race flow and resolution. Track layouts, schedules, ownership rules, and other track features remain open.
+The generated city-track buildings host scheduled league races, periodic open races, and player events on generated 100-1,000 m distances. A track has no concurrent-race cap. Each building lists every active world race, with a scrollable list, and opens the shared race state at its current simulation time. Player events use a field matched by positional points until it is run; an open wager is settled after the finish. Track-operator licenses currently have no gameplay effect because player-owned venues are not implemented.
 
 #### Stat appraisal
 
-Appraisal provides deterministic, player-specific runner-stat estimates. Accuracy is fixed per player and strictly between 0% and 100%; a bounded bell-curve distribution is a candidate. Estimates use player identity and runner details, with accuracy controlling estimation error; perceived values are derived when inspected rather than saved. Distribution parameters and the error mapping are deferred to prototyping.
+Appraisal provides deterministic, player-specific runner-stat estimates. Each player profile receives a hidden Accuracy rating from 1% to 99%, fixed for that profile. Estimates use the player's appraisal identity and accuracy, the runner's identity, name CRC32, skills and body details, and the identity and base value of the inspected stat. The estimate is drawn from a normal distribution centered on the true rating, with standard deviation `(100 - Accuracy) * 0.25` rating points; the result is rounded and bounded to 0–100. At 100% accuracy the appraisal function returns the exact base rating. For example, 90% accuracy gives a 2.5-point standard deviation, making extreme estimates exceptionally unlikely for an ordinary mid-range stat.
+
+Appraisals are calculated when inspected and are never saved on the player or runner. Identical player, runner and stat inputs produce the same estimate; changing the runner's name or any current skill/body stat produces a new deterministic estimate. The current distribution mapping is an initial prototype value and remains subject to tuning.
 
 ## 7. Progression and rewards
 
 ### Player progression
 
-Players progress by pursuing chosen careers, acquiring activity licenses, and moving into higher-level competition. Activity-license rules and licensed-league access are specified in Section 6. License prices and league progression remain subject to prototyping.
+Players progress by pursuing chosen careers, acquiring activity licenses, and developing their owned runners. AI league progression is described below; player participation in those AI seasons, license balance, and rewards remain subject to prototyping.
 
 ### Content progression
 
-League and championship structures and schedules remain TBD. See Section 6 for race formats and activity access.
+The prototype has four 20-runner divisions and one regional amateur league that waits for 20 entrants. Each season uses a round-robin fixture list and a playoff bracket for the top four; season transitions promote and relegate division racers and allow licensed amateurs to progress into Division 4. League screens and fixture/bracket generation are implemented; player participation in these AI leagues remains future work.
 
 ### Rewards and economy
 
@@ -264,7 +272,7 @@ League and championship structures and schedules remain TBD. See Section 6 for r
 
 ### Save and persistence
 
-The server world must resume from its previous state after downtime. Save format, backup, and recovery rules are TBD.
+The long-term goal is for the server world to resume from its previous state after downtime. The current client and headless server keep career data in process memory; save format, backup, recovery, and offline progression are not implemented and remain TBD.
 
 ## 8. World, levels, and content
 
@@ -278,11 +286,13 @@ This section catalogs world content; gameplay rules for races and buildings are 
 
 | Content ID / name | Purpose | Key challenge | Unlock / prerequisites |
 |---|---|---|---|
-| Racetrack | Race venue; may be player-owned. | Track details remain open. | Track-operator license |
-| Bookie | Bookmaking and race-viewing venue; may be player-owned. | Business details remain open. | Bookie-operator license |
-| Gym | Runner training and recovery venue; may be player- or AI-owned. | Gym details remain open. | TBD |
+| Racetrack | Public amateur race venue with a generated track distance. | Track layout and ownership remain open. | None for prototype events |
+| Bookie | Predicted odds, pre-race wagers, slots, and roulette. | Business operation remains future work. | None for prototype activities |
+| Gym | Treadmill, weights, and dance training minigames. | Recovery and gym ownership remain future work. | None |
+| Breeding clinic | Breed two player-owned runners. | Inheritance and offspring generation; see Section 6. | Breeding license |
+| Player stable | Inspect player-owned racers and their records. | Starter stable contains two generated runners. | Career start |
 | License building | Sells activity licenses. | See Section 6. | Payment |
-| League / championship | Higher-level competition. | Series structure and schedules TBD. | Racing license; see Section 6 |
+| League / championship | Persistent AI league seasons across amateur and Divisions 1-4. | Round-robin fixtures, standings, playoffs, promotion/relegation. | Full 20-racer league; AI racing-license progression |
 
 ### Content variety and replayability
 
@@ -294,11 +304,24 @@ This section catalogs world content; gameplay rules for races and buildings are 
 
 | Screen / view | Purpose | Entry point | Main actions |
 |---|---|---|---|
-| [Screen] | [Purpose] | [How the player gets here] | [Available actions] |
+| Main menu | Start a standalone race or career, open display options, or exit. | Application start | Race, Career, Options, or Exit |
+| CareerHubScreen | Main career screen for racing, racer details, training, rankings, the population database, and city access. | Main menu > Career, after racer creation for a new career | Open a racer, race, training, ranking, database, world map, or League Browser |
+| WorldMapScreen | Navigate the generated career city, inspect plot details, and view live world activity. | CareerHubScreen > World map | Inspect the clock and racer activity; enter buildings; hold right-click for plot details; open the population database or League Browser |
+| BookiesScreen | View race odds and place wagers; open the slot machine or roulette. | World map > bookmaker | Select a runner and stake; open either dedicated game screen; return to the city |
+| SlotMachineScreen | Play the bookmaker's slot-machine game. | BookiesScreen > slot machine | Set a stake and spin; return to the bookmaker |
+| RouletteScreen | Play the bookmaker's roulette game. | BookiesScreen > roulette | Set a stake and place a bet; return to the bookmaker |
+| GymScreen | Train an owned runner with the treadmill, weights, or dance minigame. | World map > gym | Select a runner and station; complete the activity; return to the city |
+| LicenseOfficeScreen | Purchase activity licenses. | World map > license office | Review license costs and status; purchase an available license; return to the city |
+| BreedingFarmScreen | Breed two owned runners. | World map > breeding clinic | Select two parents and pay the service cost; return to the city |
+| RaceTrackScreen | Enter a player race or inspect live races on the selected city track. | World map > race track | Review the field and distance; start a player race or open a shared live race; return to the city |
+| LeagueBrowserScreen | Browse generated leagues, join an open amateur lobby, race the next player fixture, and inspect standings, fixtures, and playoff brackets. | CareerHubScreen or WorldMapScreen > League Browser | Select an open amateur league and join; race a scheduled player match; inspect the season schedule or bracket |
+| StableScreen | Inspect the player's owned runners. | World map > stable | Select a runner and review its profile; return to the city |
+| RacerDBScreen | Compare every generated runner in a scrollable, sortable leaderboard of records and appraised ratings, then inspect the selected runner's full report. | Career Hub or World map > Racer database | Sort by any displayed column; select a runner; drag the scrollbar or use the mouse wheel; temporarily hover over a stat to reveal its true base value for debugging; return to the previous career screen |
+| OptionsScreen | Change the windowed resolution and switch between windowed and desktop-fullscreen modes. | Main menu > Options | Choose a windowed-resolution preset; toggle fullscreen; resize the window; return to the main menu |
 
 ### Navigation flow
 
-[Insert a screen-flow diagram or describe the main navigation paths.]
+Main menu > Career > (new-career month simulation with progress) > racer creation > Career Hub. From Career Hub, open the world map or League Browser; tracks expose current races, and the browser exposes league standings, fixtures, playoffs, amateur enrollment, and playable player fixtures. The stable shows only player-owned runners; the database includes the full population. Use Career hub or Escape to return from the city, and Back or Escape to return from a building. Main menu > Options opens window-size and fullscreen controls. The game keeps a 1024 x 768 logical layout while scaling to resizable windows and fullscreen displays; display choices are currently runtime-only.
 
 ### HUD and information hierarchy
 
@@ -326,7 +349,8 @@ This section catalogs world content; gameplay rules for races and buildings are 
 
 | Asset | Use | Priority | Status / owner |
 |---|---|---|---|
-| [Asset] | [Where it appears] | [Must / Should / Could] | [Status] |
+| Kenney Isometric Tiles City | City-map plot imagery and building backdrops. | Should | Selected CC0 PNGs in `media/city`; source and license in `media/city/LICENSE.txt` |
+| SportsRace Borough Map | Illustrated world-map background. | Should | Original CC0 SVG source and runtime PNG in `media/city`; license in `media/city/sportsrace-borough-map-LICENSE.txt` |
 
 ## 11. Audio and music
 
@@ -344,7 +368,7 @@ Race commentary and brief interview segments carry the sporting satire. Intervie
 
 ## 12. AI and difficulty
 
-AI agents populate the single-player sandbox and may combine player-like careers rather than specialize. Their activity mix, priorities, and decision-making remain open.
+AI agents populate the single-player sandbox and may combine player-like careers rather than specialize. The current prototype simulates their cash, location, travel, training, recovery, license progression, league and open-race entry, retirement, and replacement. Decision priorities and economy balance remain open for tuning.
 
 - **Difficulty model:** TBD.
 - **Fairness/readability rules:** TBD.
@@ -382,13 +406,15 @@ AI agents populate the single-player sandbox and may combine player-like careers
 
 | Area | Requirement / decision | Owner / status |
 |---|---|---|
-| Engine / framework | [Technology] | [Owner / status] |
+| Engine / framework | C++ with SDL3; Visual Studio solution builds the client and related projects. | Implemented prototype |
 | Target hardware | [Minimum and recommended specs] | [Owner / status] |
 | Performance targets | [Frame rate, load times, memory, etc.] | [Owner / status] |
-| Data / save format | [High-level approach] | [Owner / status] |
-| Race simulation | Implement the race-flow rules in Section 6. | Proposed; event schema and storage structure remain implementation details |
+| Shared simulation | `SportRaceCore` is the static library shared by the client, tests, and headless host; it owns the race and career-world simulation. | Implemented prototype |
+| Headless host | `SportsRaceServer` runs the career simulation without the graphical client; it currently has no network transport. | Implemented prototype |
+| Data / save format | Career state is held in memory; persistent save and recovery are not implemented. | Open |
+| Race simulation | Implement the race-flow rules in Section 6. | Implemented; event schema and storage structure remain implementation details |
 | Race rendering | Implement the playback rules in Section 6. | Proposed; exact playback speed TBD |
-| AI and multiplayer | See Sections 12 and 13. | Proposed; network authority and replication TBD |
+| AI and multiplayer | AI racers operate in the client career and headless host; network authority and replication remain future work. | AI prototype implemented; networking TBD |
 | Third-party services | [Dependencies and constraints] | [Owner / status] |
 
 ### Content pipeline and tools
@@ -415,19 +441,26 @@ AI agents populate the single-player sandbox and may combine player-like careers
 | Deterministic race generation | Repeat full-race simulation with identical entrant inputs and seed; verify racer stats, conditions, and curves remain unchanged during the race. | Identical event timelines and results; after-race condition changes are applied only on completion |
 | Curve generation | Generate Acceleration and Endurance curves across runner seeds; sample each from normalized time 0 to 1; vary Acceleration, Speed, Endurance, and track length independently. | P0/P3 are fixed by curve type; P1/P2 reproduce for the same runner seed and vary across seeds; Acceleration P1.y is at least 0.4; Acceleration rises and Endurance falls monotonically; Acceleration reaches and holds its baseline Speed; Endurance drains reserve and scales pace from 100% at full to 20% at empty without changing Acceleration; Gassing starts at 10% reserve and holds reserve there until it ends; Endurance duration is unaffected by track length |
 | Race resolution order | Simulate known runner inputs and inspect the generated timeline, event boundaries, distance, and finish time before playback. | Entrant stats and conditions determine effective stats, curve timing, pace endpoints, and event odds; Reflex delay precedes Acceleration; Endurance depletes concurrently; event and Endurance transitions are applied before effective pace advances distance; finish time is the first track-distance crossing |
+| Career background races | Observe the live autonomous race pool on each track. | Every world race starts with exactly six entrants; an AI runner is never in two live races; only the relevant fixture pair or playoff matchup affects league progression; race ticks continue at real-time pace |
+| Career ranking and XP | Record known first-, second-, third-, fourth-place, and pulled-up results; inspect the RacerDB and sort each column both ways. | Results award 3/2/1 positional points and 10 base XP plus 15/10/5 podium bonus XP; XP accumulates beyond 100; pulls receive base XP only; rank uses points, wins, XP, best time, name, and ID; all displayed columns sort correctly |
+| Career city generation | Start careers with different seeds, grow the AI population, and inspect the generated map and tracks. | Each city starts with 40 plots in an 8x5 grid and 50 race tracks for 998 AI racers; track count grows by one per 20 AI racers, and additional rows are scrollable; vacant lots and scenery are reused before extending the map; track lengths are selected from 100, 200, 250, 500, and 1,000 m |
+| Building screen routing | Enter each available building from the map and exercise its activity. | The gym, bookmaker, license office, breeding clinic, each track, and stable open their matching dedicated screen classes |
 | Scheduled race precomputation | Admit entrants through the scheduled start and observe precomputation time. | Entries close and the timeline is generated at the scheduled start; the entrant list and race configuration are fixed |
-| Open race precomputation | Add entrants until the minimum count is reached and observe when the race starts. | The race starts and its timeline is generated as soon as the minimum entrant count is reached; the entrant list and race configuration are fixed, with the minimum tuned through prototyping |
+| Open race precomputation | Observe an open world race as its field fills and starts. | It starts only when exactly six eligible racers are ready; entrants and race configuration are fixed at start |
 | Race timeline rendering | Sample each runner's events at arbitrary race times across multiple spectators. | Reproducible position and animation at the same shared playback time, without renderer-driven simulation |
 | Live race information | Inspect data and playback position for spectators who join an in-progress precomputed race. | Join at the current live race time, synchronized with other spectators; no future events or final result before the finish |
 | Betting cutoff | Attempt to place wagers before and after the race starts. | Pre-race bets are accepted; no wagers are accepted once the race has started |
-| Runner-stat appraisal | Recompute estimates for identical and differing player/runner inputs, sample the accuracy distribution, and compare the same player's accuracy before and after progression. | Identical inputs are deterministic; each player's accuracy remains fixed through progression and strictly between 0% and 100%; distribution parameters are set through prototyping |
+| Bookmaker strength estimate | Compare racer strength on short and long tracks and change race-day conditions. | Strength reflects race-relevant skills and conditions; longer tracks favor endurance over acceleration; odds are estimated without simulating a race |
+| Runner-stat appraisal | Recompute estimates for identical and changed player/runner/stat inputs; sample the accuracy distribution at representative ratings, including 90% accuracy. | Identical inputs are deterministic and never persisted; changing runner stats changes the appraisal seed; player accuracy stays fixed from 1% to 99%; at 90% accuracy, extreme estimates for a base rating of 50 are exceptionally unlikely. The initial error standard deviation is `(100 - Accuracy) * 0.25` and remains open to prototype tuning |
 | Gameplay balance | Run end-to-end simulations across runner generation, races, development, world activities, economy, and AI behavior. | Identify cross-system balance issues; numerical targets and tolerances are set through prototyping |
 | Runner body generation | Generate representative batches of runners at spawn. | Height and weight match the research-informed bell-curve distributions and preserve their empirical relationship; fitted parameters and tolerances set through prototyping |
 | Runner recovery | Compare rest and gym recovery for race fatigue and injuries. | Both recover through either option; gym recovery is faster and paid, with rates and costs tuned through prototyping |
 | Persistent runner conditions | Simulate repeated races, rest/gym recovery, wins and losses, and steroid use. | Fatigue, Injury, and Confidence persist between races; racing increases Fatigue; Injury can occur in any race with higher risk while fatigued; Confidence starts at 0.5 on the proposed 0-1 scale, rises with wins, falls with losses, and can be raised by certain steroids. Exact probabilities and changes are prototype-tuned |
 | Runner growth through racing | Compare race-driven changes to all physical stats across every race type under matched starting stats, sufficient Potential headroom across all physical stats, and gym-training exposure. Vary finishing position at fixed Trainability, then vary Trainability at fixed finishing position; verify every finisher, including last place, receives growth, higher placements yield more, every physical stat receives equal gains up to its Potential ceiling, and mental and hidden stats gain nothing from racing. Include a non-racing control. Compare race and gym growth under matched conditions and verify race-based growth is faster. | Every race type gives every finisher finishing-position-scaled growth equally across all physical stats, subject to Potential ceilings; race-based growth is faster than gym-based growth, with exact growth rates, per-placement values, and Trainability scaling tuned through prototyping |
 | Race-only effects and events | Simulate Gassing, Pulling up, Stumble, Second Wind, Lost Belief, and Believes in Self while varying Composure, Fatigue, Confidence, and Luck; measure effective stats, pace, trigger odds, durations, and Endurance restoration. | Verify the pull-up limit increases monotonically with Composure and Confidence and never exceeds 5 seconds, a pulled-up runner stops without a numeric placing, and other entrants continue; verify Stumble's increased trigger rate and odds increasing with Fatigue and decreasing with Confidence, no snap back to pre-stumble pace, and continued acceleration along the curve; Lost Belief only below 0.2 Confidence; Believes in Self only above 0.8; Second Wind's per-second chance does not exceed the documented 0.385% maximum; the “Second wind” label remains visible for one second; restoration reaches but never exceeds 50% per event; the one-step pace override; and no change to base stats from temporary bonuses |
-| Gym world generation | Generate representative world maps. | Every world has at least one premium gym and multiple lower-quality gyms |
+| City interactions | Inspect map plots and activate buildings with controlled mouse input. | Right-click inspection appears only after a hold; left-click enters an available building once per press; scenery and vacant lots cannot be entered |
+| License-gated activities | Attempt breeding and public racing with and without the relevant licenses. | Breeding is blocked without its license; public amateur races and basic wagers remain available without a license; operator licenses do not grant unimplemented venue functions |
+| Career building activities | Exercise the gym minigames, bookie games, breeding clinic, and stable with representative player data. | Valid actions update only the intended owned-racer stats, finances, offspring, or race bet; invalid actions report why they cannot proceed |
 | Server mass simulation | Measure completed races per second under representative load. | TBD |
 
 ### Analytics and privacy
@@ -453,25 +486,25 @@ AI agents populate the single-player sandbox and may combine player-like careers
 
 | Question / decision | Options | Owner | Due date | Status |
 |---|---|---|---|---|
-| Activity license pricing | Set license prices through prototyping. | TBD | TBD | Deferred to prototyping |
-| World calendar and time | Set the real-to-world-time conversion; one in-game day per real hour remains a candidate. | TBD | TBD | Deferred to prototyping |
-| Bankruptcy and recovery | Set restart finances and exact asset-liquidation mechanics. | TBD | TBD | Open |
+| Activity license balance | Tune player license prices and the AI racing-license threshold and fee. | TBD | TBD | Prototype prices; balance open |
+| World calendar and time | Tune the current 24x world-clock rate and define pause and offline progression; keep timed activities on real time. | TBD | TBD | 24x and real-time activity clocks implemented; balance and offline behavior open |
+| Bankruptcy and recovery | Tune bankruptcy thresholds, replacement finances, and asset-liquidation mechanics. | TBD | TBD | One-for-one AI replacement implemented; balance open |
 | Runner-stat appraisal accuracy | Fit the candidate bounded bell-curve distribution and map accuracy to estimation error. | TBD | TBD | Deferred to prototyping |
 | Runner growth | Tune race and gym growth rates, placement scaling, Trainability, and any age or body-detail effects. | TBD | TBD | Open |
-| Training and recuperating | Determine machine types and effects, recovery rates, and gym purchase and membership economics. | TBD | TBD | Open |
-| Breeding | Determine inheritance weights and the amount of random variation. | TBD | TBD | Open |
+| Training and recuperating | Tune treadmill, weights, and dance-game skill effects; determine recovery rates and future gym purchase and membership economics. | TBD | TBD | Open |
+| Breeding | Tune stat inheritance and the prototype's normal-distribution mutation (standard deviation 4). | TBD | TBD | Open |
 | Persistent runner conditions | Set Fatigue and Injury scales and probabilities, Confidence change amounts, and Composure's influence on Confidence changes and performance under pressure. | TBD | TBD | Open |
 | Runner height/weight distributions | Fit the research-informed height and weight distributions and their empirical relationship. | TBD | TBD | Open |
 | Pace and Endurance curves | Tune Acceleration's duration and Endurance depletion timing; retain the 10% Gassing threshold and reserve hold, and tune Gassing's decline profile. | TBD | TBD | Open |
-| Betting and bookmaking economy | Set the pre-start betting cutoff, odds, payouts, operating costs, and income rules. | TBD | TBD | Open |
+| Betting and bookmaking economy | Tune the 32-simulation prediction, 10% house margin, slot and roulette payouts, and future operating costs/income. | TBD | TBD | Open |
 | Steroid rules | Determine the item catalog and effects, licensed-race check rates and timing, and ban durations. | TBD | TBD | Open |
 | Race-fixing enforcement | Design detection and penalties in licensed competition. | TBD | TBD | Deferred to later design |
-| Buildings and venue ownership | Define other building interactions, gym tiers and machines, and ownership costs and income. | TBD | TBD | Open |
-| League and championship progression | Determine league and championship structures, schedules, and payout scaling. | TBD | TBD | Open |
+| Buildings and venue ownership | Define buildable vacant lots, city expansion, venue operation/ownership, gym tiers, and associated costs and income. | TBD | TBD | Open |
+| League and championship progression | Tune progression balance, payouts, and player access to AI seasons. | TBD | TBD | League and playoff prototype implemented; balance and player access open |
 | Event-driven race model | Define event-trigger timing, simultaneous-effect priority, and event schema; tune odds and effect magnitudes, decide any additional event types, and resolve tie, disqualification, and non-finish handling. | TBD | TBD | Open |
-| Race input lock and schedule | Choose the minimum entrant count for open races. | TBD | TBD | Open |
+| Race input lock and schedule | Decide whether non-career race modes share the six-runner field. | TBD | TBD | Six entrants implemented for career-world races; other modes remain open |
 | Race playback timing | Set the playback-speed mapping from race-relative time. | TBD | TBD | Open |
-| AI and multiplayer integration | Set AI activity priorities and decision policies; determine network authority, replication, hosting, and session flow. | TBD | TBD | Open |
+| AI and multiplayer integration | Tune AI activity priorities; determine network authority, replication, and multiplayer session flow. | TBD | TBD | AI career simulation implemented; networking open |
 
 ### Decision history
 
@@ -490,6 +523,9 @@ Current rules are specified in their owning sections; this log preserves the rat
 | 2026-11-14 | Betting is pre-race; enforcement for steroids and race fixing varies by competition type. | Keep wagers based on pre-race choices and reserve licensed-competition enforcement for further design. |
 | 2026-11-14 | Financial failure triggers a bottom-up restart while retaining the character. | Make failure consequential without ending the sandbox. |
 | 2026-11-14 | Single-player AI may combine several player-like careers. | Keep the world active across its different activities. |
+| 2026-12-01 | Career begins in a generated city; two city runners seed the player's stable, while the full population remains visible in the database. | Keep player ownership distinct from the simulated population and make the prototype immediately playable. |
+| 2026-12-01 | Public amateur city races and basic wagers are open; breeding requires its activity license. | Keep the first race accessible while making breeding a licensed progression activity. |
+| 2026-12-01 | City-track distances, race prediction, training activities, and bookmaker games are seeded or deterministic where appropriate. | Make repeated play reproducible while avoiding saved appraisals or predictions. |
 
 ## 20. Glossary and references
 

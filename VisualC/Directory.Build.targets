@@ -1,0 +1,23 @@
+<Project>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'SportsRace'">
+	<ClCompile Remove="..\..\src\Appraisal.cpp" />
+	<ClCompile Remove="..\..\src\Career.cpp" />
+	<ClCompile Remove="..\..\src\Race.cpp" />
+	<ClCompile Remove="..\..\src\Racer.cpp" />
+	<ClCompile Remove="..\..\src\RaceState.cpp" />
+	<ClCompile Include="..\..\src\Screens\LeagueBrowserScreen.cpp" />
+	<ClInclude Include="..\..\src\Screens\LeagueBrowserScreen.h" />
+	<ProjectReference Include="$(MSBuildThisFileDirectory)SportRaceCore\SportRaceCore.vcxproj">
+	  <Project>{A612589A-548C-47CC-9C3F-4F23C6D447DA}</Project>
+	</ProjectReference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'SportsRaceTest'">
+	<ClCompile Remove="..\..\src\Appraisal.cpp" />
+	<ClCompile Remove="..\..\src\Career.cpp" />
+	<ClCompile Remove="..\..\src\Race.cpp" />
+	<ClCompile Remove="..\..\src\Racer.cpp" />
+	<ProjectReference Include="$(MSBuildThisFileDirectory)SportRaceCore\SportRaceCore.vcxproj">
+	  <Project>{A612589A-548C-47CC-9C3F-4F23C6D447DA}</Project>
+	</ProjectReference>
+  </ItemGroup>
+</Project>

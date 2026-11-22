@@ -78,6 +78,9 @@ namespace Game
 		public:
 			RaceStateData Data;
 			RaceStateMachine(Race);
+			~RaceStateMachine();
+			RaceStateMachine(const RaceStateMachine&) = delete;
+			RaceStateMachine& operator=(const RaceStateMachine&) = delete;
 
 			RaceStateType Tick(unsigned int TickTimeMs);
 

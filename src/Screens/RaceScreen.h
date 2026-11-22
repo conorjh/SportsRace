@@ -1,8 +1,11 @@
 #ifndef RACESCREEN_H
 #define RACESCREEN_H
+#include "..\Screens.h"
 #include "..\Render\Renderer.h"
 #include "..\Race.h"
 #include "..\RaceState.h"
+#include "..\Career.h"
+#include <memory>
 
 namespace Game
 {
@@ -19,6 +22,8 @@ namespace Game
 			bool ShowNodeViewOnComplete = false;
 			bool NodeViewShown = false;
 			bool PlayerRacerSupplied = false;
+			bool PlayerRaceResultSaved = false;
+			bool IsWorldRaceViewer = false;
 		public:
 			Race::RacerGUID PlayerGUID;
 			RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer);					//InRaceStateInitType::Training
@@ -33,7 +38,9 @@ namespace Game
 			void Entry(), Exit();
 
 			AppScreen* Update();
-			Race::RaceStateMachine RaceSM;
+			std::shared_ptr<Race::RaceStateMachine> RaceSM;
+			RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data,
+				const std::shared_ptr<Career::CareerWorldRace>& WorldRace);
 		};
 	}
 	

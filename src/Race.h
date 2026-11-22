@@ -1,8 +1,8 @@
 #ifndef RACE_H
 #define RACE_H
 #include "Racer.h"
-#include "Screens.h"
 #include <list>
+#include <memory>
 #include <vector>
 #include <string>
 
@@ -20,7 +20,7 @@ namespace Game
 
 		enum class TrackLength : unsigned int
 		{
-			Standard100m = 5000,
+			Standard100m = 2500,
 			Standard200m = Standard100m * 2,
 			Standard250m = unsigned int(Standard100m * 2.5),
 			Standard500m = Standard100m * 5,
@@ -55,12 +55,13 @@ namespace Game
 
 		enum class RaceError
 		{
-			None, SeedLocked, MissingTrack, ZeroLengthTrack
+			None, SeedLocked, MissingTrack, ZeroLengthTrack, SimulationFailed
 		};
 
 		struct RaceResult
 		{
 			RaceGUID GUID;
+			unsigned int TrackLength = 0;
 			std::vector<RacerRaceResult> RacerResults;
 			RaceError Error = RaceError::None;
 		};
@@ -121,7 +122,14 @@ namespace Game
 			RaceEvent Event;
 		};
 
-		// One entrant's precomputed outcome plus the mutable state needed to play it back.
+		struct RaceMotionSegment
+		{
+			double StartTimeMs = 0.0;
+			double EndTimeMs = 0.0;
+			double StartDistance = 0.0;
+		};
+
+		// One entrant's precomputed outcome and sparse motion intervals for arbitrary-time queries.
 		struct RacerRaceTimeline
 		{
 			Racer* Entrant = nullptr;
@@ -131,9 +139,8 @@ namespace Game
 			double PreRaceFatigue = 0.0;
 			double PreRaceInjury = 0.0;
 			std::list<RaceTimelineNode> Nodes;
+			std::vector<RaceMotionSegment> MotionSegments;
 			double FinalDistance = 0.0;
-			double PlaybackDistance = 0.0;
-			double PlaybackIntegratedTimeMs = 0.0;
 			double FinishTimeMs = 0.0;
 			double PullUpTimeMs = 0.0;
 			double PullUpDistance = 0.0;
@@ -172,6 +179,7 @@ namespace Game
 			bool HasResult(Racer*) const;
 			void RecordResultsThrough(double TimeMs);
 			void UpdatePlaybackStateAt(double TimeMs);
+			double GetTimelineDistanceAt(const RacerRaceTimeline& Timeline, double TimeMs) const;
 			void ApplyPersistentConditions();
 			void PrecomputeRacerTimelines();
 			void AssignTimelineFinishPositions();
@@ -191,6 +199,7 @@ namespace Game
 
 		public:
 			Race();
+			explicit Race(unsigned int RaceSeed);
 
 			bool HasFinished() const;
 			bool HasFinished(Racer* Racer) const;
@@ -219,6 +228,7 @@ namespace Game
 			}
 			const RacerRaceTimeline* GetTimelineFor(const Racer* Runner) const;
 			bool GetTimelineStateAt(const Racer* Runner, double TimeMs, RaceTimelineState& State) const;
+			bool GetTimelinePositionAt(const Racer* Runner, double TimeMs, double& Position) const;
 
 			double GetTimelineDurationMs() const
 			{
@@ -250,7 +260,7 @@ namespace Game
 
 			unsigned int Seed;
 			unsigned int CurrentTick;
-			Track* ThisTrack;
+			std::shared_ptr<Track> ThisTrack;
 			std::vector<Racer*> Racers;
 			RaceResult Result;
 			RaceFinancials Financials;

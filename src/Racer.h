@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <cstddef>
+#include <cstdint>
 
 namespace Game
 {
@@ -53,7 +55,7 @@ namespace Game
 		{
 			RacerSkills();
 
-			unsigned int Xp;
+			std::uint64_t Xp;
 
 			double Reflex, Composure, Acceleration, Endurance, Speed;
 			double Potential, Trainability, Luck;
@@ -77,6 +79,25 @@ namespace Game
 			double Injury = InitialInjury;
 		};
 
+		struct RacerCareerHistoryEntry
+		{
+			std::uint64_t WorldTimeMs = 0;
+			std::string EventName;
+			unsigned int TrackLength = 0;
+			unsigned int Position = 0;
+			unsigned int FinishTimeMs = 0;
+		};
+
+		struct RacerCareerRecord
+		{
+			std::uint64_t Wins = 0;
+			std::uint64_t Losses = 0;
+			std::uint64_t RacesEntered = 0;
+			std::uint64_t PositionPoints = 0;
+			unsigned int BestTimeMs = 0;
+			std::vector<RacerCareerHistoryEntry> History;
+		};
+
 		struct RaceCurve
 		{
 			double X1, Y1, X2, Y2;
@@ -84,6 +105,8 @@ namespace Game
 
 			static RaceCurve Generate(unsigned int Seed, bool Descending);
 			double Evaluate(double Time) const;
+			double TimeAtValue(double Value) const;
+			double Integrate(double StartTime, double EndTime) const;
 		};
 
 		// Profile attributes and deterministic curves accompany the racer state advanced during playback.
@@ -95,6 +118,9 @@ namespace Game
 
 			void Tick(unsigned int Ms);
 			void Reset();
+			void RecordCareerResult(unsigned int Position, unsigned int FinishTimeMs);
+			void RecordCareerResult(unsigned int Position, unsigned int FinishTimeMs,
+				const RacerCareerHistoryEntry& HistoryEntry);
 
 			RacerGUID GUID;
 			unsigned int CurrentTick;
@@ -103,6 +129,7 @@ namespace Game
 			RacerSkills Skills;
 			RacerDetails Details;
 			RacerConditions Conditions;
+			RacerCareerRecord CareerRecord;
 			unsigned int CurveSeed;
 			RaceCurve AccelerationCurve, EnduranceCurve;
 			Position Pos;
@@ -112,9 +139,16 @@ namespace Game
 		{
 			std::unordered_map<unsigned int, Racer*> Container;
 		public:
+			RacerDB() = default;
+			~RacerDB();
+			RacerDB(const RacerDB&) = delete;
+			RacerDB& operator=(const RacerDB&) = delete;
 
 			Racer* Make(std::string Name = "");
 			Racer* Get(unsigned int GUID);
+			const Racer* Get(unsigned int GUID) const;
+			std::vector<Racer*> GetAll() const;
+			std::size_t Size() const;
 			void Add(Racer*);
 
 			bool Contains(unsigned int GUID)

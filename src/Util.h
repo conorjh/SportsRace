@@ -28,7 +28,8 @@ namespace Game
 
 			void Update();
 
-			bool IsMouseOver(), HasMouseClicked();
+			bool IsMouseOver() const;
+			bool HasMouseClicked();
 		}; 
 
 		enum class IconButtonType

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+	<Filter Include="Core"><UniqueIdentifier>{A31E2429-7E0C-4D4B-99AC-52A5FD69C207}</UniqueIdentifier></Filter>
+	<Filter Include="Headers"><UniqueIdentifier>{CC355F0B-40F0-4842-A00A-29B4D3BB5410}</UniqueIdentifier></Filter>
+  </ItemGroup>
+  <ItemGroup>
+	<ClCompile Include="..\..\src\Appraisal.cpp"><Filter>Core</Filter></ClCompile>
+	<ClCompile Include="..\..\src\Career.cpp"><Filter>Core</Filter></ClCompile>
+	<ClCompile Include="..\..\src\CareerWorldSimulation.cpp"><Filter>Core</Filter></ClCompile>
+	<ClCompile Include="..\..\src\Core\Competition.cpp"><Filter>Core</Filter></ClCompile>
+	<ClCompile Include="..\..\src\Core\WorldClock.cpp"><Filter>Core</Filter></ClCompile>
+	<ClCompile Include="..\..\src\Race.cpp"><Filter>Core</Filter></ClCompile>
+	<ClCompile Include="..\..\src\Racer.cpp"><Filter>Core</Filter></ClCompile>
+	<ClCompile Include="..\..\src\RaceState.cpp"><Filter>Core</Filter></ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+	<ClInclude Include="..\..\src\Appraisal.h"><Filter>Headers</Filter></ClInclude>
+	<ClInclude Include="..\..\src\Career.h"><Filter>Headers</Filter></ClInclude>
+	<ClInclude Include="..\..\src\Core\Competition.h"><Filter>Headers</Filter></ClInclude>
+	<ClInclude Include="..\..\src\Core\WorldClock.h"><Filter>Headers</Filter></ClInclude>
+	<ClInclude Include="..\..\src\Race.h"><Filter>Headers</Filter></ClInclude>
+	<ClInclude Include="..\..\src\Racer.h"><Filter>Headers</Filter></ClInclude>
+	<ClInclude Include="..\..\src\RaceState.h"><Filter>Headers</Filter></ClInclude>
+  </ItemGroup>
+</Project>
