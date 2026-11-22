@@ -627,6 +627,17 @@ TEST_CASE(Career_InitialWorldMonthIsFrameSteppedAndCreatesRaceHistory)
 	ASSERT_EQ(ActiveRacerCount, ActiveRacersWithHistory);
 	ASSERT_TRUE(HistoryEntryCount > static_cast<std::uint64_t>(ActiveRacerCount));
 	ASSERT_TRUE(LatestRaceWorldTimeMs >= static_cast<std::uint64_t>(7ull * 24 * 60 * 60 * 1000));
+
+	const std::uint64_t PostWarmupRealDurationMs =
+		static_cast<std::uint64_t>(3ull * 24 * 60 * 60 * 1000) / careerData.WorldClock.GetTimeScale();
+	for (std::uint64_t ElapsedRealMs = 0; ElapsedRealMs < PostWarmupRealDurationMs; ElapsedRealMs += 1000)
+		orchestrator.Update(1000);
+
+	std::uint64_t PostWarmupHistoryEntryCount = 0;
+	for (const Racer* Runner : careerData.Racers.GetAll())
+		if (Runner != nullptr)
+			PostWarmupHistoryEntryCount += static_cast<std::uint64_t>(Runner->CareerRecord.History.size());
+	ASSERT_TRUE(PostWarmupHistoryEntryCount > HistoryEntryCount);
 }
 
 TEST_CASE(Career_PlayerCanJoinAnAmateurLeagueAndRaceItsScheduledFixture)
