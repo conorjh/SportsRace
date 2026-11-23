@@ -14,11 +14,9 @@ bool Game::Audio::AudioPlayer::Init()
 	this->StartersPistol = Mix_LoadWAV("media/starter_pistol.mp3");
 	this->CarHorn = Mix_LoadWAV("media/city/isometric/car_horn.wav");
 	if (CarHorn == nullptr)
-	{
-		spdlog::error("Failed to load ambient traffic horn: {}", SDL_GetError());
-		return false;
-	}
-	Mix_VolumeChunk(CarHorn, MIX_MAX_VOLUME / 4);
+		spdlog::warn("Failed to load ambient traffic horn; continuing without sound: {}", SDL_GetError());
+	else
+		Mix_VolumeChunk(CarHorn, MIX_MAX_VOLUME / 4);
 
 	this->Catering = Mix_LoadMUS("media/catering.mp3");
 	this->Race = Mix_LoadMUS("media/race.mp3");
@@ -47,7 +45,8 @@ void Game::Audio::AudioPlayer::Play(BuiltInSounds Sound)
 		return;
 	}
 
-	Mix_PlayChannel(-1, Chunk, 0);
+	if (Chunk != nullptr)
+		Mix_PlayChannel(-1, Chunk, 0);
 }
 
 void Game::Audio::AudioPlayer::Play(Soundtrack Track)
@@ -69,10 +68,12 @@ void Game::Audio::AudioPlayer::Play(Soundtrack Track)
 	}
 
 	// Loop the background track; screen transitions fade it out.
-	Mix_PlayMusic(Chunk, 999);
+	if (Chunk != nullptr)
+		Mix_PlayMusic(Chunk, 999);
 }
 
 void Game::Audio::AudioPlayer::StopMusic()
 {
-	Mix_FadeOutMusic(200);
+	if (Mix_PlayingMusic())
+		Mix_FadeOutMusic(200);
 }

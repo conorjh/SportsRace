@@ -18,8 +18,8 @@ namespace Game
 
 		class AudioPlayer
 		{
-			Mix_Chunk* Hover, * Click, * StartersPistol, * CarHorn;
-			Mix_Music* Catering, *Race;
+			Mix_Chunk* Hover = nullptr, * Click = nullptr, * StartersPistol = nullptr, * CarHorn = nullptr;
+			Mix_Music* Catering = nullptr, *Race = nullptr;
 		public:
 			AudioPlayer();
 
