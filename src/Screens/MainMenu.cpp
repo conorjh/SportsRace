@@ -110,32 +110,12 @@ Game::Render::MainMenuRenderer::MainMenuRenderer(Game::Render::AppRenderContext*
 
 void Game::Render::MainMenuRenderer::DrawLeague()
 {
-	SDL_Color White = { 255, 255, 255 };
-	SDL_Rect RenderQuad2 = { 500 , 100 , 378 , 359 };
-	RenderImage(Context->Store.GetImage(Assets::ImageAssetMainMenuBackground)->Texture, NULL, &RenderQuad2);
+	const Game::Render::Image* Background = Context->Store.GetImage(Assets::ImageAssetMainMenuBackground);
+	if (Background == nullptr || Background->Texture == nullptr)
+		return;
 
-	unsigned int OtherStandings = 4;
-
-	/*
-	auto ranl = Data->League.Standings.Get(Data->League.MainGuy).Rank;
-	int TopEnd = Data->League.Standings.Get(Data->League.MainGuy).Rank - 4;
-	if (TopEnd < 0)
-		TopEnd = 0;
-	int BottomEnd = Data->League.Standings.Get(Data->League.MainGuy).Rank + 4;
-	if (BottomEnd >= Data->League.Standings.Entries.size())
-		BottomEnd = int(Data->League.Standings.Entries.size() - 1);
-
-
-	for (int t = 0; t <= BottomEnd - TopEnd; ++t)
-	{
-		auto Standing = Data->League.Standings.Get(TopEnd + t);
-		if (Standing.IsNull())
-			continue;
-
-		RenderText(BaseData->InfoFont, to_string(Standing.Rank) + "  " + Standing.Racer->Name + ": " + to_string(Standing.Points) + "pts ", 600, (t * 32) + 133, White);
-
-	}
-	*/
+	SDL_Rect RenderQuad2{ 500, 100, 378, 359 };
+	RenderImage(Background->Texture, nullptr, &RenderQuad2);
 }
 
 unsigned int Game::Render::MainMenuRenderer::Render()
