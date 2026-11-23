@@ -4,16 +4,22 @@
 #include "RaceScreen.h"
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <limits>
 #include <string>
 #include <utility>
 
-namespace
+namespace LeagueBrowserScreenDetail
 {
 	constexpr int LeaguePanelLeft = 24;
 	constexpr int LeaguePanelWidth = 292;
 	constexpr int LeaguePanelTop = 100;
 	constexpr int LeaguePanelHeight = 550;
+	constexpr int LeagueLocationFilterLeft = 28;
+	constexpr int LeagueLocationFilterTop = 80;
+	constexpr int LeagueLocationFilterWidth = 64;
+	constexpr int LeagueLocationFilterHeight = 18;
+	constexpr int LeagueLocationFilterStep = 68;
 	constexpr int LeagueListLeft = 36;
 	constexpr int LeagueListTop = 152;
 	constexpr int LeagueListRowStep = 40;
@@ -105,6 +111,16 @@ namespace
 		return "Unknown";
 	}
 
+	const Game::Race::Racer* GetCompetitor(const Game::Career::CareerData& Data, std::uint64_t CompetitorId)
+	{
+		if (CompetitorId == 0 || CompetitorId > std::numeric_limits<unsigned int>::max())
+			return nullptr;
+		if (Data.PlayerLeagueRacer != nullptr &&
+			Data.PlayerLeagueRacer->GUID.GUID == CompetitorId)
+			return Data.PlayerLeagueRacer;
+		return Data.Racers.Get(static_cast<unsigned int>(CompetitorId));
+	}
+
 	std::string GetCompetitorName(const Game::Career::CareerData& Data,
 		const std::optional<std::uint64_t>& CompetitorId)
 	{
@@ -112,29 +128,90 @@ namespace
 			return "TBD";
 		if (*CompetitorId == 0)
 			return "BYE";
-		if (Data.PlayerLeagueRacer != nullptr &&
-			Data.PlayerLeagueRacer->GUID.GUID == *CompetitorId)
-			return Data.PlayerLeagueRacer->Name;
-		if (*CompetitorId > std::numeric_limits<unsigned int>::max())
-			return "Unknown racer";
-		const Game::Race::Racer* Runner = Data.Racers.Get(static_cast<unsigned int>(*CompetitorId));
+		const Game::Race::Racer* Runner = GetCompetitor(Data, *CompetitorId);
 		return Runner == nullptr ? "Unknown racer" : Runner->Name;
 	}
 
 	std::string GetCompetitorName(const Game::Career::CareerData& Data, std::uint64_t CompetitorId)
 	{
-		if (CompetitorId == 0 || CompetitorId > std::numeric_limits<unsigned int>::max())
-			return CompetitorId == 0 ? "-" : "Unknown racer";
-		if (Data.PlayerLeagueRacer != nullptr && Data.PlayerLeagueRacer->GUID.GUID == CompetitorId)
-			return Data.PlayerLeagueRacer->Name;
-		const Game::Race::Racer* Runner = Data.Racers.Get(static_cast<unsigned int>(CompetitorId));
+		if (CompetitorId == 0)
+			return "-";
+		const Game::Race::Racer* Runner = GetCompetitor(Data, CompetitorId);
 		return Runner == nullptr ? "Unknown racer" : Runner->Name;
 	}
 
-	std::string GetDivisionAndState(const Game::Career::CareerLeague& League)
+	std::string GetCompetitionLocation(const Game::Career::CareerData& Data,
+		const Game::Career::CareerLeague& League)
 	{
-		return Game::Career::CareerLeagueDivisionToString(League.Division) + "  |  " +
+		std::string Location = Game::Career::CareerCompetitionLevelToString(League.Level);
+		if (League.Level == Game::Career::CareerCompetitionLevel::City)
+		{
+			const auto City = std::find_if(Data.Cities.begin(), Data.Cities.end(),
+				[&League](const Game::Career::CareerWorldCity& Candidate)
+				{
+					return Candidate.Id == League.CityId;
+				});
+			if (City != Data.Cities.end())
+				Location += " | " + City->Name;
+		}
+		else if (League.Level == Game::Career::CareerCompetitionLevel::Regional)
+		{
+			const auto Region = std::find_if(Data.Regions.begin(), Data.Regions.end(),
+				[&League](const Game::Career::CareerWorldRegion& Candidate)
+				{
+					return Candidate.Id == League.RegionId;
+				});
+			if (Region != Data.Regions.end())
+				Location += " | " + Region->Name;
+		}
+		else if (League.Level == Game::Career::CareerCompetitionLevel::National)
+		{
+			const auto Country = std::find_if(Data.Countries.begin(), Data.Countries.end(),
+				[&League](const Game::Career::CareerWorldCountry& Candidate)
+				{
+					return Candidate.Id == League.CountryId;
+				});
+			if (Country != Data.Countries.end())
+				Location += " | " + Country->Name;
+		}
+		return Location;
+	}
+
+	bool IsKnockoutCompetition(const Game::Career::CareerLeague& League)
+	{
+		return League.IsCup || League.IsAmateurCup;
+	}
+
+	std::string GetDivisionAndState(const Game::Career::CareerData& Data,
+		const Game::Career::CareerLeague& League)
+	{
+		const std::string Location = GetCompetitionLocation(Data, League);
+		if (IsKnockoutCompetition(League))
+			return Location + " Cup  |  " + Game::Career::CareerLeagueStateToString(League.State);
+		return Location + "  |  " + Game::Career::CareerLeagueDivisionToString(League.Division) + "  |  " +
 			Game::Career::CareerLeagueStateToString(League.State);
+	}
+
+	bool MatchesLocationFilter(const Game::Career::CareerLeague& League,
+		const Game::Screens::LeagueBrowserLocationContext& Context,
+		Game::Screens::LeagueBrowserLocationFilter Filter)
+	{
+		switch (Filter)
+		{
+		case Game::Screens::LeagueBrowserLocationFilter::All:
+			return true;
+		case Game::Screens::LeagueBrowserLocationFilter::City:
+			return League.Level == Game::Career::CareerCompetitionLevel::City &&
+				Context.CityId != 0 && League.CityId == Context.CityId;
+		case Game::Screens::LeagueBrowserLocationFilter::Region:
+			return League.Level == Game::Career::CareerCompetitionLevel::Regional &&
+				Context.RegionId != 0 && League.RegionId == Context.RegionId;
+		case Game::Screens::LeagueBrowserLocationFilter::Country:
+			return League.Level == Game::Career::CareerCompetitionLevel::National &&
+				Context.CountryId != 0 && League.CountryId == Context.CountryId;
+		default:
+			return false;
+		}
 	}
 
 	std::string GetWorldTime(std::uint64_t WorldTimeMs)
@@ -146,10 +223,13 @@ namespace
 			(Minute < 10 ? "0" : "") + std::to_string(Minute);
 	}
 }
+using namespace LeagueBrowserScreenDetail;
 
 Game::Screens::LeagueBrowserScreen::LeagueBrowserScreen(AppScreenStateMachine& _Machine,
-	App::AppIO& _IO, App::AppData& _Data)
+	App::AppIO& _IO, App::AppData& _Data, LeagueBrowserLocationContext _LocationContext)
 	: AppScreen(_Machine, _IO, _Data),
+	LocationContext(_LocationContext),
+	LocationFilter(_LocationContext.Filter),
 	StandingsButton(_IO, "Standings", 350, 112, 150, 42),
 	FixturesButton(_IO, "Fixtures", 512, 112, 150, 42),
 	PlayoffsButton(_IO, "Playoffs", 674, 112, 150, 42),
@@ -157,6 +237,25 @@ Game::Screens::LeagueBrowserScreen::LeagueBrowserScreen(AppScreenStateMachine& _
 	BackButton(_IO, "Back to career", 824, LeagueButtonY, 160, 48)
 {
 	Type = AppScreenType::LeagueBrowserScreen;
+	const char* LocationFilterLabels[]{ "All", "City", "Region", "Country" };
+	LocationFilterButtons.reserve(std::size(LocationFilterLabels));
+	for (std::size_t Index = 0; Index < std::size(LocationFilterLabels); ++Index)
+		LocationFilterButtons.emplace_back(_IO, LocationFilterLabels[Index],
+			LeagueLocationFilterLeft + static_cast<int>(Index) * LeagueLocationFilterStep,
+			LeagueLocationFilterTop, LeagueLocationFilterWidth, LeagueLocationFilterHeight);
+	if (Data.Career != nullptr)
+	{
+		if (LocationContext.CityId == 0)
+			LocationContext.CityId = Data.Career->HomeCityId;
+		const auto City = std::find_if(Data.Career->Cities.begin(), Data.Career->Cities.end(),
+			[this](const Career::CareerWorldCity& Entry) { return Entry.Id == LocationContext.CityId; });
+		if (City != Data.Career->Cities.end() && LocationContext.RegionId == 0)
+			LocationContext.RegionId = City->RegionId;
+		const auto Region = std::find_if(Data.Career->Regions.begin(), Data.Career->Regions.end(),
+			[this](const Career::CareerWorldRegion& Entry) { return Entry.Id == LocationContext.RegionId; });
+		if (Region != Data.Career->Regions.end() && LocationContext.CountryId == 0)
+			LocationContext.CountryId = Region->CountryId;
+	}
 	LeagueButtons.reserve(VisibleLeagueCount);
 	for (std::size_t Index = 0; Index < VisibleLeagueCount; ++Index)
 		LeagueButtons.emplace_back(_IO, "", LeagueListLeft, LeagueListTop +
@@ -172,6 +271,17 @@ Game::Screens::AppScreen* Game::Screens::LeagueBrowserScreen::Update()
 		IO.Player.Play(Audio::BuiltInSounds::Click);
 		ScreenStack.Pop();
 		return ScreenStack.Top();
+	}
+	for (std::size_t Index = 0; Index < LocationFilterButtons.size(); ++Index)
+	{
+		LocationFilterButtons[Index].Update();
+		if (LocationFilterButtons[Index].HasMouseClicked())
+		{
+			LocationFilter = static_cast<LeagueBrowserLocationFilter>(Index);
+			LeagueScrollOffset = 0;
+			RefreshLeagueButtons();
+			break;
+		}
 	}
 
 	RefreshLeagueButtons();
@@ -196,9 +306,10 @@ Game::Screens::AppScreen* Game::Screens::LeagueBrowserScreen::Update()
 
 	for (std::size_t Row = 0; Row < LeagueButtons.size(); ++Row)
 	{
-		const std::size_t LeagueIndex = LeagueScrollOffset + Row;
-		if (LeagueIndex >= Data.Career->Leagues.size())
+		const std::size_t VisibleIndex = LeagueScrollOffset + Row;
+		if (VisibleIndex >= VisibleLeagueIndices.size())
 			continue;
+		const std::size_t LeagueIndex = VisibleLeagueIndices[VisibleIndex];
 		const Career::CareerLeague& League = Data.Career->Leagues[LeagueIndex];
 		LeagueButtons[Row].Text = ClipText(League.Name, 31);
 		LeagueButtons[Row].Update();
@@ -207,7 +318,7 @@ Game::Screens::AppScreen* Game::Screens::LeagueBrowserScreen::Update()
 			SelectedLeagueIndex = LeagueIndex;
 			FixtureScrollOffset = 0;
 			BracketScrollOffset = 0;
-			SelectedTab = League.IsAmateurCup ? LeagueBrowserTab::Playoffs : LeagueBrowserTab::Standings;
+			SelectedTab = IsKnockoutCompetition(League) ? LeagueBrowserTab::Playoffs : LeagueBrowserTab::Standings;
 			StatusMessage.clear();
 		}
 	}
@@ -215,7 +326,10 @@ Game::Screens::AppScreen* Game::Screens::LeagueBrowserScreen::Update()
 	StandingsButton.Update();
 	FixturesButton.Update();
 	PlayoffsButton.Update();
-	if (StandingsButton.HasMouseClicked())
+	const Career::CareerLeague* SelectedLeagueForTabs = GetSelectedLeague();
+	if (SelectedLeagueForTabs != nullptr && IsKnockoutCompetition(*SelectedLeagueForTabs))
+		SelectedTab = LeagueBrowserTab::Playoffs;
+	else if (StandingsButton.HasMouseClicked())
 		SelectedTab = LeagueBrowserTab::Standings;
 	else if (FixturesButton.HasMouseClicked())
 		SelectedTab = LeagueBrowserTab::Fixtures;
@@ -250,7 +364,7 @@ Game::Screens::AppScreen* Game::Screens::LeagueBrowserScreen::Update()
 		else if (CanJoin && SelectedLeague != nullptr)
 		{
 			if (Orchestrator.JoinLeague(SelectedLeague->Id))
-				StatusMessage = "Joined " + SelectedLeagueName + ". The season starts when all 20 places are filled.";
+				StatusMessage = "Joined " + SelectedLeagueName + ". The season starts when the division is full.";
 			else
 				StatusMessage = "Could not join this league. Please select an open amateur lobby.";
 		}
@@ -287,30 +401,92 @@ Game::Screens::AppScreen* Game::Screens::LeagueBrowserScreen::Update()
 			ContentScrollRemainder -= static_cast<float>(RowDelta);
 		}
 	}
+	if ((IO.MouseButtonsPressed & SDL_BUTTON_MASK(SDL_BUTTON_LEFT)) != 0)
+	{
+		if (SelectedTab == LeagueBrowserTab::Fixtures && SelectedLeague != nullptr)
+		{
+			const std::size_t FirstFixture = FixtureScrollOffset;
+			const std::size_t EndFixture = std::min(SelectedLeague->Fixtures.size(),
+				FirstFixture + VisibleFixtureCount);
+			for (std::size_t Index = FirstFixture; Index < EndFixture; ++Index)
+			{
+				const int RowY = 216 + static_cast<int>(Index - FirstFixture) * LeagueFixtureRowStep;
+				const SDL_Rect RowBounds{ LeagueDetailLeft + 8, RowY - 2, LeagueDetailWidth - 16,
+					LeagueFixtureRowStep };
+				const Career::CareerLeagueFixture& Fixture = SelectedLeague->Fixtures[Index];
+				if (Fixture.State == Career::CareerFixtureState::Complete && Fixture.HistoricalRaceId != 0 &&
+					SDL_PointInRect(&MousePosition, &RowBounds) && OpenCareerHistoricalRace(ScreenStack, IO, Data,
+						Fixture.HistoricalRaceId, Data.NodeViewerEnabled && IO.ShiftClickPressed))
+					return ScreenStack.Top();
+			}
+		}
+		else if (SelectedTab == LeagueBrowserTab::Playoffs && SelectedLeague != nullptr &&
+			!SelectedLeague->Playoffs.Rounds.empty())
+		{
+			const SportRaceCore::PlayoffBracket& Bracket = SelectedLeague->Playoffs;
+			const double ViewportHeight = LeagueContentBottom - LeagueContentTop;
+			const std::size_t FirstRoundMatchCount = Bracket.Rounds.front().Matches.size();
+			const double MatchSpacing = std::max(28.0,
+				ViewportHeight / static_cast<double>(std::max<std::size_t>(1, FirstRoundMatchCount)));
+			const double ScrollDistance = static_cast<double>(BracketScrollOffset) * MatchSpacing;
+			const double ContentTop = LeagueContentTop + 4.0;
+			const double ColumnWidth = static_cast<double>(LeagueDetailWidth - 32) /
+				static_cast<double>(Bracket.Rounds.size());
+			const double BoxWidth = std::max(48.0, std::min(190.0, ColumnWidth - 18.0));
+			const double BoxHeight = std::max(22.0, std::min(58.0, MatchSpacing * 0.86));
+			const double FirstColumnX = LeagueDetailLeft + 16.0;
+			for (std::size_t RoundIndex = 0; RoundIndex < Bracket.Rounds.size(); ++RoundIndex)
+				for (std::size_t MatchIndex = 0; MatchIndex < Bracket.Rounds[RoundIndex].Matches.size(); ++MatchIndex)
+				{
+					const double SlotSpan = std::pow(2.0, static_cast<double>(RoundIndex));
+					const double CenterY = ContentTop +
+						(static_cast<double>(MatchIndex) * SlotSpan + SlotSpan * 0.5) * MatchSpacing - ScrollDistance;
+					const double RoundX = FirstColumnX + RoundIndex * ColumnWidth;
+					const double BoxTop = CenterY - BoxHeight * 0.5;
+					if (IO.MousePosition.x < RoundX || IO.MousePosition.x >= RoundX + BoxWidth ||
+						IO.MousePosition.y < BoxTop || IO.MousePosition.y >= BoxTop + BoxHeight)
+						continue;
+					const SportRaceCore::PlayoffMatch& Match = Bracket.Rounds[RoundIndex].Matches[MatchIndex];
+					if (Match.IsComplete && Match.HistoricalRaceId != 0 && OpenCareerHistoricalRace(ScreenStack, IO,
+						Data, Match.HistoricalRaceId, Data.NodeViewerEnabled && IO.ShiftClickPressed))
+						return ScreenStack.Top();
+				}
+		}
+	}
 	return this;
 }
 
 void Game::Screens::LeagueBrowserScreen::RefreshLeagueButtons()
 {
+	VisibleLeagueIndices.clear();
 	if (Data.Career == nullptr)
-		return;
-	const std::size_t LeagueCount = Data.Career->Leagues.size();
-	if (LeagueCount == 0)
 	{
 		SelectedLeagueIndex = 0;
 		LeagueScrollOffset = 0;
 		return;
 	}
-	if (SelectedLeagueIndex >= LeagueCount)
-		SelectedLeagueIndex = LeagueCount - 1;
+	for (std::size_t Index = 0; Index < Data.Career->Leagues.size(); ++Index)
+		if (MatchesLocationFilter(Data.Career->Leagues[Index], LocationContext, LocationFilter))
+			VisibleLeagueIndices.push_back(Index);
+	if (VisibleLeagueIndices.empty())
+	{
+		SelectedLeagueIndex = 0;
+		LeagueScrollOffset = 0;
+		FixtureScrollOffset = 0;
+		BracketScrollOffset = 0;
+		return;
+	}
+	if (std::find(VisibleLeagueIndices.begin(), VisibleLeagueIndices.end(), SelectedLeagueIndex) ==
+		VisibleLeagueIndices.end())
+		SelectedLeagueIndex = VisibleLeagueIndices.front();
 	LeagueScrollOffset = std::min(LeagueScrollOffset, GetMaximumLeagueScrollOffset());
 }
 
 std::size_t Game::Screens::LeagueBrowserScreen::GetMaximumLeagueScrollOffset() const
 {
-	if (Data.Career == nullptr || Data.Career->Leagues.size() <= VisibleLeagueCount)
+	if (VisibleLeagueIndices.size() <= VisibleLeagueCount)
 		return 0;
-	return Data.Career->Leagues.size() - VisibleLeagueCount;
+	return VisibleLeagueIndices.size() - VisibleLeagueCount;
 }
 
 std::size_t Game::Screens::LeagueBrowserScreen::GetMaximumFixtureScrollOffset() const
@@ -344,7 +520,9 @@ Game::Career::CareerData* Game::Screens::LeagueBrowserScreen::GetCareerData() co
 
 const Game::Career::CareerLeague* Game::Screens::LeagueBrowserScreen::GetSelectedLeague() const
 {
-	if (Data.Career == nullptr || SelectedLeagueIndex >= Data.Career->Leagues.size())
+	if (Data.Career == nullptr ||
+		std::find(VisibleLeagueIndices.begin(), VisibleLeagueIndices.end(), SelectedLeagueIndex) ==
+			VisibleLeagueIndices.end() || SelectedLeagueIndex >= Data.Career->Leagues.size())
 		return nullptr;
 	return &Data.Career->Leagues[SelectedLeagueIndex];
 }
@@ -383,6 +561,16 @@ std::size_t Game::Screens::LeagueBrowserScreen::GetBracketScrollOffset() const
 	return BracketScrollOffset;
 }
 
+Game::Screens::LeagueBrowserLocationFilter Game::Screens::LeagueBrowserScreen::GetLocationFilter() const
+{
+	return LocationFilter;
+}
+
+const std::vector<std::size_t>& Game::Screens::LeagueBrowserScreen::GetVisibleLeagueIndices() const
+{
+	return VisibleLeagueIndices;
+}
+
 Game::Render::LeagueBrowserRenderer::LeagueBrowserRenderer(AppRenderContext* Context)
 	: BaseRenderer(Context)
 {
@@ -408,12 +596,12 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 	}
 
 	const std::uint64_t WorldMinutes = CareerData->WorldClock.NowMs() / 60000;
-	const std::size_t LeagueCount = static_cast<std::size_t>(std::count_if(CareerData->Leagues.begin(),
-		CareerData->Leagues.end(), [](const Career::CareerLeague& League) { return !League.IsAmateurCup; }));
+	const std::size_t LeagueCount = CareerData->Leagues.size();
 	const std::uint64_t NextCupDay = CareerData->NextAmateurCupAtMs / LeagueWorldDayMs + 1;
-	const std::string Status = "World day " + std::to_string(WorldMinutes / 1440 + 1) + "  " +
+	const std::string Status = "Showing " + std::to_string(Screen->GetVisibleLeagueIndices().size()) + " of " +
+		std::to_string(LeagueCount) + " leagues  |  World day " + std::to_string(WorldMinutes / 1440 + 1) + "  " +
 		GetWorldTime(CareerData->WorldClock.NowMs()) + "   |   " +
-		std::to_string(LeagueCount) + " leagues  |  Amateur Cup next day " + std::to_string(NextCupDay);
+		"Next cup day " + std::to_string(NextCupDay);
 	RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), Status, 28, 58, LeagueMuted);
 
 	const SDL_FRect LeaguePanel{ static_cast<float>(LeaguePanelLeft), static_cast<float>(LeaguePanelTop),
@@ -422,23 +610,28 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 		static_cast<float>(LeagueDetailWidth), static_cast<float>(LeaguePanelHeight) };
 	DrawPanel(Context->MainRenderer, LeaguePanel, LeagueAccent);
 	DrawPanel(Context->MainRenderer, DetailPanel, LeagueAccent);
+	for (std::size_t Index = 0; Index < Screen->LocationFilterButtons.size(); ++Index)
+		DrawButton(*this, Context, Screen->LocationFilterButtons[Index],
+			Screen->GetLocationFilter() == static_cast<Screens::LeagueBrowserLocationFilter>(Index), true);
 	RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "LEAGUES", LeagueListLeft, 112, LeagueAccent);
 
 	for (std::size_t Row = 0; Row < Screen->LeagueButtons.size(); ++Row)
 	{
-		const std::size_t LeagueIndex = Screen->GetLeagueScrollOffset() + Row;
-		if (LeagueIndex >= CareerData->Leagues.size())
+		const std::size_t VisibleIndex = Screen->GetLeagueScrollOffset() + Row;
+		const std::vector<std::size_t>& VisibleLeagueIndices = Screen->GetVisibleLeagueIndices();
+		if (VisibleIndex >= VisibleLeagueIndices.size())
 			continue;
+		const std::size_t LeagueIndex = VisibleLeagueIndices[VisibleIndex];
 		const Career::CareerLeague& League = CareerData->Leagues[LeagueIndex];
 		DrawButton(*this, Context, Screen->LeagueButtons[Row],
 			LeagueIndex == Screen->GetSelectedLeagueIndex(), true);
 		RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
-			Career::CareerLeagueDivisionToString(League.Division) + " | " +
-			Career::CareerLeagueStateToString(League.State), LeagueListLeft + 8,
+			GetDivisionAndState(*CareerData, League), LeagueListLeft + 8,
 			LeagueListTop + static_cast<int>(Row) * LeagueListRowStep + 25, LeagueMuted);
 	}
-	if (CareerData->Leagues.empty())
-		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "No leagues have been created.",
+	if (Screen->GetVisibleLeagueIndices().empty())
+		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), CareerData->Leagues.empty()
+			? "No leagues have been created." : "No leagues match this location filter.",
 			LeagueListLeft, LeagueListTop, LeagueText);
 
 	const Career::CareerLeague* League = Screen->GetSelectedLeague();
@@ -450,19 +643,21 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 	else
 	{
 		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), League->Name +
-			(League->IsAmateurCup ? "  |  Edition " : "  |  Season ") +
-			std::to_string(League->Season) + "  |  " + GetDivisionAndState(*League),
+			(IsKnockoutCompetition(*League) ? "  |  Edition " : "  |  Season ") +
+			std::to_string(League->Season) + "  |  " + GetDivisionAndState(*CareerData, *League),
 			LeagueDetailLeft + 18, 78, LeagueText);
 		DrawButton(*this, Context, Screen->StandingsButton,
-			Screen->GetSelectedTab() == Screens::LeagueBrowserTab::Standings);
+			Screen->GetSelectedTab() == Screens::LeagueBrowserTab::Standings, false,
+			!IsKnockoutCompetition(*League));
 		DrawButton(*this, Context, Screen->FixturesButton,
-			Screen->GetSelectedTab() == Screens::LeagueBrowserTab::Fixtures);
+			Screen->GetSelectedTab() == Screens::LeagueBrowserTab::Fixtures, false,
+			!IsKnockoutCompetition(*League));
 		DrawButton(*this, Context, Screen->PlayoffsButton,
 			Screen->GetSelectedTab() == Screens::LeagueBrowserTab::Playoffs);
 
-		if (League->IsAmateurCup && Screen->GetSelectedTab() != Screens::LeagueBrowserTab::Playoffs)
+		if (IsKnockoutCompetition(*League) && Screen->GetSelectedTab() != Screens::LeagueBrowserTab::Playoffs)
 			RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont),
-				"The Amateur Cup is knockout-only. View its Playoffs bracket.", LeagueContentLeft,
+				"This cup is knockout-only. View its Playoffs bracket.", LeagueContentLeft,
 				LeagueContentTop, LeagueText);
 		else if (Screen->GetSelectedTab() == Screens::LeagueBrowserTab::Standings)
 		{
@@ -494,17 +689,17 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 				const int Y = RowTop + static_cast<int>(Index) * 20;
 				if (Y > LeagueContentBottom)
 					break;
-				const bool IsPlayer = Standing.Runner == CareerData->PlayerLeagueRacer;
+				const bool IsPlayer = Screen->Data.IsPlayerOwnedRacer(Standing.Runner);
 				const Career::CareerRacerState* State = FindRacerState(*CareerData, Standing.Runner);
-				const SDL_Color RowColor = !IsPlayer && State != nullptr &&
-					State->Activity == Career::CareerRacerActivity::Retired
-					? LeagueMuted : LeagueText;
+				const SDL_Color RowColor = IsPlayer ? Render::PlayerOwnedRacerHighlightColor :
+					State != nullptr && State->Activity == Career::CareerRacerActivity::Retired
+						? LeagueMuted : LeagueText;
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), std::to_string(Index + 1),
 					LeagueContentLeft, Y, RowColor);
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), ClipText(Standing.Runner->Name, 25),
 					LeagueContentLeft + 40, Y, RowColor);
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
-					IsPlayer ? "PLAYER" : State == nullptr ? "-" :
+					IsPlayer ? "YOU" : State == nullptr ? "-" :
 					Career::CareerRacerActivityToString(State->Activity),
 					LeagueContentLeft + 232, Y, RowColor);
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), std::to_string(Standing.Wins),
@@ -535,12 +730,20 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 			for (std::size_t Index = FirstFixture; Index < EndFixture; ++Index)
 			{
 				const Career::CareerLeagueFixture& Fixture = League->Fixtures[Index];
+				const Race::Racer* FirstRacer = GetCompetitor(*CareerData,
+					Fixture.Fixture.FirstCompetitorId);
+				const Race::Racer* SecondRacer = GetCompetitor(*CareerData,
+					Fixture.Fixture.SecondCompetitorId);
 				const std::string FirstName = GetCompetitorName(*CareerData, Fixture.Fixture.FirstCompetitorId);
 				const std::string SecondName = GetCompetitorName(*CareerData, Fixture.Fixture.SecondCompetitorId);
 				std::string Result = GetFixtureState(Fixture.State);
+				const Race::Racer* Winner = nullptr;
 				if (Fixture.State == Career::CareerFixtureState::Complete)
+				{
+					Winner = Fixture.WinnerId == 0 ? nullptr : GetCompetitor(*CareerData, Fixture.WinnerId);
 					Result = Fixture.WinnerId == 0 ? "Draw" : "Winner: " +
 						ClipText(GetCompetitorName(*CareerData, Fixture.WinnerId), 16);
+				}
 				else if (Fixture.State == Career::CareerFixtureState::InProgress)
 					Result = Fixture.RaceId == 0 ? "Player race" : "Race #" + std::to_string(Fixture.RaceId);
 				const std::string TrackName = Fixture.TrackPlotIndex < CareerData->CityPlots.size()
@@ -548,12 +751,19 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 				const int Y = 216 + static_cast<int>(Index - FirstFixture) * LeagueFixtureRowStep;
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
 					std::to_string(Fixture.Fixture.Round + 1), LeagueContentLeft, Y, LeagueText);
-				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
-					ClipText(FirstName, 17) + " v " + ClipText(SecondName, 17),
-					LeagueContentLeft + 50, Y, LeagueText);
+				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), ClipText(FirstName, 16),
+					LeagueContentLeft + 50, Y, Screen->Data.IsPlayerOwnedRacer(FirstRacer)
+						? Render::PlayerOwnedRacerHighlightColor : LeagueText);
+				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "v",
+					LeagueContentLeft + 170, Y, LeagueMuted);
+				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), ClipText(SecondName, 16),
+					LeagueContentLeft + 186, Y, Screen->Data.IsPlayerOwnedRacer(SecondRacer)
+						? Render::PlayerOwnedRacerHighlightColor : LeagueText);
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), Result,
-					LeagueContentLeft + 360, Y, Fixture.State == Career::CareerFixtureState::InProgress
-						? LeagueAccent : LeagueText);
+					LeagueContentLeft + 360, Y,
+					Winner != nullptr && Screen->Data.IsPlayerOwnedRacer(Winner)
+						? Render::PlayerOwnedRacerHighlightColor :
+						Fixture.State == Career::CareerFixtureState::InProgress ? LeagueAccent : LeagueText);
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), ClipText(TrackName, 18),
 					LeagueContentLeft + 520, Y, LeagueMuted);
 			}
@@ -570,8 +780,8 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 		{
 			const SportRaceCore::PlayoffBracket& Bracket = League->Playoffs;
 			if (Bracket.Rounds.empty())
-				RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), League->IsAmateurCup
-					? "The next Amateur Cup starts on world day " + std::to_string(NextCupDay) + "."
+				RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), IsKnockoutCompetition(*League)
+					? "The next knockout edition starts on world day " + std::to_string(NextCupDay) + "."
 					: "Playoffs begin when the regular season is resolved.", LeagueContentLeft,
 					LeagueContentTop, LeagueText);
 			else
@@ -648,23 +858,37 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 						*Match.CompetitorAId == Match.WinnerId;
 					const bool BIsWinner = Match.IsComplete && Match.WinnerId != 0 && Match.CompetitorBId.has_value() &&
 						*Match.CompetitorBId == Match.WinnerId;
+					const Race::Racer* CompetitorA = Match.CompetitorAId.has_value()
+						? GetCompetitor(*CareerData, *Match.CompetitorAId) : nullptr;
+					const Race::Racer* CompetitorB = Match.CompetitorBId.has_value()
+						? GetCompetitor(*CareerData, *Match.CompetitorBId) : nullptr;
 					RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), NameA,
-						static_cast<int>(RoundX + 6), NameY, AIsWinner ? LeagueAccent : LeagueText);
+						static_cast<int>(RoundX + 6), NameY,
+						Screen->Data.IsPlayerOwnedRacer(CompetitorA) ? Render::PlayerOwnedRacerHighlightColor :
+							AIsWinner ? LeagueAccent : LeagueText);
 					if (BoxHeight > 30.0)
 						RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), NameB,
-							static_cast<int>(RoundX + 6), NameY + 18, BIsWinner ? LeagueAccent : LeagueText);
+							static_cast<int>(RoundX + 6), NameY + 18,
+							Screen->Data.IsPlayerOwnedRacer(CompetitorB) ? Render::PlayerOwnedRacerHighlightColor :
+								BIsWinner ? LeagueAccent : LeagueText);
 					else if (NameB != "BYE" && NameB != "TBD")
 						RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), NameB,
-							static_cast<int>(RoundX + 6), NameY + 11, BIsWinner ? LeagueAccent : LeagueText);
+							static_cast<int>(RoundX + 6), NameY + 11,
+							Screen->Data.IsPlayerOwnedRacer(CompetitorB) ? Render::PlayerOwnedRacerHighlightColor :
+								BIsWinner ? LeagueAccent : LeagueText);
 				}
 				}
 				if (ContentHeight > ViewportHeight)
 					RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
 						"Scroll vertically to view all first-round matches.", LeagueContentLeft, 624, LeagueMuted);
 				if (Bracket.IsComplete)
+				{
+					const Race::Racer* Champion = GetCompetitor(*CareerData, Bracket.WinnerId);
 					RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont),
 						"Champion: " + GetCompetitorName(*CareerData, Bracket.WinnerId),
-					LeagueDetailLeft + 388, 78, LeagueAccent);
+						LeagueDetailLeft + 388, 78, Screen->Data.IsPlayerOwnedRacer(Champion)
+							? Render::PlayerOwnedRacerHighlightColor : LeagueAccent);
+				}
 			}
 		}
 	}

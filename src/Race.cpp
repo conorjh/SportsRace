@@ -8,7 +8,7 @@
 #include <random>
 #include <utility>
 
-namespace
+namespace RaceSimulationDetail
 {
 	constexpr unsigned int MillisecondsPerSecond = 1000;
 	constexpr double MillisecondsPerSecondDouble = 1000.0;
@@ -1154,6 +1154,7 @@ namespace
 		double Distance = 0.0;
 	};
 }
+using namespace RaceSimulationDetail;
 
 void Game::Race::Race::Finished(Racer* Runner, unsigned int FinishTimeMs)
 {
@@ -1376,6 +1377,230 @@ bool Game::Race::Race::GetTimelinePositionAt(const Racer* Runner, double TimeMs,
 	const double TimelineEndTimeMs = Timeline->Finished ? Timeline->FinishTimeMs :
 		Timeline->PulledUp ? Timeline->PullUpTimeMs : TimelineDurationMs;
 	Position = GetTimelineDistanceAt(*Timeline, std::clamp(TimeMs, 0.0, TimelineEndTimeMs));
+	return true;
+}
+
+bool Game::Race::IsValidRaceHistorySnapshot(const RaceHistorySnapshot& Snapshot)
+{
+	const std::size_t EntrantCount = Snapshot.Entrants.size();
+	if (Snapshot.Error != RaceError::None || Snapshot.TrackLength == 0 || EntrantCount < 2 ||
+		Snapshot.Timelines.size() != EntrantCount || Snapshot.Results.size() != EntrantCount ||
+		!std::isfinite(Snapshot.PlaybackTimeMs) || !std::isfinite(Snapshot.TimelineDurationMs) ||
+		Snapshot.PlaybackTimeMs < 0.0 || Snapshot.TimelineDurationMs < Snapshot.PlaybackTimeMs)
+		return false;
+	const auto IsValidCurve = [](const RaceCurve& Curve)
+	{
+		return std::isfinite(Curve.X1) && std::isfinite(Curve.Y1) &&
+			std::isfinite(Curve.X2) && std::isfinite(Curve.Y2);
+	};
+	for (const RaceHistoryRacerSnapshot& Entrant : Snapshot.Entrants)
+		if (!IsValidCurve(Entrant.AccelerationCurve) || !IsValidCurve(Entrant.EnduranceCurve))
+			return false;
+
+	std::vector<bool> TimelineIndices(EntrantCount, false);
+	for (const RaceHistoryTimelineSnapshot& Timeline : Snapshot.Timelines)
+	{
+		if (Timeline.RacerIndex >= EntrantCount || TimelineIndices[Timeline.RacerIndex])
+			return false;
+		TimelineIndices[Timeline.RacerIndex] = true;
+		for (const RaceTimelineNode& Node : Timeline.Nodes)
+			if ((Node.Type == RaceTimelineNodeType::RandomEvent || Node.Type == RaceTimelineNodeType::Gassing) &&
+				Node.Event.RacerIndex >= EntrantCount)
+				return false;
+	}
+
+	std::vector<bool> ResultIndices(EntrantCount, false);
+	for (const RaceHistoryResultSnapshot& Result : Snapshot.Results)
+	{
+		if (Result.RacerIndex >= EntrantCount || ResultIndices[Result.RacerIndex])
+			return false;
+		ResultIndices[Result.RacerIndex] = true;
+	}
+	return true;
+}
+
+bool Game::Race::Race::CaptureHistorySnapshot(RaceHistorySnapshot& Snapshot) const
+{
+	if (!Complete || !TimelineReady || Result.Error != RaceError::None ||
+		LockedEntrants.size() != Timelines.size() || Result.RacerResults.size() != LockedEntrants.size())
+		return false;
+
+	RaceHistorySnapshot Captured;
+	Captured.GUID = GUID;
+	Captured.Seed = LockedSeed;
+	Captured.TrackLength = LockedTrackLength;
+	Captured.CurrentTick = CurrentTick;
+	Captured.Error = Result.Error;
+	Captured.Financials = Financials;
+	Captured.PlaybackTimeMs = PlaybackTimeMs;
+	Captured.TimelineDurationMs = TimelineDurationMs;
+	Captured.Entrants.reserve(LockedEntrants.size());
+	Captured.Timelines.reserve(Timelines.size());
+	Captured.Results.reserve(Result.RacerResults.size());
+
+	const auto GetEntrantIndex = [this](const Racer* Runner, unsigned int& RacerIndex)
+	{
+		const auto Entrant = std::find(LockedEntrants.begin(), LockedEntrants.end(), Runner);
+		if (Entrant == LockedEntrants.end())
+			return false;
+		RacerIndex = static_cast<unsigned int>(Entrant - LockedEntrants.begin());
+		return true;
+	};
+
+	for (const Racer* Runner : LockedEntrants)
+	{
+		if (Runner == nullptr)
+			return false;
+		const RacerRaceTimeline* Timeline = GetTimelineFor(Runner);
+		if (Timeline == nullptr)
+			return false;
+		RaceHistoryRacerSnapshot RacerSnapshot;
+		RacerSnapshot.GUID = Runner->GUID;
+		RacerSnapshot.Name = Runner->Name;
+		RacerSnapshot.Skills = Runner->Skills;
+		RacerSnapshot.Details = Runner->Details;
+		RacerSnapshot.Conditions.Fatigue = Timeline->PreRaceFatigue;
+		RacerSnapshot.Conditions.Confidence = Timeline->PreRaceConfidence;
+		RacerSnapshot.Conditions.Injury = Timeline->PreRaceInjury;
+		RacerSnapshot.CurveSeed = Runner->CurveSeed;
+		RacerSnapshot.AccelerationCurve = Runner->AccelerationCurve;
+		RacerSnapshot.EnduranceCurve = Runner->EnduranceCurve;
+		Captured.Entrants.push_back(std::move(RacerSnapshot));
+	}
+
+	for (const RacerRaceTimeline& Timeline : Timelines)
+	{
+		RaceHistoryTimelineSnapshot TimelineSnapshot;
+		if (!GetEntrantIndex(Timeline.Entrant, TimelineSnapshot.RacerIndex))
+			return false;
+		TimelineSnapshot.PreRaceConfidence = Timeline.PreRaceConfidence;
+		TimelineSnapshot.PreRaceFatigue = Timeline.PreRaceFatigue;
+		TimelineSnapshot.PreRaceInjury = Timeline.PreRaceInjury;
+		TimelineSnapshot.MotionSegments = Timeline.MotionSegments;
+		TimelineSnapshot.FinalDistance = Timeline.FinalDistance;
+		TimelineSnapshot.FinishTimeMs = Timeline.FinishTimeMs;
+		TimelineSnapshot.PullUpTimeMs = Timeline.PullUpTimeMs;
+		TimelineSnapshot.PullUpDistance = Timeline.PullUpDistance;
+		TimelineSnapshot.FinishPosition = Timeline.FinishPosition;
+		TimelineSnapshot.Finished = Timeline.Finished;
+		TimelineSnapshot.PulledUp = Timeline.PulledUp;
+		TimelineSnapshot.FatigueAfter = Timeline.FatigueAfter;
+		TimelineSnapshot.ConfidenceAfter = Timeline.ConfidenceAfter;
+		TimelineSnapshot.InjuryAfter = Timeline.InjuryAfter;
+		TimelineSnapshot.CurrentEndurance = Timeline.CurrentEndurance;
+		TimelineSnapshot.ActiveEffects = Timeline.ActiveEffects;
+		for (const RaceTimelineNode& Node : Timeline.Nodes)
+		{
+			RaceTimelineNode NodeSnapshot = Node;
+			if ((Node.Type == RaceTimelineNodeType::RandomEvent || Node.Type == RaceTimelineNodeType::Gassing) &&
+				!GetEntrantIndex(Node.Event.Entrant, NodeSnapshot.Event.RacerIndex))
+				return false;
+			NodeSnapshot.Event.Entrant = nullptr;
+			TimelineSnapshot.Nodes.push_back(std::move(NodeSnapshot));
+		}
+		Captured.Timelines.push_back(std::move(TimelineSnapshot));
+	}
+
+	for (const RacerRaceResult& RacerResult : Result.RacerResults)
+	{
+		RaceHistoryResultSnapshot ResultSnapshot;
+		if (!GetEntrantIndex(RacerResult.Racer, ResultSnapshot.RacerIndex))
+			return false;
+		ResultSnapshot.Position = RacerResult.Position;
+		ResultSnapshot.Ms = RacerResult.Ms;
+		Captured.Results.push_back(ResultSnapshot);
+	}
+
+	if (!IsValidRaceHistorySnapshot(Captured))
+		return false;
+	Snapshot = std::move(Captured);
+	return true;
+}
+
+bool Game::Race::Race::RestoreHistorySnapshot(const RaceHistorySnapshot& Snapshot,
+	const std::vector<Racer*>& SnapshotEntrants)
+{
+	if (!IsValidRaceHistorySnapshot(Snapshot) || SnapshotEntrants.size() != Snapshot.Entrants.size())
+		return false;
+	for (std::size_t Index = 0; Index < SnapshotEntrants.size(); ++Index)
+		if (SnapshotEntrants[Index] == nullptr ||
+			SnapshotEntrants[Index]->GUID.GUID != Snapshot.Entrants[Index].GUID.GUID)
+			return false;
+
+	Seed = Snapshot.Seed;
+	GUID = Snapshot.GUID;
+	CurrentTick = Snapshot.CurrentTick;
+	Financials = Snapshot.Financials;
+	if (ThisTrack == nullptr)
+		ThisTrack = std::make_shared<Track>();
+	ThisTrack->Length = static_cast<TrackLength>(Snapshot.TrackLength);
+	Racers = SnapshotEntrants;
+	LockedEntrants = SnapshotEntrants;
+	LockedSeed = Snapshot.Seed;
+	LockedTrackLength = Snapshot.TrackLength;
+	PlaybackTimeMs = Snapshot.PlaybackTimeMs;
+	TimelineDurationMs = Snapshot.TimelineDurationMs;
+	TimelineReady = true;
+	ConditionsApplied = true;
+	Complete = true;
+	Timelines.clear();
+	Events.clear();
+	Timelines.reserve(Snapshot.Timelines.size());
+	for (const RaceHistoryTimelineSnapshot& TimelineSnapshot : Snapshot.Timelines)
+	{
+		RacerRaceTimeline Timeline;
+		Timeline.Entrant = SnapshotEntrants[TimelineSnapshot.RacerIndex];
+		Timeline.RacerIndex = TimelineSnapshot.RacerIndex;
+		Timeline.PreRaceConfidence = TimelineSnapshot.PreRaceConfidence;
+		Timeline.PreRaceFatigue = TimelineSnapshot.PreRaceFatigue;
+		Timeline.PreRaceInjury = TimelineSnapshot.PreRaceInjury;
+		Timeline.MotionSegments = TimelineSnapshot.MotionSegments;
+		Timeline.FinalDistance = TimelineSnapshot.FinalDistance;
+		Timeline.FinishTimeMs = TimelineSnapshot.FinishTimeMs;
+		Timeline.PullUpTimeMs = TimelineSnapshot.PullUpTimeMs;
+		Timeline.PullUpDistance = TimelineSnapshot.PullUpDistance;
+		Timeline.FinishPosition = TimelineSnapshot.FinishPosition;
+		Timeline.Finished = TimelineSnapshot.Finished;
+		Timeline.PulledUp = TimelineSnapshot.PulledUp;
+		Timeline.FatigueAfter = TimelineSnapshot.FatigueAfter;
+		Timeline.ConfidenceAfter = TimelineSnapshot.ConfidenceAfter;
+		Timeline.InjuryAfter = TimelineSnapshot.InjuryAfter;
+		Timeline.CurrentEndurance = TimelineSnapshot.CurrentEndurance;
+		Timeline.ActiveEffects = TimelineSnapshot.ActiveEffects;
+		for (const RaceTimelineNode& NodeSnapshot : TimelineSnapshot.Nodes)
+		{
+			RaceTimelineNode Node = NodeSnapshot;
+			if (Node.Type == RaceTimelineNodeType::RandomEvent || Node.Type == RaceTimelineNodeType::Gassing)
+			{
+				Node.Event.Entrant = SnapshotEntrants[Node.Event.RacerIndex];
+				Events.push_back(Node.Event);
+			}
+			else
+				Node.Event.Entrant = nullptr;
+			Timeline.Nodes.push_back(std::move(Node));
+		}
+		Timelines.push_back(std::move(Timeline));
+	}
+
+	std::stable_sort(Events.begin(), Events.end(), [](const RaceEvent& Left, const RaceEvent& Right)
+		{
+			if (Left.TimeMs != Right.TimeMs)
+				return Left.TimeMs < Right.TimeMs;
+			return Left.RacerIndex < Right.RacerIndex;
+		});
+
+	Result = RaceResult{};
+	Result.GUID = Snapshot.GUID;
+	Result.TrackLength = Snapshot.TrackLength;
+	Result.Error = Snapshot.Error;
+	Result.RacerResults.reserve(Snapshot.Results.size());
+	for (const RaceHistoryResultSnapshot& ResultSnapshot : Snapshot.Results)
+	{
+		Racer* Runner = SnapshotEntrants[ResultSnapshot.RacerIndex];
+		Result.RacerResults.emplace_back(Runner, ResultSnapshot.Position, ResultSnapshot.Ms, Snapshot.GUID);
+	}
+
+	UpdatePlaybackStateAt(PlaybackTimeMs);
 	return true;
 }
 

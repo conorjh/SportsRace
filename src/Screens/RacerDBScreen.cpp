@@ -10,7 +10,7 @@
 #include <sstream>
 #include <utility>
 
-namespace
+namespace RacerDBScreenDetail
 {
 	constexpr int RacerDBScreenPanelTop = 94;
 	constexpr int RacerDBScreenPanelHeight = 550;
@@ -174,7 +174,8 @@ namespace
 	}
 
 	void DrawButton(Game::Render::BaseRenderer& Renderer, Game::Render::AppRenderContext* Context,
-		Game::GUI::Button& Button, bool IsSelected = false, bool UseCompactText = false)
+		Game::GUI::Button& Button, bool IsSelected = false, bool UseCompactText = false,
+		SDL_Color TextColor = RacerDBScreenTextColor)
 	{
 		SDL_FRect Bounds;
 		SDL_RectToFRect(&Button.Rect, &Bounds);
@@ -188,7 +189,7 @@ namespace
 		const Game::Assets::FontAssetId Font = UseCompactText
 			? Game::Assets::FontAssetDebugFont : Game::Assets::FontAssetInfoFont;
 		Renderer.RenderText(Context->Store.GetFont(Font), Button.Text,
-			Button.x + 12, Button.y + (Button.h - RacerDBScreenButtonTextHeight) / 2, RacerDBScreenTextColor);
+			Button.x + 12, Button.y + (Button.h - RacerDBScreenButtonTextHeight) / 2, TextColor);
 	}
 
 	void DrawSortButton(Game::Render::BaseRenderer& Renderer, Game::Render::AppRenderContext* Context,
@@ -289,6 +290,7 @@ namespace
 		}
 	}
 }
+using namespace RacerDBScreenDetail;
 
 Game::Screens::RacerDBScreen::RacerDBScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO,
 	App::AppData& _Data, Race::RacerDB& _Database)
@@ -367,6 +369,25 @@ Game::Screens::AppScreen* Game::Screens::RacerDBScreen::Update()
 		RacerButtons[Row].Update();
 		if (RacerButtons[Row].HasMouseClicked())
 			SelectedRacer = GetRacerAt(RacerIndex);
+	}
+	if (ShowingHistory && SelectedRacer != nullptr &&
+		(IO.MouseButtonsPressed & SDL_BUTTON_MASK(SDL_BUTTON_LEFT)) != 0)
+	{
+		const auto& History = SelectedRacer->CareerRecord.History;
+		const std::size_t VisibleCount = std::min<std::size_t>(History.size(), RacerDBScreenHistoryRows);
+		for (std::size_t Index = 0; Index < VisibleCount; ++Index)
+		{
+			const int RowY = 258 + static_cast<int>(Index) * RacerDBScreenHistoryRowStep;
+			const SDL_Rect RowBounds{ RacerDBScreenDetailsLeft + 16, RowY - 2,
+				RacerDBScreenDetailsWidth - 32, 42 };
+			if (SDL_PointInRect(&MousePosition, &RowBounds))
+			{
+				const Game::Race::RacerCareerHistoryEntry& Entry = History[History.size() - 1 - Index];
+				if (Entry.HistoricalRaceId != 0 && OpenCareerHistoricalRace(ScreenStack, IO, Data,
+					Entry.HistoricalRaceId, Data.NodeViewerEnabled && IO.ShiftClickPressed))
+					return ScreenStack.Top();
+			}
+		}
 	}
 
 	return this;
@@ -678,7 +699,9 @@ unsigned int Game::Render::RacerDBScreenRenderer::Render()
 			IsSelected ? RacerDBScreenSelectedFillColor : RacerDBScreenPanelFillColor);
 		RenderText(Context->Store.GetFont(FontAssetDebugFont), std::to_string(Screen->GetRankFor(ListedRacer)),
 			RacerDBScreenRowLeft + 7, RowY + 8, RacerDBScreenTextColor);
-		DrawButton(*this, Context, RacerButtons[Row], IsSelected, true);
+		DrawButton(*this, Context, RacerButtons[Row], IsSelected, true,
+			Screen->IsPlayerOwnedRacer(ListedRacer) ? Render::PlayerOwnedRacerHighlightColor :
+				RacerDBScreenTextColor);
 		RenderText(Context->Store.GetFont(FontAssetDebugFont),
 			FormatCompactCount(ListedRacer->CareerRecord.PositionPoints), GetSortColumnLeft(2) + 4,
 			RowY + 8, RacerDBScreenTextColor);
@@ -735,7 +758,8 @@ unsigned int Game::Render::RacerDBScreenRenderer::Render()
 			RacerDBScreenDetailsLeft + 24, 112, RacerDBScreenAccentColor);
 		DrawButton(*this, Context, Screen->HistoryViewButton, Screen->IsShowingHistory(), true);
 		RenderText(Context->Store.GetFont(FontAssetInfoFont), Runner->Name,
-			RacerDBScreenDetailsLeft + 24, 147, RacerDBScreenTextColor);
+			RacerDBScreenDetailsLeft + 24, 147, Screen->IsPlayerOwnedRacer(Runner)
+				? Render::PlayerOwnedRacerHighlightColor : RacerDBScreenTextColor);
 		RenderText(Context->Store.GetFont(FontAssetDebugFont),
 			"ID " + std::to_string(Runner->GUID.GUID),
 			RacerDBScreenDetailsLeft + 24, 181, RacerDBScreenMutedTextColor);
@@ -747,7 +771,7 @@ unsigned int Game::Render::RacerDBScreenRenderer::Render()
 				FormatCompactCount(Runner->CareerRecord.PositionPoints) + " pts | " +
 				std::to_string(Runner->CareerRecord.History.size()) + " recent results",
 				RacerDBScreenDetailsLeft + 24, 198, RacerDBScreenMutedTextColor);
-			RenderText(Context->Store.GetFont(FontAssetInfoFont), "RECENT RACES",
+			RenderText(Context->Store.GetFont(FontAssetInfoFont), "RECENT RACES | CLICK FOR RESULTS",
 				RacerDBScreenDetailsLeft + 24, 230, RacerDBScreenAccentColor);
 
 			const auto& History = Runner->CareerRecord.History;

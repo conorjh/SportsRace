@@ -9,7 +9,7 @@
 #include <string_view>
 #include <thread>
 
-namespace
+namespace SportsRaceServerDetail
 {
 	volatile std::sig_atomic_t KeepRunning = 1;
 
@@ -54,6 +54,7 @@ namespace
 			<< " racers_with_history=" << RacersWithHistory << '\n';
 	}
 }
+using namespace SportsRaceServerDetail;
 
 int main(int ArgumentCount, char* Arguments[])
 {

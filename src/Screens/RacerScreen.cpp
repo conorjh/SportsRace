@@ -8,7 +8,7 @@
 #include <sstream>
 #include <string>
 
-namespace
+namespace RacerScreenDetail
 {
 	constexpr int RacerScreenWidth = 1024;
 	constexpr int RacerScreenHeight = 768;
@@ -197,6 +197,7 @@ namespace
 			Button.y + (Button.h - RacerScreenButtonTextHeight) / 2, RacerScreenButtonTextColor);
 	}
 }
+using namespace RacerScreenDetail;
 
 Game::Screens::RacerScreen::RacerScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay, RacerScreenStateInitType _InitType) :
 	AppScreen(_Machine, _IO, _Data),
@@ -238,6 +239,20 @@ Game::Screens::AppScreen* Game::Screens::RacerScreen::Update()
 		ApplyButton.Update();
 	if (InitType == RacerScreenStateInitType::ViewOnly)
 		ExitButton.Update();
+	if (InitType == RacerScreenStateInitType::ViewOnly && RacerToDisplay != nullptr &&
+		(IO.MouseButtonsPressed & SDL_BUTTON_MASK(SDL_BUTTON_LEFT)) != 0 &&
+		IO.MousePosition.x >= RacerScreenRightColumnX + RacerScreenPanelPadding &&
+		IO.MousePosition.x < RacerScreenRightColumnX + RacerScreenPanelWidth - RacerScreenPanelPadding &&
+		IO.MousePosition.y >= RacerScreenDetailRaceHistoryTop &&
+		IO.MousePosition.y < RacerScreenDetailsPanelTop + RacerScreenDetailsPanelHeight)
+	{
+		const Game::Race::RacerCareerHistoryEntry* LastRace = RacerToDisplay->CareerRecord.History.empty()
+			? nullptr : &RacerToDisplay->CareerRecord.History.back();
+		if (LastRace != nullptr && LastRace->HistoricalRaceId != 0 &&
+			OpenCareerHistoricalRace(ScreenStack, IO, Data, LastRace->HistoricalRaceId,
+				Data.NodeViewerEnabled && IO.ShiftClickPressed))
+			return ScreenStack.Top();
+	}
 	if ((ApplyButton.HasMouseClicked() || IO.Esc) || (ExitButton.HasMouseClicked() || IO.Esc))
 	{
 		IO.Player.Play(BuiltInSounds::Click);
@@ -264,7 +279,9 @@ unsigned int Game::Render::RacerScreenRenderer::Render()
 	// Keep hidden ratings out of this player-facing profile while showing visible skills and conditions.
 	using namespace Game::Assets;
 	const auto StartTime = SDL_GetTicks();
-	const Game::Race::Racer& Runner = RacerProfile->MainFella;
+	const Game::Race::Racer* DisplayedRunner = Screen == nullptr ? nullptr : Screen->GetRacerToDisplay();
+	const Game::Race::Racer& Runner = DisplayedRunner == nullptr ? RacerProfile->MainFella : *DisplayedRunner;
+	const bool IsPlayerRacer = &Runner == &RacerProfile->MainFella;
 
 	SDL_SetRenderDrawColor(Context->MainRenderer, RacerScreenBackgroundColor.r, RacerScreenBackgroundColor.g,
 		RacerScreenBackgroundColor.b, RacerScreenBackgroundColor.a);
@@ -324,7 +341,8 @@ unsigned int Game::Render::RacerScreenRenderer::Render()
 	RenderText(Context->Store.GetFont(FontAssetInfoFont), "PROFILE",
 		RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenPortraitTextTop, RacerScreenAccentColor);
 	RenderText(Context->Store.GetFont(FontAssetWinningFont), Runner.Name,
-		RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenProfileNameTop, RacerScreenTextColor);
+		RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenProfileNameTop,
+		Game::Render::PlayerOwnedRacerHighlightColor);
 
 	const unsigned int AnimationFrame = static_cast<unsigned int>((SDL_GetTicks() / RacerScreenSpriteFrameDurationMs) %
 		RacerScreenSpriteFrameCount);
@@ -346,7 +364,9 @@ unsigned int Game::Render::RacerScreenRenderer::Render()
 		RacerScreenRightColumnX + RacerScreenDetailSecondColumnOffset, RacerScreenDetailFirstRowTop);
 	DrawRacerScreenDetail(*this, Context, "WEIGHT", std::to_string(static_cast<int>(std::lround(Runner.Details.WeightKg))) + " kg",
 		RacerScreenRightColumnX + RacerScreenDetailThirdColumnOffset, RacerScreenDetailFirstRowTop);
-	DrawRacerScreenDetail(*this, Context, "CAREER CASH", "$" + std::to_string(RacerProfile->Financials.Cash),
+	const std::string CareerCash = IsPlayerRacer
+		? "$" + std::to_string(RacerProfile->Financials.Cash) : "N/A";
+	DrawRacerScreenDetail(*this, Context, "CAREER CASH", CareerCash,
 		RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenDetailSecondRowTop);
 	RenderText(Context->Store.GetFont(FontAssetDebugFont),
 		"Career " + std::to_string(Runner.CareerRecord.Wins) + "W / " +
@@ -368,7 +388,7 @@ unsigned int Game::Render::RacerScreenRenderer::Render()
 				static_cast<unsigned int>(Game::Race::TrackLength::Standard100m)) + "m";
 		RenderText(Context->Store.GetFont(FontAssetDebugFont),
 			"Last: Day " + std::to_string(LastRace.WorldTimeMs / MillisecondsPerWorldDay + 1) + " " +
-			Place + " " + Distance,
+			Place + " " + Distance + "  (click for results)",
 			RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenDetailRaceHistoryTop,
 			RacerScreenMutedTextColor);
 	}

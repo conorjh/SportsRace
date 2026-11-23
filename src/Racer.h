@@ -86,6 +86,7 @@ namespace Game
 			unsigned int TrackLength = 0;
 			unsigned int Position = 0;
 			unsigned int FinishTimeMs = 0;
+			std::uint64_t HistoricalRaceId = 0;
 		};
 
 		struct RacerCareerRecord

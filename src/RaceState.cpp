@@ -2,10 +2,11 @@
 #include "spdlog/spdlog.h"
 #include <string>
 
-namespace
+namespace RaceStateDetail
 {
     constexpr unsigned int RacePhaseDurationMs = 1000;
 }
+using namespace RaceStateDetail;
 
 Game::Race::RaceState::RaceState(RaceStateData& _Data) : Data(_Data)
 {

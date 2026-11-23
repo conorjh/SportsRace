@@ -6,9 +6,10 @@
 #include <random>
 #include <utility>
 
-namespace
+namespace CareerDetail
 {
 	constexpr unsigned int CareerRacePredictionDnfTimeMs = 1800000;
+	constexpr std::size_t CareerUpcomingRaceEntrantCount = 6;
 
 	unsigned int SelectCareerTrackLength(const Game::Career::CareerData* Data, std::mt19937& Random)
 	{
@@ -19,6 +20,7 @@ namespace
 		return Data->RaceTrackLengths[TrackDistribution(Random)];
 	}
 }
+using namespace CareerDetail;
 
 double Game::Career::EstimateRacerStrength(const Race::Racer& Runner, unsigned int TrackLength)
 {
@@ -43,6 +45,130 @@ double Game::Career::EstimateRacerStrength(const Race::Racer& Runner, unsigned i
 		(Confidence - Race::RacerConditions::InitialConfidence) * 0.1) *
 		(1.0 - Fatigue * 0.45) * (1.0 - Injury * 0.35);
 	return std::clamp(BaseStrength * ConditionMultiplier, 0.0, 100.0);
+}
+
+bool Game::Career::IsLeagueAtStableLocation(const CareerData& Data, const CareerLeague& League)
+{
+	const auto HomeCity = std::find_if(Data.Cities.begin(), Data.Cities.end(), [&Data](const CareerWorldCity& City)
+		{
+			return City.Id == Data.HomeCityId;
+		});
+	if (Data.HomeCityId == 0 || HomeCity == Data.Cities.end())
+		return false;
+
+	const auto HomeRegion = std::find_if(Data.Regions.begin(), Data.Regions.end(), [&HomeCity](const CareerWorldRegion& Region)
+		{
+			return Region.Id == HomeCity->RegionId;
+		});
+	if (HomeRegion == Data.Regions.end())
+		return false;
+	const auto HomeCountry = std::find_if(Data.Countries.begin(), Data.Countries.end(),
+		[&HomeRegion](const CareerWorldCountry& Country) { return Country.Id == HomeRegion->CountryId; });
+	if (HomeCountry == Data.Countries.end())
+		return false;
+
+	switch (League.Level)
+	{
+	case CareerCompetitionLevel::City:
+		return League.CityId == HomeCity->Id;
+	case CareerCompetitionLevel::Regional:
+		return League.RegionId == HomeRegion->Id;
+	case CareerCompetitionLevel::National:
+		return League.CountryId == HomeCountry->Id;
+	default:
+		return false;
+	}
+}
+
+Game::Career::CareerHistoricalRace* Game::Career::FindCareerHistoricalRace(
+	CareerData& Data, std::uint64_t HistoryId)
+{
+	if (HistoryId == 0)
+		return nullptr;
+	const auto HistoricalRace = std::find_if(Data.HistoricalRaces.begin(), Data.HistoricalRaces.end(),
+		[HistoryId](const CareerHistoricalRace& Entry) { return Entry.Id == HistoryId; });
+	return HistoricalRace == Data.HistoricalRaces.end() ? nullptr : &*HistoricalRace;
+}
+
+const Game::Career::CareerHistoricalRace* Game::Career::FindCareerHistoricalRace(
+	const CareerData& Data, std::uint64_t HistoryId)
+{
+	if (HistoryId == 0)
+		return nullptr;
+	const auto HistoricalRace = std::find_if(Data.HistoricalRaces.begin(), Data.HistoricalRaces.end(),
+		[HistoryId](const CareerHistoricalRace& Entry) { return Entry.Id == HistoryId; });
+	return HistoricalRace == Data.HistoricalRaces.end() ? nullptr : &*HistoricalRace;
+}
+
+bool Game::Career::RecordCareerRaceHistory(CareerData& Data, const Race::Race& CompletedRace,
+	const std::string& EventName, std::uint64_t WorldTimeMs, std::uint64_t& HistoryId, std::string& Error)
+{
+	HistoryId = 0;
+	Error.clear();
+	if (Data.NextCareerRaceHistoryId == 0 ||
+		Data.NextCareerRaceHistoryId == std::numeric_limits<std::uint64_t>::max())
+	{
+		Error = "Career race history identifiers are exhausted.";
+		return false;
+	}
+
+	Race::RaceHistorySnapshot Snapshot;
+	if (!CompletedRace.CaptureHistorySnapshot(Snapshot))
+	{
+		Error = "The completed race could not be captured for history.";
+		return false;
+	}
+
+	CareerHistoricalRace HistoricalRace;
+	HistoricalRace.Id = Data.NextCareerRaceHistoryId++;
+	HistoricalRace.WorldTimeMs = WorldTimeMs;
+	HistoricalRace.EventName = EventName;
+	HistoricalRace.Snapshot = std::move(Snapshot);
+	HistoryId = HistoricalRace.Id;
+	Data.HistoricalRaces.push_back(std::move(HistoricalRace));
+	if (Data.HistoricalRaces.size() > MaximumCareerHistoricalRaces)
+		Data.HistoricalRaces.erase(Data.HistoricalRaces.begin(),
+			Data.HistoricalRaces.begin() + static_cast<std::ptrdiff_t>(
+				Data.HistoricalRaces.size() - MaximumCareerHistoricalRaces));
+	return true;
+}
+
+std::shared_ptr<Game::Career::CareerRaceHistoryReplay> Game::Career::CreateCareerRaceHistoryReplay(
+	const CareerHistoricalRace& HistoricalRace, std::string& Error)
+{
+	Error.clear();
+	if (!Race::IsValidRaceHistorySnapshot(HistoricalRace.Snapshot))
+	{
+		Error = "The archived race snapshot is invalid.";
+		return nullptr;
+	}
+
+	auto Replay = std::make_shared<CareerRaceHistoryReplay>(HistoricalRace.Snapshot.Seed);
+	Replay->Entrants.reserve(HistoricalRace.Snapshot.Entrants.size());
+	std::vector<Race::Racer*> EntrantPointers;
+	EntrantPointers.reserve(HistoricalRace.Snapshot.Entrants.size());
+	for (const Race::RaceHistoryRacerSnapshot& RacerSnapshot : HistoricalRace.Snapshot.Entrants)
+	{
+		auto Runner = std::make_unique<Race::Racer>(RacerSnapshot.Name);
+		Runner->GUID = RacerSnapshot.GUID;
+		Runner->Skills = RacerSnapshot.Skills;
+		Runner->Details = RacerSnapshot.Details;
+		Runner->Conditions = RacerSnapshot.Conditions;
+		Runner->CurveSeed = RacerSnapshot.CurveSeed;
+		Runner->AccelerationCurve = RacerSnapshot.AccelerationCurve;
+		Runner->EnduranceCurve = RacerSnapshot.EnduranceCurve;
+		Runner->Reset();
+		Runner->Conditions = RacerSnapshot.Conditions;
+		EntrantPointers.push_back(Runner.get());
+		Replay->Entrants.push_back(std::move(Runner));
+	}
+
+	if (!Replay->CompletedRace.RestoreHistorySnapshot(HistoricalRace.Snapshot, EntrantPointers))
+	{
+		Error = "The archived race snapshot could not be restored.";
+		return nullptr;
+	}
+	return Replay;
 }
 
 Game::Career::RacePrediction Game::Career::PredictRace(const std::vector<Race::Racer*>& Entrants,
@@ -172,7 +298,21 @@ bool Game::Career::CareerOrchestrator::PrepareUpcomingRace(unsigned int Seed, un
 	if (Data->UpcomingRaceEntrants.empty())
 	{
 		Data->UpcomingRaceEntrants.push_back(&Profile->MainFella);
-		std::vector<Race::Racer*> Opponents = SelectMatchedOpponents(5, Seed);
+		if (!Data->OwnedRacers.empty())
+		{
+			const std::size_t FirstOwnedRacerIndex = Seed % Data->OwnedRacers.size();
+			for (std::size_t Offset = 0; Offset < Data->OwnedRacers.size() &&
+				Data->UpcomingRaceEntrants.size() < CareerUpcomingRaceEntrantCount; ++Offset)
+			{
+				Race::Racer* OwnedRacer = Data->OwnedRacers[
+					(FirstOwnedRacerIndex + Offset) % Data->OwnedRacers.size()];
+				if (OwnedRacer != nullptr && std::find(Data->UpcomingRaceEntrants.begin(),
+					Data->UpcomingRaceEntrants.end(), OwnedRacer) == Data->UpcomingRaceEntrants.end())
+					Data->UpcomingRaceEntrants.push_back(OwnedRacer);
+			}
+		}
+		const std::size_t OpponentCount = CareerUpcomingRaceEntrantCount - Data->UpcomingRaceEntrants.size();
+		std::vector<Race::Racer*> Opponents = SelectMatchedOpponents(OpponentCount, Seed);
 		Data->UpcomingRaceEntrants.insert(Data->UpcomingRaceEntrants.end(), Opponents.begin(), Opponents.end());
 		Data->UpcomingRaceSeed = Seed;
 	}
@@ -243,11 +383,12 @@ Game::Race::Racer* Game::Career::CareerOrchestrator::BreedOwnedRacers(Race::Race
 	return Child;
 }
 
-void Game::Career::CareerOrchestrator::CompleteUpcomingRace(const Race::RaceResult& Result)
+void Game::Career::CareerOrchestrator::CompleteUpcomingRace(const Race::RaceResult& Result,
+	std::uint64_t HistoricalRaceId)
 {
 	if (Data == nullptr)
 		return;
-	CompletePlayerLeagueRace(Result);
+	CompletePlayerLeagueRace(Result, HistoricalRaceId);
 	if (Result.Error != Race::RaceError::None)
 		return;
 
@@ -288,3 +429,6 @@ Game::Career::CareerProfile::CareerProfile()
 	AppraisalIdentity = Generator();
 	Accuracy = static_cast<double>(AccuracyDistribution(Generator));
 }
+
+// The shared-core project has an explicit compile list, so persistence is included in this translation unit.
+#include "CareerSave.cpp"

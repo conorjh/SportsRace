@@ -7,10 +7,64 @@
 #include <cmath>
 #include <iostream>
 
-namespace
+namespace RendererDetail
 {
 	constexpr double MillisecondsPerSecond = 1000.0;
+	constexpr int RacerNameClickPadding = 2;
+
+	bool IsRacerNameBoundary(char Character)
+	{
+		return !((Character >= 'a' && Character <= 'z') || (Character >= 'A' && Character <= 'Z') ||
+			(Character >= '0' && Character <= '9') || Character == '_');
+	}
+
+	void RegisterRacerNameClickTargets(TTF_Font* Font, const std::string& Text, int X, int Y,
+		Game::Render::AppRenderContext* Context)
+	{
+		if (Context == nullptr || !Context->RacerInfoLinksEnabled || Font == nullptr)
+			return;
+
+		std::vector<bool> ClaimedCharacters(Text.size(), false);
+		for (const Game::Render::AppRenderContext::RacerInfoCandidate& Candidate :
+			Context->RacerInfoCandidates)
+		{
+			if (Candidate.Runner == nullptr || Candidate.Name.empty() || Candidate.Name.size() > Text.size())
+				continue;
+
+			std::size_t SearchPosition = 0;
+			while ((SearchPosition = Text.find(Candidate.Name, SearchPosition)) != std::string::npos)
+			{
+				const std::size_t MatchEnd = SearchPosition + Candidate.Name.size();
+				const bool HasLeftBoundary = SearchPosition == 0 || IsRacerNameBoundary(Text[SearchPosition - 1]);
+				const bool HasRightBoundary = MatchEnd == Text.size() || IsRacerNameBoundary(Text[MatchEnd]);
+				const bool OverlapsExistingTarget = std::any_of(ClaimedCharacters.begin() + SearchPosition,
+					ClaimedCharacters.begin() + MatchEnd, [](bool Claimed) { return Claimed; });
+				if (HasLeftBoundary && HasRightBoundary && !OverlapsExistingTarget)
+				{
+					int PrefixWidth = 0;
+					int PrefixHeight = 0;
+					int NameWidth = 0;
+					int NameHeight = 0;
+					const bool PrefixMeasured = SearchPosition == 0 || TTF_GetStringSize(Font, Text.c_str(),
+						SearchPosition, &PrefixWidth, &PrefixHeight);
+					if (PrefixMeasured && TTF_GetStringSize(Font, Candidate.Name.c_str(),
+						Candidate.Name.size(), &NameWidth, &NameHeight) && NameWidth > 0 && NameHeight > 0)
+					{
+						Context->RacerInfoClickTargets.push_back({
+							{ X + PrefixWidth - RacerNameClickPadding, Y - RacerNameClickPadding,
+								NameWidth + RacerNameClickPadding * 2, NameHeight + RacerNameClickPadding * 2 },
+							Candidate.Runner
+						});
+						std::fill(ClaimedCharacters.begin() + SearchPosition,
+							ClaimedCharacters.begin() + MatchEnd, true);
+					}
+				}
+				SearchPosition = MatchEnd;
+			}
+		}
+	}
 }
+using namespace RendererDetail;
 
 bool Game::Assets::AssetStore::RegisterAll(Game::Render::BaseRenderer& Renderer)
 {
@@ -47,14 +101,6 @@ bool Game::Assets::AssetStore::RegisterAll(Game::Render::BaseRenderer& Renderer)
 		Filename += std::to_string(Index) + ".png";
 		RegisterImage(static_cast<ImageAssetId>(ImageAssetCityTile000 + Index), Renderer.LoadImageFile(Filename));
 	}
-
-	const std::array<std::string, 4> IsometricLandscapeFiles{
-		"landscapeTiles_009.png", "landscapeTiles_010.png",
-		"landscapeTiles_019.png", "landscapeTiles_021.png"
-	};
-	for (std::size_t Index = 0; Index < IsometricLandscapeFiles.size(); ++Index)
-		RegisterImage(static_cast<ImageAssetId>(ImageAssetIsometricLandscape000 + Index),
-			Renderer.LoadImageFile("media/city/isometric/landscape/" + IsometricLandscapeFiles[Index]));
 
 	for (unsigned int Index = 0; Index < 12; ++Index)
 	{
@@ -148,7 +194,18 @@ bool Game::Render::BaseRenderer::LoadFontFile(std::string File, unsigned int Siz
 void Game::Render::BaseRenderer::RenderTextSingleLine(TTF_Font* Font, std::string Text, int x, int y, SDL_Color Color)
 {
 	SDL_Surface* surfaceMessage = TTF_RenderText_Blended(Font, Text.c_str(), Text.size(), Color);
+	if (surfaceMessage == nullptr)
+	{
+		spdlog::error("Failed to render text: {}", SDL_GetError());
+		return;
+	}
 	SDL_Texture* Message = SDL_CreateTextureFromSurface(Context->MainRenderer, surfaceMessage);
+	if (Message == nullptr)
+	{
+		spdlog::error("Failed to create a texture for rendered text: {}", SDL_GetError());
+		SDL_DestroySurface(surfaceMessage);
+		return;
+	}
 	
 	SDL_FRect Message_rect; //create a rect
 	Message_rect.x = x;  //controls the rect's x coordinate 
@@ -156,6 +213,7 @@ void Game::Render::BaseRenderer::RenderTextSingleLine(TTF_Font* Font, std::strin
 	SDL_FPoint size; SDL_GetTextureSize(Message, &size.x, &size.y);
 	Message_rect.w = size.x; // controls the width of the rect
 	Message_rect.h = size.y; // controls the height of the rect
+	RegisterRacerNameClickTargets(Font, Text, x, y, Context);
 	SDL_RenderTexture(Context->MainRenderer, Message, NULL, &Message_rect);
 
 	// Don't forget to free your surface and texture
@@ -213,8 +271,17 @@ void Game::Render::BaseRenderer::Display()
 		RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont),
 			"SPAWN " + std::to_string(Game::App::DebugMenuSpawnRacerCount) + " AI RACERS",
 			370, 378, SDL_Color{ 239, 231, 214, 255 });
+		SDL_FRect NodeViewerButtonBounds;
+		SDL_RectToFRect(&Game::App::DebugMenuNodeViewerButtonBounds, &NodeViewerButtonBounds);
+		SDL_SetRenderDrawColor(Context->MainRenderer, 104, 42, 36, 255);
+		SDL_RenderFillRect(Context->MainRenderer, &NodeViewerButtonBounds);
+		SDL_SetRenderDrawColor(Context->MainRenderer, 170, 96, 72, 255);
+		SDL_RenderRect(Context->MainRenderer, &NodeViewerButtonBounds);
+		RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont),
+			std::string("NODE VIEWER: ") + (Context->NodeViewerEnabled ? "ENABLED" : "DISABLED"),
+			370, 445, SDL_Color{ 239, 231, 214, 255 });
 		RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), "Press F3 to close.",
-			312, 470, SDL_Color{ 164, 155, 138, 255 });
+			312, 500, SDL_Color{ 164, 155, 138, 255 });
 	}
 
 	SDL_RenderPresent(Context->MainRenderer);

@@ -14,7 +14,7 @@
 #include <iomanip>
 #include <sstream>
 
-namespace
+namespace BuildingScreenDetail
 {
 	constexpr SDL_Color BuildingBackgroundColor{ 23, 22, 20, 255 };
 	constexpr SDL_Color BuildingPanelColor{ 36, 34, 30, 255 };
@@ -87,6 +87,21 @@ namespace
 		}
 	}
 
+	bool MessageIncludesOwnedRacerName(const Game::App::AppData& Data, const std::string& Message)
+	{
+		if (Data.Profile != nullptr && !Data.Profile->MainFella.Name.empty() &&
+			Message.find(Data.Profile->MainFella.Name) != std::string::npos)
+			return true;
+		if (Data.Career == nullptr)
+			return false;
+		return std::any_of(Data.Career->OwnedRacers.begin(), Data.Career->OwnedRacers.end(),
+			[&Data, &Message](const Game::Race::Racer* Runner)
+			{
+				return Data.IsPlayerOwnedRacer(Runner) && !Runner->Name.empty() &&
+					Message.find(Runner->Name) != std::string::npos;
+			});
+	}
+
 	void DrawCareerRacerRow(Game::Render::BaseRenderer& Renderer, Game::Render::AppRenderContext* Context,
 		const Game::Race::Racer& Racer, int X, int Y, int Width, bool Selected, const std::string& Prefix = "")
 	{
@@ -96,9 +111,10 @@ namespace
 		const std::string Text = Prefix + Racer.Name + "   W " + std::to_string(Racer.CareerRecord.Wins) +
 			" / L " + std::to_string(Racer.CareerRecord.Losses);
 		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont), Text, X + 9, Y + 10,
-			BuildingTextColor);
+			Game::Render::PlayerOwnedRacerHighlightColor);
 	}
 }
+using namespace BuildingScreenDetail;
 
 std::string Game::Screens::BuildingScreen::FormatOdds(double Odds)
 {
@@ -244,7 +260,8 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 			const std::string Probability = Index < Screen->BookieWinProbabilities.size()
 				? Screens::BuildingScreen::FormatOdds(Screen->BookieWinProbabilities[Index] * 100.0) + "%" : "--";
 			RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), Runner->Name + "   Win chance " +
-				Probability + "   Odds " + Odds, 50, Y + 12, BuildingTextColor);
+				Probability + "   Odds " + Odds, 50, Y + 12,
+				Screen->Data.IsPlayerOwnedRacer(Runner) ? Render::PlayerOwnedRacerHighlightColor : BuildingTextColor);
 		}
 		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "Stake", 724, 154, BuildingMutedColor);
 		DrawActionButton(*this, Context, "$25", 720, 190, 100, 44, Screen->BetStake == 25);
@@ -295,7 +312,8 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 			const Race::Racer& Runner = *OwnedRacers[Screen->SelectedOwnedRacerIndex];
 			RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "Selected: " + Runner.Name +
 				"   Endurance " + Screens::BuildingScreen::FormatOdds(Runner.Skills.Endurance) + "   Acceleration " +
-				Screens::BuildingScreen::FormatOdds(Runner.Skills.Acceleration), 382, 248, BuildingTextColor);
+				Screens::BuildingScreen::FormatOdds(Runner.Skills.Acceleration), 382, 248,
+				Screen->Data.IsPlayerOwnedRacer(&Runner) ? Render::PlayerOwnedRacerHighlightColor : BuildingTextColor);
 		}
 		if (Screen->ActiveGymActivity == Screens::GymScreen::GymActivity::Treadmill ||
 			Screen->ActiveGymActivity == Screens::GymScreen::GymActivity::Weights)
@@ -406,9 +424,11 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 				BuildingBorderColor.b, BuildingBorderColor.a);
 			SDL_RenderRect(Context->MainRenderer, &RowBounds);
 			std::string EntrantNames;
+			bool HasOwnedEntrant = false;
 			for (const Race::Racer* Runner : WorldRace->Entrants)
 				if (Runner != nullptr)
 				{
+					HasOwnedEntrant = HasOwnedEntrant || Screen->Data.IsPlayerOwnedRacer(Runner);
 					if (!EntrantNames.empty())
 						EntrantNames += "  |  ";
 					EntrantNames += Runner->Name;
@@ -421,7 +441,7 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 			RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), WorldRace->EventName + "   |   " +
 				Phase + "   |   " + Elapsed, 74, RowY + 5, BuildingTextColor);
 			RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), EntrantNames, 74, RowY + 23,
-				BuildingMutedColor);
+				HasOwnedEntrant ? Render::PlayerOwnedRacerHighlightColor : BuildingMutedColor);
 		}
 		if (ActiveRaces.size() > Screens::RaceTrackScreen::VisibleRaceCount)
 			RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "Showing " +
@@ -467,7 +487,8 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 
 	if (!Screen->StatusMessage.empty())
 		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), Screen->StatusMessage, 40, 646,
-			BuildingTextColor);
+			MessageIncludesOwnedRacerName(Screen->Data, Screen->StatusMessage)
+				? Render::PlayerOwnedRacerHighlightColor : BuildingTextColor);
 	Display();
 	return SDL_GetTicks() - StartTime;
 }

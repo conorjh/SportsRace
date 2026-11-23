@@ -1,5 +1,8 @@
 #include "Screens.h"
 #include "App\App.h"
+#include "Screens\NodeViewScreen.h"
+#include "Screens\PostRaceScreen.h"
+#include "Screens\RacerScreen.h"
 #include "spdlog/spdlog.h"
 
 std::string Game::Screens::AppStateTypeToString(AppScreenType Type)
@@ -59,6 +62,29 @@ Game::Screens::AppScreen::AppScreen(AppScreenStateMachine& _Machine, Game::App::
 
 }
 
+bool Game::Screens::AppScreen::IsPlayerOwnedRacer(const Game::Race::Racer* Runner) const
+{
+	return Data.IsPlayerOwnedRacer(Runner);
+}
+
+bool Game::Screens::AppScreen::HandleRacerInfoClick()
+{
+	if (Type == AppScreenType::RaceScreen || Type == AppScreenType::RacerScreen || Data.RenderContext == nullptr ||
+		(IO.MouseButtonsPressed & SDL_BUTTON_MASK(SDL_BUTTON_LEFT)) == 0)
+		return false;
+
+	const SDL_Point MousePoint{ static_cast<int>(IO.MousePosition.x), static_cast<int>(IO.MousePosition.y) };
+	const auto& Targets = Data.RenderContext->RacerInfoClickTargets;
+	for (auto Target = Targets.rbegin(); Target != Targets.rend(); ++Target)
+		if (Target->Runner != nullptr && SDL_PointInRect(&MousePoint, &Target->Bounds))
+		{
+			ScreenStack.Push(new RacerScreen(ScreenStack, IO, Data, Target->Runner,
+				RacerScreenStateInitType::ViewOnly));
+			return true;
+		}
+	return false;
+}
+
 Game::Screens::AppScreen::~AppScreen()
 {
 
@@ -95,7 +121,12 @@ void Game::Screens::AppScreenStateMachine::Update()
 {
 	// Only the top screen receives updates; screens below it remain suspended on the stack.
 	if (ScreenStack.size())
-		ScreenStack.top()->Update();
+	{
+		AppScreen* CurrentScreen = ScreenStack.top();
+		CurrentScreen->Update();
+		if (ScreenStack.size() && ScreenStack.top() == CurrentScreen)
+			CurrentScreen->HandleRacerInfoClick();
+	}
 }
 
 void Game::Screens::AppScreenStateMachine::Pop()
@@ -125,4 +156,37 @@ void Game::Screens::AppScreenStateMachine::SwapTop(AppScreen* State)
 {
 	Pop();
 	Push(State);
+}
+
+bool Game::Screens::OpenCareerHistoricalRace(AppScreenStateMachine& ScreenStack, Game::App::AppIO& IO,
+	Game::App::AppData& Data, std::uint64_t HistoryId, bool OpenNodeView)
+{
+	if (Data.Career == nullptr)
+	{
+		spdlog::error("Cannot open historic race {}: career data is unavailable.", HistoryId);
+		return false;
+	}
+	const Game::Career::CareerHistoricalRace* HistoricalRace =
+		Game::Career::FindCareerHistoricalRace(*Data.Career, HistoryId);
+	if (HistoricalRace == nullptr)
+	{
+		spdlog::warn("Historic race {} is no longer available in the bounded race archive.", HistoryId);
+		return false;
+	}
+
+	std::string Error;
+	std::shared_ptr<Game::Career::CareerRaceHistoryReplay> Replay =
+		Game::Career::CreateCareerRaceHistoryReplay(*HistoricalRace, Error);
+	if (Replay == nullptr)
+	{
+		spdlog::error("Could not restore historic race {}: {}", HistoryId, Error);
+		return false;
+	}
+
+	if (OpenNodeView)
+		ScreenStack.Push(new NodeViewScreen(ScreenStack, IO, Data, Replay->CompletedRace, Replay, false));
+	else
+		ScreenStack.Push(new PostRaceScreen(ScreenStack, IO, Data, Replay->CompletedRace, {},
+			Game::Race::RacerGUID{}, false, HistoricalRace->EventName, Replay, false));
+	return true;
 }

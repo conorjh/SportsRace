@@ -7,7 +7,7 @@
 #include <cmath>
 #include <random>
 
-namespace
+namespace RouletteScreenDetail
 {
 	constexpr float Pi = 3.14159265358979323846f;
 	constexpr float TwoPi = Pi * 2.0f;
@@ -180,6 +180,7 @@ namespace
 		SDL_RenderFillRect(Renderer, &Ball);
 }
 }
+using namespace RouletteScreenDetail;
 
 Game::Screens::RouletteScreen::RouletteScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO,
 	App::AppData& _Data, const Career::CityPlot& _Plot)

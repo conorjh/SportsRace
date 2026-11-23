@@ -6,7 +6,7 @@
 #include <array>
 #include <random>
 
-namespace
+namespace SlotMachineScreenDetail
 {
 	constexpr std::array<const char*, 6> SlotSymbolNames{
 		"HORSE", "STAR", "CROWN", "7", "COIN", "DIAMOND"
@@ -54,6 +54,7 @@ namespace
 			IsPayline ? SlotSymbolColors[Symbol % SlotSymbolColors.size()] : CasinoMuted);
 	}
 }
+using namespace SlotMachineScreenDetail;
 
 Game::Screens::SlotMachineScreen::SlotMachineScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO,
 	App::AppData& _Data, const Career::CityPlot& _Plot)

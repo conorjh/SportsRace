@@ -4,7 +4,7 @@
 #include "SDL3\SDL.h"
 #include <array>
 
-namespace
+namespace OptionsScreenDetail
 {
 	struct WindowResolution
 	{
@@ -39,6 +39,7 @@ namespace
 			Button.x + 14, Button.y + (Button.h - 16) / 2, SDL_Color{ 239, 231, 214, 255 });
 	}
 }
+using namespace OptionsScreenDetail;
 
 Game::Screens::OptionsScreen::OptionsScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO,
 	App::AppData& _Data)

@@ -4,15 +4,22 @@
 #include "spdlog/spdlog.h"
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <string>
 #include <utility>
 
-namespace
+namespace RaceScreenDetail
 {
 	constexpr unsigned int RacerDetailsVerticalOffset = 40;
 	constexpr int RacerNameVerticalOffset = 50;
 	constexpr int RacerTextLineSpacing = 20;
 	constexpr unsigned int RaceScreenCameraLookAhead = 75;
+	constexpr int RaceSpectatorControlBarTop = 698;
+	constexpr int RaceSpectatorButtonY = 712;
+	constexpr int RaceSpectatorButtonWidth = 64;
+	constexpr int RaceSpectatorButtonHeight = 42;
+	constexpr int RaceSpectatorPreviousButtonX = 360;
+	constexpr int RaceSpectatorNextButtonX = 600;
 	constexpr int RaceResultsFirstRowY = 310;
 	constexpr int RaceResultsPodiumRowSpacing = 60;
 	constexpr int RaceResultsPulledUpFirstRowY = 480;
@@ -20,6 +27,10 @@ namespace
 	constexpr int RacerSpriteFrameWidth = 153;
 	constexpr int RacerSpriteFrameHeight = 186;
 	constexpr SDL_Color RacerLabelColor{ 255, 255, 255, 255 };
+	constexpr SDL_Color SpectatorAccentColor{ 178, 61, 49, 255 };
+	constexpr SDL_Color SpectatorTextColor{ 235, 229, 215, 255 };
+	constexpr SDL_Color SpectatorMutedColor{ 164, 155, 138, 255 };
+	constexpr SDL_Color SpectatorRacerHighlightColor{ 239, 201, 111, 255 };
 
 	std::string RaceEffectsToString(unsigned int Effects)
 	{
@@ -74,6 +85,26 @@ namespace
 		if (!CurrentRace.IsComplete())
 			return;
 
+		const std::string EventName = Data.Career != nullptr && Data.Career->PendingPlayerLeagueRace.Active
+			? Data.Career->PendingPlayerLeagueRace.EventName : "Career Race";
+		std::uint64_t HistoricalRaceId = 0;
+		if (Data.Career != nullptr)
+		{
+			std::string HistoryError;
+			if (!Game::Career::RecordCareerRaceHistory(*Data.Career, CurrentRace, EventName,
+				Data.Career->WorldClock.NowMs(), HistoricalRaceId, HistoryError))
+				spdlog::error("Could not archive completed player race: {}", HistoryError);
+			else if (Game::Career::CareerHistoricalRace* HistoricalRace =
+				Game::Career::FindCareerHistoricalRace(*Data.Career, HistoricalRaceId);
+				HistoricalRace != nullptr && Data.Career->PendingPlayerLeagueRace.Active)
+			{
+				HistoricalRace->LeagueId = Data.Career->PendingPlayerLeagueRace.LeagueId;
+				HistoricalRace->IsPlayoff = Data.Career->PendingPlayerLeagueRace.IsPlayoff;
+				HistoricalRace->PlayoffRoundIndex = Data.Career->PendingPlayerLeagueRace.PlayoffRoundIndex;
+				HistoricalRace->PlayoffMatchIndex = Data.Career->PendingPlayerLeagueRace.PlayoffMatchIndex;
+			}
+		}
+
 		bool PlayerResultFound = false;
 		for (const auto& Result : CurrentRace.Result.RacerResults)
 		{
@@ -83,12 +114,11 @@ namespace
 			const bool Finished = Result.Position != Game::Race::PulledUpPosition;
 			Game::Race::RacerCareerHistoryEntry HistoryEntry;
 			HistoryEntry.WorldTimeMs = Data.Career == nullptr ? 0 : Data.Career->WorldClock.NowMs();
-			HistoryEntry.EventName = Data.Career != nullptr &&
-				Data.Career->PendingPlayerLeagueRace.Active
-				? Data.Career->PendingPlayerLeagueRace.EventName : "Career Race";
+			HistoryEntry.EventName = EventName;
 			HistoryEntry.TrackLength = CurrentRace.Result.TrackLength;
 			HistoryEntry.Position = Result.Position;
 			HistoryEntry.FinishTimeMs = Finished ? Result.Ms : 0;
+			HistoryEntry.HistoricalRaceId = HistoricalRaceId;
 			Result.Racer->RecordCareerResult(Result.Position, HistoryEntry.FinishTimeMs, HistoryEntry);
 			if (Result.Racer != Player)
 				continue;
@@ -112,7 +142,7 @@ namespace
 			if (Data.Career != nullptr && Data.Profile != nullptr)
 			{
 				Game::Career::CareerOrchestrator Orchestrator(Data.Career, Data.Profile);
-				Orchestrator.CompletePlayerLeagueRace(CurrentRace.Result);
+				Orchestrator.CompletePlayerLeagueRace(CurrentRace.Result, HistoricalRaceId);
 			}
 			return;
 		}
@@ -120,15 +150,37 @@ namespace
 		if (Data.Career != nullptr && Data.Profile != nullptr)
 		{
 			Game::Career::CareerOrchestrator Orchestrator(Data.Career, Data.Profile);
-			Orchestrator.CompleteUpcomingRace(CurrentRace.Result);
+			Orchestrator.CompleteUpcomingRace(CurrentRace.Result, HistoricalRaceId);
 		}
 		Data.RaceStateOutput = CurrentRace.Result;
 		ResultSaved = true;
 	}
+
+	void DrawSpectatorButton(Game::Render::BaseRenderer& Renderer,
+		Game::Render::AppRenderContext* Context, const Game::GUI::Button& Button, bool Enabled)
+	{
+		const SDL_FRect Bounds{ static_cast<float>(Button.Rect.x), static_cast<float>(Button.Rect.y),
+			static_cast<float>(Button.Rect.w), static_cast<float>(Button.Rect.h) };
+		const SDL_Color Fill = !Enabled ? SDL_Color{ 63, 61, 55, 255 } :
+			Button.IsMouseOver() ? SDL_Color{ 134, 54, 45, 255 } : SDL_Color{ 104, 42, 36, 255 };
+		SDL_SetRenderDrawColor(Context->MainRenderer, Fill.r, Fill.g, Fill.b, Fill.a);
+		SDL_RenderFillRect(Context->MainRenderer, &Bounds);
+		SDL_SetRenderDrawColor(Context->MainRenderer, SpectatorAccentColor.r, SpectatorAccentColor.g,
+			SpectatorAccentColor.b, SpectatorAccentColor.a);
+		SDL_RenderRect(Context->MainRenderer, &Bounds);
+		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont), Button.Text,
+			Button.Rect.x + (Button.Rect.w - 12) / 2, Button.Rect.y + (Button.Rect.h - 16) / 2,
+			SpectatorTextColor);
+	}
 }
+using namespace RaceScreenDetail;
 
 Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* TrainingRacer) 
 	: AppScreen(_Machine, _IO, _Data), 
+	PreviousViewedRacerButton(_IO, "<", RaceSpectatorPreviousButtonX, RaceSpectatorButtonY,
+		RaceSpectatorButtonWidth, RaceSpectatorButtonHeight),
+	NextViewedRacerButton(_IO, ">", RaceSpectatorNextButtonX, RaceSpectatorButtonY,
+		RaceSpectatorButtonWidth, RaceSpectatorButtonHeight),
 	RaceSM(std::make_shared<Race::RaceStateMachine>(Race::Race()))
 {
 	Type = AppScreenType::RaceScreen;
@@ -137,6 +189,10 @@ Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppI
 
 Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun) 
 	:AppScreen(_Machine, _IO, _Data), 
+	PreviousViewedRacerButton(_IO, "<", RaceSpectatorPreviousButtonX, RaceSpectatorButtonY,
+		RaceSpectatorButtonWidth, RaceSpectatorButtonHeight),
+	NextViewedRacerButton(_IO, ">", RaceSpectatorNextButtonX, RaceSpectatorButtonY,
+		RaceSpectatorButtonWidth, RaceSpectatorButtonHeight),
 	RaceSM(std::make_shared<Race::RaceStateMachine>(std::move(RaceToRun)))
 {
 	Type = AppScreenType::RaceScreen;
@@ -148,6 +204,10 @@ Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppI
 
 Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Race RaceToRun, Race::RacerGUID PlayerRacer) 
 	: AppScreen(_Machine, _IO, _Data), 
+	PreviousViewedRacerButton(_IO, "<", RaceSpectatorPreviousButtonX, RaceSpectatorButtonY,
+		RaceSpectatorButtonWidth, RaceSpectatorButtonHeight),
+	NextViewedRacerButton(_IO, ">", RaceSpectatorNextButtonX, RaceSpectatorButtonY,
+		RaceSpectatorButtonWidth, RaceSpectatorButtonHeight),
 	RaceSM(std::make_shared<Race::RaceStateMachine>(std::move(RaceToRun)))
 {
 	Type = AppScreenType::RaceScreen;
@@ -164,6 +224,10 @@ Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppI
 Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO,
 	App::AppData& _Data, const std::shared_ptr<Career::CareerWorldRace>& WorldRace)
 	: AppScreen(_Machine, _IO, _Data),
+	PreviousViewedRacerButton(_IO, "<", RaceSpectatorPreviousButtonX, RaceSpectatorButtonY,
+		RaceSpectatorButtonWidth, RaceSpectatorButtonHeight),
+	NextViewedRacerButton(_IO, ">", RaceSpectatorNextButtonX, RaceSpectatorButtonY,
+		RaceSpectatorButtonWidth, RaceSpectatorButtonHeight),
 	RaceSM(WorldRace->StateMachine)
 {
 	Type = AppScreenType::RaceScreen;
@@ -203,6 +267,14 @@ void Game::Screens::RaceScreen::CapturePreRaceProgress()
 	}
 }
 
+Game::Race::Racer* Game::Screens::RaceScreen::GetViewedRacer() const
+{
+	if (RaceSM == nullptr)
+		return nullptr;
+	const std::vector<Race::Racer*>& Entrants = RaceSM->Data.ThisRace.GetEntrants();
+	return Entrants.empty() ? nullptr : Entrants[ViewedRacerIndex % Entrants.size()];
+}
+
 void Game::Screens::RaceScreen::Entry()
 {
 	IO.Player.StopMusic();
@@ -231,6 +303,57 @@ Game::Screens::AppScreen* Game::Screens::RaceScreen::Update()
 			IO.Player.Play(Soundtrack::Race);
 		}
 
+	}
+	if (IsWorldRaceViewer)
+	{
+		const auto& Entrants = RaceSM->Data.ThisRace.GetEntrants();
+		if (Entrants.size() > 1)
+		{
+			ViewedRacerIndex %= Entrants.size();
+			PreviousViewedRacerButton.Update();
+			NextViewedRacerButton.Update();
+			bool SwitchedWithButton = false;
+			if (PreviousViewedRacerButton.HasMouseClicked())
+			{
+				ViewedRacerIndex = (ViewedRacerIndex + Entrants.size() - 1) % Entrants.size();
+				SwitchedWithButton = true;
+			}
+			else if (NextViewedRacerButton.HasMouseClicked())
+			{
+				ViewedRacerIndex = (ViewedRacerIndex + 1) % Entrants.size();
+				SwitchedWithButton = true;
+			}
+
+			if (!SwitchedWithButton &&
+				(IO.MouseButtonsPressed & SDL_BUTTON_MASK(SDL_BUTTON_LEFT)) != 0)
+			{
+				const SDL_Point MousePoint{ static_cast<int>(IO.MousePosition.x),
+					static_cast<int>(IO.MousePosition.y) };
+				std::size_t ClickedRacerIndex = Entrants.size();
+				long long ClosestDistanceSquared = std::numeric_limits<long long>::max();
+				for (std::size_t EntrantIndex = 0; EntrantIndex < Entrants.size() &&
+					EntrantIndex < SpectatorRacerHitBounds.size(); ++EntrantIndex)
+				{
+					const SDL_Rect& HitBounds = SpectatorRacerHitBounds[EntrantIndex];
+					if (Entrants[EntrantIndex] == nullptr || HitBounds.w <= 0 || HitBounds.h <= 0 ||
+						!SDL_PointInRect(&MousePoint, &HitBounds))
+						continue;
+
+					const long long DeltaX = static_cast<long long>(MousePoint.x) -
+						(HitBounds.x + HitBounds.w / 2);
+					const long long DeltaY = static_cast<long long>(MousePoint.y) -
+						(HitBounds.y + HitBounds.h / 2);
+					const long long DistanceSquared = DeltaX * DeltaX + DeltaY * DeltaY;
+					if (DistanceSquared < ClosestDistanceSquared)
+					{
+						ClosestDistanceSquared = DistanceSquared;
+						ClickedRacerIndex = EntrantIndex;
+					}
+				}
+				if (ClickedRacerIndex < Entrants.size())
+					ViewedRacerIndex = ClickedRacerIndex;
+			}
+		}
 	}
 	if (ShowPostRaceOnComplete && !PostRaceShown && RaceSM->State->Type == RaceStateType::Finished)
 	{
@@ -298,7 +421,8 @@ void Game::Render::RaceScreenRenderer::DrawRacer(const Race::Racer& Racer, unsig
 {
 	using namespace Game::Race;
 
-	unsigned int yOffset = ((Track + 1) * 40) + 300;
+	const unsigned int RaceLaneTop = Screen->IsWorldRaceViewer ? 260 : 300;
+	unsigned int yOffset = ((Track + 1) * 40) + RaceLaneTop;
 	unsigned int StaggerOffset = (Track + 1) * 20;
 	int xOffset = 200;
 	if (Camera.CameraX > 0)
@@ -312,6 +436,8 @@ void Game::Render::RaceScreenRenderer::DrawRacer(const Race::Racer& Racer, unsig
 	const int FrameNum = RacerSpriteFrameWidth * static_cast<int>(Racer.RunFrame);
 	SDL_Rect SourceQuad = { FrameNum, 0, RacerSpriteFrameWidth, RacerSpriteFrameHeight };
 	SDL_Rect RenderQuad = { XDraw, static_cast<int>(yOffset), RacerSpriteFrameWidth, RacerSpriteFrameHeight };
+	if (Track < Screen->SpectatorRacerHitBounds.size())
+		Screen->SpectatorRacerHitBounds[Track] = RenderQuad;
 
 	SDL_Rect RenderQuad2 = { XDraw  ,  yOffset + 79, 144,107 };
 	if (Screen->RaceSM->State->Type == RaceStateType::StartersOrders || PulledUp)
@@ -328,7 +454,10 @@ void Game::Render::RaceScreenRenderer::DrawRacer(const Race::Racer& Racer, unsig
 	const std::string RacerPace = "Pace: " + std::to_string(static_cast<unsigned int>(std::lround(Racer.Pos.Velocity)));
 	const std::string Effects = RaceEffectsToString(ActiveEffects);
 	RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), RacerPace, XDraw, RacerPaceY, RacerLabelColor);
-	RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), Racer.Name, XDraw, RacerNameY, RacerLabelColor);
+	const bool IsViewedRacer = Screen->IsWorldRaceViewer && Screen->ViewedRacerIndex == Track;
+	RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), Racer.Name, XDraw, RacerNameY,
+		Screen->IsPlayerOwnedRacer(&Racer) ? Render::PlayerOwnedRacerHighlightColor :
+			IsViewedRacer ? SpectatorRacerHighlightColor : RacerLabelColor);
 	if (!Effects.empty())
 		RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "Effects: " + Effects, XDraw,
 			static_cast<int>(yOffset) - static_cast<int>(RacerDetailsVerticalOffset), RacerLabelColor);
@@ -375,7 +504,8 @@ void Game::Render::RaceScreenRenderer::DrawWinners()
 		RenderText(Context->Store.GetFont(Assets::FontAssetMainFont), "Wins " + to_string(WinAmount),
 			290, RaceResultsFirstRowY + RowOffset, { 255,255,255 });
 		RenderText(Context->Store.GetFont(Assets::FontAssetMainFont), "#" + to_string(Rank) + ": " + RankedResult->Racer->Name,
-			470, RaceResultsFirstRowY + RowOffset, { 255,255,255 });
+			470, RaceResultsFirstRowY + RowOffset, Screen->IsPlayerOwnedRacer(RankedResult->Racer)
+				? Render::PlayerOwnedRacerHighlightColor : SDL_Color{ 255,255,255 });
 		RenderText(Context->Store.GetFont(Assets::FontAssetMainFont),
 			to_string(static_cast<double>(RankedResult->Ms) / 1000.0) + "sec",
 			470, RaceResultsFirstRowY + RowOffset + 22, { 255,255,255 });
@@ -395,7 +525,9 @@ void Game::Render::RaceScreenRenderer::DrawWinners()
 			continue;
 
 		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "Pulled-up: " + Result.Racer->Name,
-			290, PulledUpY + static_cast<int>(PulledUpRow) * RaceResultsPulledUpRowSpacing, { 255,255,255 });
+			290, PulledUpY + static_cast<int>(PulledUpRow) * RaceResultsPulledUpRowSpacing,
+			Screen->IsPlayerOwnedRacer(Result.Racer)
+				? Render::PlayerOwnedRacerHighlightColor : SDL_Color{ 255,255,255 });
 		++PulledUpRow;
 	}
 }
@@ -441,7 +573,8 @@ void Game::Render::RaceScreenRenderer::DrawProgressBar()
 {
 	//Render red filled quad
 	int W = 200, H = 7;
-	int X = (1024 / 2) - (W / 2), Y = 740;
+	int X = (1024 / 2) - (W / 2);
+	int Y = Screen->IsWorldRaceViewer ? RaceSpectatorControlBarTop - 12 : 740;
 	SDL_Rect fillRect = { X ,Y , W,H };
 	SDL_SetRenderDrawColor(Context->MainRenderer, 0, 0, 0, 255);
 	SDL_FRect fillRectF;
@@ -472,6 +605,36 @@ void Game::Render::RaceScreenRenderer::DrawProgressBar()
 	}
 }
 
+void Game::Render::RaceScreenRenderer::DrawSpectatorControls()
+{
+	if (!Screen->IsWorldRaceViewer)
+		return;
+
+	const std::vector<Race::Racer*>& Entrants = Screen->RaceSM->Data.ThisRace.GetEntrants();
+	if (Entrants.empty())
+		return;
+
+	const SDL_FRect ControlBar{ 0.0f, static_cast<float>(RaceSpectatorControlBarTop),
+		static_cast<float>(Context->ScreenWidth), static_cast<float>(Context->ScreenHeight - RaceSpectatorControlBarTop) };
+	SDL_SetRenderDrawColor(Context->MainRenderer, 23, 22, 20, 255);
+	SDL_RenderFillRect(Context->MainRenderer, &ControlBar);
+	SDL_SetRenderDrawColor(Context->MainRenderer, 75, 70, 60, 255);
+	SDL_RenderRect(Context->MainRenderer, &ControlBar);
+
+	const bool HasMultipleEntrants = Entrants.size() > 1;
+	DrawSpectatorButton(*this, Context, Screen->PreviousViewedRacerButton, HasMultipleEntrants);
+	DrawSpectatorButton(*this, Context, Screen->NextViewedRacerButton, HasMultipleEntrants);
+	const Race::Racer* ViewedRacer = Screen->GetViewedRacer();
+	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
+		"RACER " + std::to_string(Screen->ViewedRacerIndex + 1) + " / " + std::to_string(Entrants.size()),
+		438, RaceSpectatorControlBarTop + 6, SpectatorMutedColor);
+	if (ViewedRacer != nullptr)
+		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), ViewedRacer->Name,
+			438, RaceSpectatorControlBarTop + 26,
+			Screen->IsPlayerOwnedRacer(ViewedRacer) ? Render::PlayerOwnedRacerHighlightColor :
+				SpectatorTextColor);
+}
+
 unsigned int Game::Render::RaceScreenRenderer::Render()
 {
 	//start timer
@@ -483,9 +646,9 @@ unsigned int Game::Render::RaceScreenRenderer::Render()
 		? CurrentRace.Get(Screen->PlayerGUID) : nullptr;
 	const bool PlayerPulledUp = PlayerRacer != nullptr &&
 		(CurrentRace.GetActiveEffects(PlayerRacer) & Race::RaceEffectPulledUp) != 0;
-	// Follow the active player; otherwise track the current race leader.
-	Race::Racer* CameraRacer = PlayerRacer != nullptr && !PlayerPulledUp
-		? PlayerRacer : CurrentRace.CurrentWinner();
+	// Follow the selected entrant while spectating; otherwise follow the player or race leader.
+	Race::Racer* CameraRacer = Screen->IsWorldRaceViewer ? Screen->GetViewedRacer() :
+		PlayerRacer != nullptr && !PlayerPulledUp ? PlayerRacer : CurrentRace.CurrentWinner();
 	const unsigned int CameraPosition = CameraRacer != nullptr
 		? static_cast<unsigned int>(CameraRacer->Pos.X) : CurrentRace.CurrentWinnerDistance();
 	Camera.PointAt(CameraPosition + RaceScreenCameraLookAhead);
@@ -497,11 +660,13 @@ unsigned int Game::Render::RaceScreenRenderer::Render()
 
 	//draw racers
 	const auto& Racers = Screen->RaceSM->Data.ThisRace.GetEntrants();
+	Screen->SpectatorRacerHitBounds.assign(Racers.size(), SDL_Rect{});
 	for (std::size_t t = 0; t < Racers.size(); ++t)
 		if (Racers[t] != nullptr)
 			DrawRacer(*Racers[t], static_cast<unsigned int>(t));
 
 	DrawProgressBar();
+	DrawSpectatorControls();
 
 	DrawWinners();
 	RenderDebugText();

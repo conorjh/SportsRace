@@ -6,12 +6,19 @@
 #include "..\RaceState.h"
 #include "..\Career.h"
 #include "PostRaceScreen.h"
+#include "..\Util.h"
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace Game
 {
+	namespace Render
+	{
+		class RaceScreenRenderer;
+	}
+
 	namespace Screens
 	{
 		enum class InRaceStateInitType
@@ -21,6 +28,8 @@ namespace Game
 
 		class RaceScreen : public AppScreen
 		{
+			friend class Game::Render::RaceScreenRenderer;
+
 			unsigned int LastFrameEnd;
 			bool ShowPostRaceOnComplete = false;
 			bool PostRaceShown = false;
@@ -28,9 +37,14 @@ namespace Game
 			bool PlayerRaceResultSaved = false;
 			bool IsWorldRaceViewer = false;
 			std::vector<RacerProgressSnapshot> PreRaceProgress;
+			std::vector<SDL_Rect> SpectatorRacerHitBounds;
 			std::string RaceEventName;
+			std::size_t ViewedRacerIndex = 0;
+			GUI::Button PreviousViewedRacerButton;
+			GUI::Button NextViewedRacerButton;
 
 			void CapturePreRaceProgress();
+			Race::Racer* GetViewedRacer() const;
 
 		public:
 			Race::RacerGUID PlayerGUID;
@@ -70,6 +84,7 @@ namespace Game
 			void RenderDebugText();
 			void DrawBackground();
 			void DrawProgressBar();
+			void DrawSpectatorControls();
 			RaceScreenRendererCamera Camera;
 
 		public:

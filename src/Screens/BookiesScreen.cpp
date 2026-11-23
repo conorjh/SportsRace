@@ -8,10 +8,11 @@
 #include <cmath>
 #include <random>
 
-namespace
+namespace BookiesScreenDetail
 {
 	constexpr double BookmakerStrengthTemperature = 12.0;
 }
+using namespace BookiesScreenDetail;
 
 Game::Screens::BookiesScreen::BookiesScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO,
 	App::AppData& _Data, const Career::CityPlot& _Plot)

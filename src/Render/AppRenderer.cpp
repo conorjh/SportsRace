@@ -1,5 +1,8 @@
 #include "AppRenderer.h"
 #include "spdlog/spdlog.h"
+#include <algorithm>
+#include <unordered_map>
+#include <unordered_set>
 
 using namespace Game;
 using namespace Game::App;
@@ -34,12 +37,70 @@ Game::App::Render::AppRenderer::AppRenderer(Game::App::AppData* Data, Screens::A
 unsigned int Game::App::Render::AppRenderer::Render()
 {
 	Context->ShowDebugMenu = Data != nullptr && Data->DebugMenuOpen;
+	Context->NodeViewerEnabled = Data != nullptr && Data->NodeViewerEnabled;
 	Context->DebugMenuStatus = Data == nullptr ? std::string{} : Data->DebugMenuStatus;
+	Context->RacerInfoClickTargets.clear();
+	Context->RacerInfoCandidates.clear();
+	Context->RacerInfoLinksEnabled = false;
 	if (StateMachine->Top() == nullptr)
 		return 0;
 
+	const AppScreenType ActiveScreenType = StateMachine->Top()->Type;
+	Context->RacerInfoLinksEnabled = Data != nullptr && !Data->DebugMenuOpen &&
+		ActiveScreenType != AppScreenType::RaceScreen && ActiveScreenType != AppScreenType::RacerScreen;
+	if (Context->RacerInfoLinksEnabled)
+	{
+		std::unordered_map<std::string, Race::Racer*> CandidatesByName;
+		std::unordered_set<std::string> AmbiguousNames;
+		const auto AddCandidate = [&CandidatesByName, &AmbiguousNames](Race::Racer* Runner)
+		{
+			if (Runner == nullptr || Runner->Name.empty() || AmbiguousNames.contains(Runner->Name))
+				return;
+
+			const auto [Candidate, Inserted] = CandidatesByName.emplace(Runner->Name, Runner);
+			if (!Inserted && Candidate->second != Runner)
+			{
+				AmbiguousNames.insert(Runner->Name);
+				CandidatesByName.erase(Candidate);
+			}
+		};
+
+		if (Data->Career != nullptr)
+		{
+			for (Race::Racer* Runner : Data->Career->Racers.GetAll())
+				AddCandidate(Runner);
+			AddCandidate(Data->Career->PlayerLeagueRacer);
+			AddCandidate(&Data->Career->Profile.MainFella);
+		}
+		if (Data->Profile != nullptr)
+			AddCandidate(&Data->Profile->MainFella);
+
+		if (ActiveScreenType == AppScreenType::PostRaceScreen)
+		{
+			const auto* Screen = static_cast<const PostRaceScreen*>(StateMachine->Top());
+			for (const Race::RacerRaceResult& Result : Screen->GetCompletedRace().Result.RacerResults)
+				AddCandidate(Result.Racer);
+		}
+		else if (ActiveScreenType == AppScreenType::NodeViewScreen)
+		{
+			auto* Screen = static_cast<NodeViewScreen*>(StateMachine->Top());
+			AddCandidate(Screen->GetSelectedRacer());
+		}
+
+		for (const auto& Candidate : CandidatesByName)
+			Context->RacerInfoCandidates.push_back({ Candidate.first, Candidate.second });
+		std::sort(Context->RacerInfoCandidates.begin(), Context->RacerInfoCandidates.end(),
+			[](const Game::Render::AppRenderContext::RacerInfoCandidate& Left,
+				const Game::Render::AppRenderContext::RacerInfoCandidate& Right)
+			{
+				if (Left.Name.size() != Right.Name.size())
+					return Left.Name.size() > Right.Name.size();
+				return Left.Name < Right.Name;
+			});
+	}
+
 	// The active screen type selects the concrete screen object and its matching renderer.
-	switch (StateMachine->Top()->Type)
+	switch (ActiveScreenType)
 	{
 	case AppScreenType::RaceScreen:
 	{

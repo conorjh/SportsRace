@@ -19,6 +19,7 @@ namespace Game
 	{
 		inline constexpr std::size_t DebugMenuSpawnRacerCount = 5;
 		inline constexpr SDL_Rect DebugMenuSpawnRacersButtonBounds{ 312, 352, 400, 72 };
+		inline constexpr SDL_Rect DebugMenuNodeViewerButtonBounds{ 312, 432, 400, 44 };
 
 		enum AppErrorCode
 		{
@@ -66,6 +67,7 @@ namespace Game
 			bool Fullscreen = false;
 			bool ShowFPS = false, Halted = false;
 			bool DebugMenuOpen = false;
+			bool NodeViewerEnabled = false;
 			std::string DebugMenuStatus;
 
 			Screens::AppScreenStateMachine ScreenStack;
@@ -74,6 +76,7 @@ namespace Game
 			Career::CareerProfile* Profile;
 			Game::Render::AppRenderContext* RenderContext;
 
+			bool IsPlayerOwnedRacer(const Race::Racer* Runner) const;
 			bool SetWindowedResolution(unsigned int Width, unsigned int Height);
 			bool SetFullscreen(bool Enabled);
 		};
@@ -96,6 +99,8 @@ namespace Game
 			float MouseWheelY = 0.0f;
 			bool DebugMenuTogglePressed = false;
 			bool DebugSpawnRacersPressed = false;
+			bool DebugNodeViewerTogglePressed = false;
+			bool ShiftClickPressed = false;
 		};
 
 		class Application

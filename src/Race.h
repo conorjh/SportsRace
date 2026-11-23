@@ -171,6 +171,64 @@ namespace Game
 			unsigned int EntranceFee;
 		};
 
+		struct RaceHistoryRacerSnapshot
+		{
+			RacerGUID GUID;
+			std::string Name;
+			RacerSkills Skills;
+			RacerDetails Details;
+			RacerConditions Conditions;
+			unsigned int CurveSeed = 0;
+			RaceCurve AccelerationCurve{ 0.0, 0.0, 1.0, 1.0, false };
+			RaceCurve EnduranceCurve{ 0.0, 1.0, 1.0, 0.0, true };
+		};
+
+		struct RaceHistoryTimelineSnapshot
+		{
+			unsigned int RacerIndex = 0;
+			double PreRaceConfidence = RacerConditions::InitialConfidence;
+			double PreRaceFatigue = 0.0;
+			double PreRaceInjury = 0.0;
+			std::list<RaceTimelineNode> Nodes;
+			std::vector<RaceMotionSegment> MotionSegments;
+			double FinalDistance = 0.0;
+			double FinishTimeMs = 0.0;
+			double PullUpTimeMs = 0.0;
+			double PullUpDistance = 0.0;
+			unsigned int FinishPosition = 0;
+			bool Finished = false;
+			bool PulledUp = false;
+			double FatigueAfter = 0.0;
+			double ConfidenceAfter = RacerConditions::InitialConfidence;
+			double InjuryAfter = 0.0;
+			double CurrentEndurance = 1.0;
+			unsigned int ActiveEffects = RaceEffectNone;
+		};
+
+		struct RaceHistoryResultSnapshot
+		{
+			unsigned int RacerIndex = 0;
+			unsigned int Position = 0;
+			unsigned int Ms = 0;
+		};
+
+		struct RaceHistorySnapshot
+		{
+			RaceGUID GUID;
+			unsigned int Seed = 0;
+			unsigned int TrackLength = 0;
+			unsigned int CurrentTick = 0;
+			RaceError Error = RaceError::None;
+			RaceFinancials Financials;
+			double PlaybackTimeMs = 0.0;
+			double TimelineDurationMs = 0.0;
+			std::vector<RaceHistoryRacerSnapshot> Entrants;
+			std::vector<RaceHistoryTimelineSnapshot> Timelines;
+			std::vector<RaceHistoryResultSnapshot> Results;
+		};
+
+		bool IsValidRaceHistorySnapshot(const RaceHistorySnapshot& Snapshot);
+
 		// Simulate the race once into entrant timelines, then advance those timelines for playback.
 		class Race
 		{
@@ -229,6 +287,9 @@ namespace Game
 			const RacerRaceTimeline* GetTimelineFor(const Racer* Runner) const;
 			bool GetTimelineStateAt(const Racer* Runner, double TimeMs, RaceTimelineState& State) const;
 			bool GetTimelinePositionAt(const Racer* Runner, double TimeMs, double& Position) const;
+			bool CaptureHistorySnapshot(RaceHistorySnapshot& Snapshot) const;
+			bool RestoreHistorySnapshot(const RaceHistorySnapshot& Snapshot,
+				const std::vector<Racer*>& SnapshotEntrants);
 
 			double GetTimelineDurationMs() const
 			{

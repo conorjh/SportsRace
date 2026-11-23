@@ -4,6 +4,7 @@
 #include "..\Career.h"
 #include "..\Render\Renderer.h"
 #include "..\Util.h"
+#include <string>
 
 namespace Game
 {
@@ -15,7 +16,8 @@ namespace Game
 			bool PlayerCreationPending = false;
 		public:
 			GUI::IconButton RacerIcon, RaceIcon, TrainingIcon, RankingIcon;
-			GUI::Button RacerDBButton, WorldMapButton, LeagueBrowserButton;
+			GUI::Button RacerDBButton, WorldMapButton, LeagueBrowserButton, SaveCareerButton;
+			std::string StatusMessage;
 
 			CareerHubScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data,
 				bool _PlayerCreationPending = false);

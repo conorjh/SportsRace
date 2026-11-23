@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <string_view>
 
-namespace
+namespace AppraisalDetail
 {
 	constexpr std::uint64_t FnvOffsetBasis = 14695981039346656037ull;
 	constexpr std::uint64_t FnvPrime = 1099511628211ull;
@@ -52,6 +52,7 @@ namespace
 		return ~Crc;
 	}
 }
+using namespace AppraisalDetail;
 
 std::uint64_t Game::Appraisal::HashRacer(const Game::Race::Racer& Runner)
 {

@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <unordered_set>
 
-namespace
+namespace CompetitionDetail
 {
 	void ValidateCompetitors(const std::vector<std::uint64_t>& CompetitorIds)
 	{
@@ -78,6 +78,7 @@ namespace
 		}
 	}
 }
+using namespace CompetitionDetail;
 
 std::vector<SportRaceCore::LeagueFixture> SportRaceCore::GenerateRoundRobinFixtures(
 	const std::vector<std::uint64_t>& CompetitorIds)

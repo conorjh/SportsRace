@@ -20,6 +20,10 @@ else
 	Stop();
 ```
 
+## Namespaces
+
+Do not use anonymous namespaces in first-party C++ code. Put implementation details in a descriptive, source-specific named namespace (for example, `CareerWorldSimulationDetail`) so helper names remain distinct across files. A source file may import its own detail namespace locally after the namespace block; never add such a directive to a header. Do not change third-party, generated, or vendored code.
+
 ## Header guards
 
 Use filename-based `#ifndef` include guards in first-party headers, followed by a matching `#define` and a closing `#endif`. Derive the uppercase guard name from the header filename, not its directory or a generic project name (for example, `Race.h` uses `RACE_H`).

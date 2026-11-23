@@ -5,11 +5,17 @@
 #include "..\Screens.h"
 #include "..\Util.h"
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
 namespace Game
 {
+	namespace Career
+	{
+		struct CareerRaceHistoryReplay;
+	}
+
 	namespace Render
 	{
 		class PostRaceRenderer;
@@ -37,6 +43,7 @@ namespace Game
 		{
 			friend class Game::Render::PostRaceRenderer;
 
+			std::shared_ptr<Career::CareerRaceHistoryReplay> HistoricalReplayOwner;
 			const Race::Race* CompletedRace;
 			std::vector<RacerProgressSnapshot> PreRaceProgress;
 			std::vector<const Race::RacerRaceResult*> OrderedResults;
@@ -44,6 +51,7 @@ namespace Game
 			std::string EventName;
 			Race::RacerGUID PlayerGUID;
 			bool PlayerRacerSupplied = false;
+			bool PopRaceScreenOnContinue = true;
 
 		public:
 			GUI::Button PreviousRacerButton;
@@ -52,7 +60,9 @@ namespace Game
 
 			PostRaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data,
 				const Race::Race& RaceToReview, std::vector<RacerProgressSnapshot> _PreRaceProgress,
-				Race::RacerGUID _PlayerGUID, bool _PlayerRacerSupplied, std::string _EventName);
+				Race::RacerGUID _PlayerGUID, bool _PlayerRacerSupplied, std::string _EventName,
+				std::shared_ptr<Career::CareerRaceHistoryReplay> _HistoricalReplayOwner = nullptr,
+				bool _PopRaceScreenOnContinue = true);
 
 			AppScreen* Update() override;
 			const Race::Race& GetCompletedRace() const;

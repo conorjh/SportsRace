@@ -17,6 +17,15 @@ bool SportRaceCore::WorldClock::Advance(std::uint64_t RealElapsedMs)
 	return true;
 }
 
+bool SportRaceCore::WorldClock::Restore(std::uint64_t WorldTimeMs, std::uint32_t RestoredTimeScale)
+{
+	if (RestoredTimeScale == 0)
+		return false;
+	CurrentTimeMs = WorldTimeMs;
+	TimeScale = RestoredTimeScale;
+	return true;
+}
+
 std::uint64_t SportRaceCore::WorldClock::NowMs() const
 {
 	return CurrentTimeMs;

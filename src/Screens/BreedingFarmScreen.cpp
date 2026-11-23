@@ -2,10 +2,11 @@
 #include "..\App\App.h"
 #include "SDL3\SDL.h"
 
-namespace
+namespace BreedingFarmScreenDetail
 {
 	constexpr unsigned int BreedingCost = 1000;
 }
+using namespace BreedingFarmScreenDetail;
 
 Game::Screens::BreedingFarmScreen::BreedingFarmScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO,
 	App::AppData& _Data, const Career::CityPlot& _Plot)

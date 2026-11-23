@@ -1,9 +1,15 @@
 #ifndef STATE_H
 #define STATE_H
+#include <cstdint>
 #include <stack>
 #include <string>
 namespace Game
 {
+	namespace Race
+	{
+		class Racer;
+	}
+
 	namespace App
 	{
 		//fwd decs
@@ -39,6 +45,8 @@ namespace Game
 			virtual void Entry(), Exit();
 
 			virtual AppScreen* Update();
+			bool IsPlayerOwnedRacer(const Race::Racer* Runner) const;
+			bool HandleRacerInfoClick();
 
 			AppScreenType Type;
 		};
@@ -57,6 +65,9 @@ namespace Game
 			void Push(AppScreen*), Pop(), SwapTop(AppScreen*);
 			AppScreen* Top();
 		};
+
+		bool OpenCareerHistoricalRace(AppScreenStateMachine& ScreenStack, App::AppIO& IO, App::AppData& Data,
+			std::uint64_t HistoryId, bool OpenNodeView);
 	}
 }
 #endif

@@ -10,7 +10,7 @@ using namespace Game;
 using namespace Game::Race;
 using namespace std;
 
-namespace
+namespace RacerDetail
 {
 	constexpr unsigned int MinimumGeneratedSkill = 20;
 	constexpr unsigned int MaximumGeneratedSkill = 100;
@@ -110,6 +110,7 @@ namespace
 		return (Low + High) / CurveSubdivisionCount;
 	}
 }
+using namespace RacerDetail;
 
 Game::Race::Racer::Racer() : Racer("")
 {

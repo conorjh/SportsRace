@@ -6,7 +6,7 @@
 #include <iomanip>
 #include <sstream>
 
-namespace
+namespace PostRaceScreenDetail
 {
 	constexpr int ResultsPanelLeft = 28;
 	constexpr int ResultsPanelWidth = 968;
@@ -112,17 +112,22 @@ namespace
 		return Text.str();
 	}
 }
+using namespace PostRaceScreenDetail;
 
 Game::Screens::PostRaceScreen::PostRaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO,
 	App::AppData& _Data, const Race::Race& RaceToReview,
 	std::vector<RacerProgressSnapshot> _PreRaceProgress, Race::RacerGUID _PlayerGUID,
-	bool _PlayerRacerSupplied, std::string _EventName)
+	bool _PlayerRacerSupplied, std::string _EventName,
+	std::shared_ptr<Career::CareerRaceHistoryReplay> _HistoricalReplayOwner,
+	bool _PopRaceScreenOnContinue)
 	: AppScreen(_Machine, _IO, _Data),
+	HistoricalReplayOwner(std::move(_HistoricalReplayOwner)),
 	CompletedRace(&RaceToReview),
 	PreRaceProgress(std::move(_PreRaceProgress)),
 	EventName(std::move(_EventName)),
 	PlayerGUID(_PlayerGUID),
 	PlayerRacerSupplied(_PlayerRacerSupplied),
+	PopRaceScreenOnContinue(_PopRaceScreenOnContinue),
 	PreviousRacerButton(_IO, "< Racer", 28, 704, 110, 42),
 	NextRacerButton(_IO, "Racer >", 148, 704, 110, 42),
 	ContinueButton(_IO, "Continue", 844, 704, 152, 42)
@@ -164,7 +169,8 @@ Game::Screens::AppScreen* Game::Screens::PostRaceScreen::Update()
 	{
 		IO.Player.Play(BuiltInSounds::Click);
 		ScreenStack.Pop();
-		ScreenStack.Pop();
+		if (PopRaceScreenOnContinue)
+			ScreenStack.Pop();
 		return ScreenStack.Top();
 	}
 	return this;
@@ -277,7 +283,9 @@ unsigned int Game::Render::PostRaceRenderer::Render()
 				"  |  Career points " + FormatDelta(PlayerResult->Racer->CareerRecord.PositionPoints,
 					PointsBefore, "") + "  |  Net " + FormatCash(GetNetCash(CompletedRace, *PlayerResult));
 			RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), ResultLine,
-				ResultsPanelLeft + 18, SummaryPanelTop + 68, ResultsText);
+				ResultsPanelLeft + 18, SummaryPanelTop + 68,
+				Screen->Data.IsPlayerOwnedRacer(PlayerResult->Racer)
+					? Render::PlayerOwnedRacerHighlightColor : ResultsText);
 		}
 		else
 			RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
@@ -293,7 +301,8 @@ unsigned int Game::Render::PostRaceRenderer::Render()
 			RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
 				"Winner: " + Winner->Racer->Name + "  |  " + FormatTime(Winner->Ms) +
 				"  |  Inspect each racer below for individual gains.", ResultsPanelLeft + 18,
-				SummaryPanelTop + 68, ResultsText);
+				SummaryPanelTop + 68, Screen->Data.IsPlayerOwnedRacer(Winner->Racer)
+					? Render::PlayerOwnedRacerHighlightColor : ResultsText);
 		else
 			RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "No classified finishers.",
 				ResultsPanelLeft + 18, SummaryPanelTop + 68, ResultsMuted);
@@ -322,7 +331,8 @@ unsigned int Game::Render::PostRaceRenderer::Render()
 		}
 		const bool IsPlayer = Screen->HasPlayerRacer() &&
 			PlayerResult != nullptr && PlayerResult->Racer == Result->Racer;
-		const SDL_Color RowColor = IsPlayer ? ResultsAccent : ResultsText;
+		const SDL_Color RowColor = Screen->Data.IsPlayerOwnedRacer(Result->Racer)
+			? Render::PlayerOwnedRacerHighlightColor : IsPlayer ? ResultsAccent : ResultsText;
 		RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), FormatPosition(Result->Position),
 			ResultsPanelLeft + 18, RowY, RowColor);
 		RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), Result->Racer->Name,
@@ -363,7 +373,8 @@ unsigned int Game::Render::PostRaceRenderer::Render()
 			FormatDelta(Runner.CareerRecord.Losses,
 				Before == nullptr ? Runner.CareerRecord.Losses : Before->Losses, "L") +
 			"  |  Net " + FormatCash(GetNetCash(CompletedRace, *SelectedResult)),
-			ResultsPanelLeft + 18, ProgressPanelTop + 16, ResultsText);
+			ResultsPanelLeft + 18, ProgressPanelTop + 16, Screen->Data.IsPlayerOwnedRacer(&Runner)
+				? Render::PlayerOwnedRacerHighlightColor : ResultsText);
 
 		std::string SkillChanges;
 		if (Before != nullptr)

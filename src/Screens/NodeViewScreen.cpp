@@ -8,7 +8,7 @@
 #include <iterator>
 #include <sstream>
 
-namespace
+namespace NodeViewScreenDetail
 {
 	constexpr unsigned int NodeViewPlotSampleCount = 96;
 	constexpr std::size_t NodeViewVisibleNodeCount = 10;
@@ -308,14 +308,19 @@ namespace
 			NodeViewPlotLeft + NodeViewPlotWidth - 35, NodeViewPlotTop + NodeViewPlotHeight + 4, NodeViewTextColor);
 	}
 }
+using namespace NodeViewScreenDetail;
 
 Game::Screens::NodeViewScreen::NodeViewScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO,
-	App::AppData& _Data, const Race::Race& RaceToView)
+	App::AppData& _Data, const Race::Race& RaceToView,
+	std::shared_ptr<Career::CareerRaceHistoryReplay> _HistoricalReplayOwner,
+	bool _PopRaceScreenOnExit)
 	: AppScreen(_Machine, _IO, _Data),
+	HistoricalReplayOwner(std::move(_HistoricalReplayOwner)),
 	CompletedRace(&RaceToView),
 	Entrants(RaceToView.GetEntrants()),
 	SelectedRacerIndex(0),
 	FirstNodeIndex(0),
+	PopRaceScreenOnExit(_PopRaceScreenOnExit),
 	PreviousRacerButton(_IO, "< Racer", 70, 62, 90, 36),
 	NextRacerButton(_IO, "Racer >", 864, 62, 90, 36),
 	PreviousNodePageButton(_IO, "Prev nodes", 70, 700, 110, 42),
@@ -363,9 +368,9 @@ Game::Screens::AppScreen* Game::Screens::NodeViewScreen::Update()
 	{
 		if (IO.Esc)
 			IO.Player.Play(BuiltInSounds::Click);
-		// This view is stacked over the completed race, so leave both screens to return to the career hub.
 		ScreenStack.Pop();
-		ScreenStack.Pop();
+		if (PopRaceScreenOnExit)
+			ScreenStack.Pop();
 		return ScreenStack.Top();
 	}
 
@@ -375,6 +380,11 @@ Game::Screens::AppScreen* Game::Screens::NodeViewScreen::Update()
 const Game::Race::Race& Game::Screens::NodeViewScreen::GetCompletedRace() const
 {
 	return *CompletedRace;
+}
+
+Game::Race::Racer* Game::Screens::NodeViewScreen::GetSelectedRacer()
+{
+	return Entrants.empty() ? nullptr : Entrants[SelectedRacerIndex];
 }
 
 const Game::Race::Racer* Game::Screens::NodeViewScreen::GetSelectedRacer() const
@@ -419,7 +429,8 @@ unsigned int Game::Render::NodeViewRenderer::Render()
 		RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont),
 			"Racer " + std::to_string(Screen->GetSelectedRacerIndex() + 1) + " of " +
 			std::to_string(Screen->GetRacerCount()) + ": " + SelectedRacer->Name,
-			260, 70, NodeViewTextColor);
+			260, 70, Screen->IsPlayerOwnedRacer(SelectedRacer)
+				? Game::Render::PlayerOwnedRacerHighlightColor : NodeViewTextColor);
 
 		const Race::RacerRaceTimeline* Timeline = Screen->GetCompletedRace().GetTimelineFor(SelectedRacer);
 		if (Timeline != nullptr)

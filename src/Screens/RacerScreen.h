@@ -30,6 +30,10 @@ namespace Game
 			~RacerScreen();
 
 			AppScreen* Update();
+			const Race::Racer* GetRacerToDisplay() const
+			{
+				return RacerToDisplay;
+			}
 		};
 
 	}

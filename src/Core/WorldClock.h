@@ -13,6 +13,7 @@ namespace SportRaceCore
 		explicit WorldClock(std::uint32_t TimeScale = DefaultTimeScale);
 
 		bool Advance(std::uint64_t RealElapsedMs);
+		bool Restore(std::uint64_t WorldTimeMs, std::uint32_t RestoredTimeScale);
 		std::uint64_t NowMs() const;
 		std::uint32_t GetTimeScale() const;
 

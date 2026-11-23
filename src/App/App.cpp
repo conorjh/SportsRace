@@ -235,6 +235,12 @@ void Game::App::Application::Update()
 			: "Spawned " + std::to_string(SpawnedCount) + " AI racers; active: " +
 			std::to_string(Orchestrator.GetActiveRacerCount()) + ".";
 	}
+	if (Data.DebugMenuOpen && IO.DebugNodeViewerTogglePressed)
+	{
+		Data.NodeViewerEnabled = !Data.NodeViewerEnabled;
+		Data.DebugMenuStatus = std::string("Node viewer ") +
+			(Data.NodeViewerEnabled ? "enabled." : "disabled.");
+	}
 
 	const Uint64 Now = SDL_GetTicks();
 	if (Data.Career != nullptr && (Data.Career->InitialWorldMonthSimulationInProgress ||
@@ -284,6 +290,8 @@ void Game::App::AppIO::Update()
 	MouseWheelY = 0.0f;
 	DebugMenuTogglePressed = false;
 	DebugSpawnRacersPressed = false;
+	DebugNodeViewerTogglePressed = false;
+	ShiftClickPressed = false;
 
 	// Drain queued input events for this frame, then refresh the pointer position for screen updates.
 	SDL_Event Event;
@@ -342,6 +350,8 @@ void Game::App::AppIO::Update()
 		const SDL_Point MousePoint{ static_cast<int>(MousePosition.x), static_cast<int>(MousePosition.y) };
 		if (SDL_PointInRect(&MousePoint, &DebugMenuSpawnRacersButtonBounds))
 			DebugSpawnRacersPressed = true;
+		else if (SDL_PointInRect(&MousePoint, &DebugMenuNodeViewerButtonBounds))
+			DebugNodeViewerTogglePressed = true;
 	}
 	if (Data.DebugMenuOpen || DebugMenuTogglePressed)
 	{
@@ -350,6 +360,9 @@ void Game::App::AppIO::Update()
 		MouseButtonsPressed = 0;
 		MouseWheelY = 0.0f;
 	}
+	else
+		ShiftClickPressed = (MouseButtonsPressed & SDL_BUTTON_MASK(SDL_BUTTON_LEFT)) != 0 &&
+			(SDL_GetModState() & SDL_KMOD_SHIFT) != 0;
 }
 
 Game::App::AppData::AppData()
@@ -360,6 +373,16 @@ Game::App::AppData::AppData()
 	RenderContext(new Game::Render::AppRenderContext())
 {
 
+}
+
+bool Game::App::AppData::IsPlayerOwnedRacer(const Race::Racer* Runner) const
+{
+	if (Runner == nullptr)
+		return false;
+	if (Profile != nullptr && Runner == &Profile->MainFella)
+		return true;
+	return Career != nullptr && (Runner == Career->PlayerLeagueRacer ||
+		std::find(Career->OwnedRacers.begin(), Career->OwnedRacers.end(), Runner) != Career->OwnedRacers.end());
 }
 
 bool Game::App::AppData::SetWindowedResolution(unsigned int Width, unsigned int Height)

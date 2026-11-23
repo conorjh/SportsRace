@@ -21,6 +21,7 @@ namespace SportRaceCore
 		std::optional<std::uint64_t> CompetitorBId;
 		std::uint64_t WinnerId = 0;
 		bool IsComplete = false;
+		std::uint64_t HistoricalRaceId = 0;
 	};
 
 	struct PlayoffRound
