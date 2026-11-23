@@ -1,5 +1,6 @@
 #include "AppRenderer.h"
 #include "..\Util.h"
+#include "..\zip_file.hpp"
 
 #include "SDL3_image/SDL_image.h"
 #include "spdlog/spdlog.h"
@@ -13,11 +14,58 @@
 #include <array>
 #include <cmath>
 #include <iostream>
+#include <limits>
+#include <optional>
 
 namespace RendererDetail
 {
 	constexpr double MillisecondsPerSecond = 1000.0;
 	constexpr int RacerNameClickPadding = 2;
+
+	struct EmbeddedResourceView
+	{
+		const std::uint8_t* Data;
+		std::size_t Size;
+	};
+
+	std::optional<EmbeddedResourceView> FindResourceBytes(const std::string& ResourceName)
+	{
+		const HMODULE Module = GetModuleHandleW(nullptr);
+		const std::string ResourceIdentifier = "\"" + ResourceName + "\"";
+		const HRSRC Resource = FindResourceA(Module, ResourceIdentifier.c_str(), MAKEINTRESOURCEA(10));
+		if (Resource == nullptr)
+			return std::nullopt;
+
+		const DWORD ResourceSize = SizeofResource(Module, Resource);
+		const HGLOBAL ResourceData = LoadResource(Module, Resource);
+		const auto* ResourceBytes = static_cast<const std::uint8_t*>(LockResource(ResourceData));
+		if (ResourceSize == 0 || ResourceBytes == nullptr)
+		{
+			spdlog::error("Failed to access embedded resource '{}': {}", ResourceName, SDL_GetError());
+			return std::nullopt;
+		}
+
+		return EmbeddedResourceView{ ResourceBytes, static_cast<std::size_t>(ResourceSize) };
+	}
+
+	TTF_Font* LoadFontFromEmbeddedAsset(const std::string& AssetPath, float Size)
+	{
+		const auto FontData = Game::Assets::LoadEmbeddedAssetData(AssetPath);
+		if (FontData == nullptr)
+			return nullptr;
+
+		SDL_IOStream* FontStream = SDL_IOFromConstMem(FontData->data(), FontData->size());
+		if (FontStream == nullptr)
+		{
+			spdlog::error("Failed to open embedded font '{}': {}", AssetPath, SDL_GetError());
+			return nullptr;
+		}
+
+		TTF_Font* Font = TTF_OpenFontIO(FontStream, true, Size);
+		if (Font == nullptr)
+			spdlog::error("Failed to load embedded font '{}': {}", AssetPath, SDL_GetError());
+		return Font;
+	}
 
 	bool IsRacerNameBoundary(char Character)
 	{
@@ -73,16 +121,78 @@ namespace RendererDetail
 }
 using namespace RendererDetail;
 
+std::shared_ptr<const std::vector<std::uint8_t>> Game::Assets::LoadEmbeddedAssetData(
+	const std::string& AssetPath)
+{
+	static std::unordered_map<std::string, std::shared_ptr<const std::vector<std::uint8_t>>> CachedAssets;
+	if (const auto CachedAsset = CachedAssets.find(AssetPath); CachedAsset != CachedAssets.end())
+		return CachedAsset->second;
+
+	std::shared_ptr<const std::vector<std::uint8_t>> AssetData;
+	if (const auto Resource = RendererDetail::FindResourceBytes(AssetPath); Resource.has_value())
+	{
+		auto ResourceCopy = std::make_shared<std::vector<std::uint8_t>>(Resource->Size);
+		std::copy_n(Resource->Data, Resource->Size, ResourceCopy->begin());
+		AssetData = std::move(ResourceCopy);
+	}
+	else
+	{
+		static const std::optional<RendererDetail::EmbeddedResourceView> MediaArchive =
+			RendererDetail::FindResourceBytes("media/media.zip");
+		if (!MediaArchive.has_value())
+		{
+			spdlog::error("Failed to find embedded asset '{}' or the media archive.", AssetPath);
+			return nullptr;
+		}
+
+		mz_zip_archive Archive{};
+		if (!mz_zip_reader_init_mem(&Archive, MediaArchive->Data, MediaArchive->Size, 0))
+		{
+			spdlog::error("Failed to open the embedded media archive for '{}'.", AssetPath);
+			return nullptr;
+		}
+
+		std::string ArchiveEntry = AssetPath;
+		if (ArchiveEntry.rfind("media/", 0) == 0)
+			ArchiveEntry.erase(0, 6);
+		const int FileIndex = mz_zip_reader_locate_file(&Archive, ArchiveEntry.c_str(), nullptr,
+			MZ_ZIP_FLAG_CASE_SENSITIVE);
+		mz_zip_archive_file_stat FileStat{};
+		if (FileIndex < 0 || !mz_zip_reader_file_stat(&Archive, static_cast<mz_uint>(FileIndex), &FileStat) ||
+			FileStat.m_uncomp_size == 0 || FileStat.m_uncomp_size > std::numeric_limits<std::size_t>::max())
+		{
+			mz_zip_reader_end(&Archive);
+			spdlog::error("Failed to find embedded media asset '{}'.", AssetPath);
+			return nullptr;
+		}
+
+		auto ExtractedData = std::make_shared<std::vector<std::uint8_t>>(
+			static_cast<std::size_t>(FileStat.m_uncomp_size));
+		const bool Extracted = mz_zip_reader_extract_to_mem(&Archive, static_cast<mz_uint>(FileIndex),
+			ExtractedData->data(), ExtractedData->size(), 0) != MZ_FALSE;
+		mz_zip_reader_end(&Archive);
+		if (!Extracted)
+		{
+			spdlog::error("Failed to extract embedded media asset '{}'.", AssetPath);
+			return nullptr;
+		}
+		AssetData = std::move(ExtractedData);
+	}
+
+	CachedAssets.emplace(AssetPath, AssetData);
+	return AssetData;
+}
+
 bool Game::Assets::AssetStore::RegisterAll(Game::Render::BaseRenderer& Renderer)
 {
 	using namespace Game::Assets;
 
-	RegisterFont(FontAssetBigFont, TTF_OpenFont("media/menu_font.ttf", 96));
-	RegisterFont(FontAssetMainFont, TTF_OpenFont("media/PIXELLARI.ttf", 16));
-	RegisterFont(FontAssetInfoFont, TTF_OpenFont("media/OpenSans.ttf", 14));
-	RegisterFont(FontAssetDebugFont, TTF_OpenFont("media/OpenSans.ttf", 12));
-	RegisterFont(FontAssetWinningFont, TTF_OpenFont("media/menu_font.ttf", 16));
-	RegisterFont(FontAssetMainMenuFont, TTF_OpenFont("media/menu_font.ttf", 96));
+	RegisterFont(FontAssetBigFont, LoadFontFromEmbeddedAsset("media/menu_font.ttf", 96));
+	RegisterFont(FontAssetMainFont, LoadFontFromEmbeddedAsset("media/PIXELLARI.TTF", 16));
+	RegisterFont(FontAssetInfoFont, LoadFontFromEmbeddedAsset("media/OpenSans.ttf", 14));
+	RegisterFont(FontAssetDebugFont, LoadFontFromEmbeddedAsset("media/OpenSans.ttf", 12));
+	RegisterFont(FontAssetWinningFont, LoadFontFromEmbeddedAsset("media/menu_font.ttf", 16));
+	RegisterFont(FontAssetMainMenuFont, LoadFontFromEmbeddedAsset("media/menu_font.ttf", 96));
 
 	RegisterImage(ImageAssetMainMenuBackground, Renderer.LoadImageResource("media/screen.png"));
 	RegisterImage(ImageAssetRaceBackground, Renderer.LoadImageResource("media/screen.png"));
@@ -219,16 +329,6 @@ Game::Render::Image* Game::Render::BaseRenderer::LoadImageResource(const std::st
 		return nullptr;
 	}
 	return Img;
-}
-
-bool Game::Render::BaseRenderer::LoadFontFile(std::string File, unsigned int Size, TTF_Font* Font)
-{
-	if ((Font = TTF_OpenFont(File.c_str(), Size)) == nullptr)
-	{
-		spdlog::error("Failed to load font " + File + ": " + SDL_GetError());
-		return false;
-	}
-	return true;
 }
 
 void Game::Render::BaseRenderer::RenderTextSingleLine(TTF_Font* Font, std::string Text, int x, int y, SDL_Color Color)

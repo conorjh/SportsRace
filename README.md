@@ -2,7 +2,7 @@
 
 ## Windows build
 
-Install Visual Studio 2026 with the C++ workload and CMake. Run `INSTALL.bat` to initialize the Git submodules and build static SDL3, SDL3_image, SDL3_ttf, and SDL3_mixer libraries for Win32 and x64, in Debug and Release. The script writes the libraries under `external\static`; the Visual Studio project links those archives and does not copy SDL runtime DLLs. SDL_image is configured for the game's image formats, SDL_ttf uses vendored FreeType, and SDL_mixer keeps WAV and MP3 playback enabled.
+Install Visual Studio 2026 with the C++ workload and CMake. Run `INSTALL.bat` to initialize the Git submodules and build static SDL3, SDL3_image, SDL3_ttf, and SDL3_mixer libraries for Win32 and x64, in Debug and Release. The script writes the libraries under `external\static`; the Visual Studio project embeds game images, fonts, and sounds in the executable, with no runtime media files or SDL runtime DLLs required. SDL_image is configured for the game's image formats, SDL_ttf uses vendored FreeType, and SDL_mixer keeps WAV and MP3 playback enabled.
 
 Open `VisualC\SportsRace.sln` and build the desired configuration. Runtime display settings are available from the main menu's Options screen.
 

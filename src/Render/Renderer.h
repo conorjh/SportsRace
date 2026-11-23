@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <cstdint>
+#include <memory>
 #include "SDL3/SDL.h"
 #include "SDL3_ttf/SDL_ttf.h"
 
@@ -62,6 +64,8 @@ namespace Game
 			ImageAssetIsometricVehicleGreen, ImageAssetIsometricVehicleRed,
 			ImageAssetIsometricVehicleSilver
 		};
+
+		std::shared_ptr<const std::vector<std::uint8_t>> LoadEmbeddedAssetData(const std::string& AssetPath);
 
 		class AssetStore
 		{
@@ -141,7 +145,6 @@ namespace Game
 			BaseRenderer(AppRenderContext* Context);
 
 			Image* LoadImageResource(const std::string& ResourceName);
-			bool LoadFontFile(std::string File, unsigned int Size, TTF_Font*);
 
 			virtual void RenderText(TTF_Font*, std::string Text, int x, int y, SDL_Color Color);
 			void RenderImage(SDL_Texture* Surface, SDL_Rect* SourceQuad, SDL_Rect* RenderQuad);
