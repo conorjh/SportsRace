@@ -140,7 +140,7 @@ namespace Game
 		public:
 			BaseRenderer(AppRenderContext* Context);
 
-			Image* LoadImageFile(const std::string File);
+			Image* LoadImageResource(const std::string& ResourceName);
 			bool LoadFontFile(std::string File, unsigned int Size, TTF_Font*);
 
 			virtual void RenderText(TTF_Font*, std::string Text, int x, int y, SDL_Color Color);

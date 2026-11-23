@@ -108,4 +108,7 @@
       <Filter>Screens</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Assets.rc"><Filter>Render</Filter></ResourceCompile>
+  </ItemGroup>
 </Project>

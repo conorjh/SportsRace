@@ -3,6 +3,13 @@
 
 #include "SDL3_image/SDL_image.h"
 #include "spdlog/spdlog.h"
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <Windows.h>
 #include <array>
 #include <cmath>
 #include <iostream>
@@ -77,29 +84,29 @@ bool Game::Assets::AssetStore::RegisterAll(Game::Render::BaseRenderer& Renderer)
 	RegisterFont(FontAssetWinningFont, TTF_OpenFont("media/menu_font.ttf", 16));
 	RegisterFont(FontAssetMainMenuFont, TTF_OpenFont("media/menu_font.ttf", 96));
 
-	RegisterImage(ImageAssetMainMenuBackground, Renderer.LoadImageFile("media/screen.png"));
-	RegisterImage(ImageAssetRaceBackground, Renderer.LoadImageFile("media/screen.png"));
-	RegisterImage(ImageAssetRaceIcon, Renderer.LoadImageFile("media/race_icon.png"));
-	RegisterImage(ImageAssetRacerIcon, Renderer.LoadImageFile("media/racer_icon.png"));
-	RegisterImage(ImageAssetTrainingIcon, Renderer.LoadImageFile("media/training_icon.png"));
-	RegisterImage(ImageAssetRankingIcon, Renderer.LoadImageFile("media/ranking_icon.png"));
-	RegisterImage(ImageAssetHead, Renderer.LoadImageFile("media/reido.png"));
-	RegisterImage(ImageAssetTrack, Renderer.LoadImageFile("media/track.png"));
-	RegisterImage(ImageAssetStadium, Renderer.LoadImageFile("media/stadium.png"));
-	RegisterImage(ImageAssetStartingBlock, Renderer.LoadImageFile("media/startingblock.png"));
-	RegisterImage(ImageAssetClouds, Renderer.LoadImageFile("media/clouds.png"));
-	RegisterImage(ImageAssetMountains, Renderer.LoadImageFile("media/mountains.png"));
-	RegisterImage(ImageAssetFellaRun, Renderer.LoadImageFile("media/fellarun.png"));
-	RegisterImage(ImageAssetFellaStumble, Renderer.LoadImageFile("media/fellastumble.png"));
-	RegisterImage(ImageAssetFellaWait, Renderer.LoadImageFile("media/fellawait.png"));
-	RegisterImage(ImageAssetScreen, Renderer.LoadImageFile("media/screen.png"));
-	RegisterImage(ImageAssetWorldMap, Renderer.LoadImageFile("media/city/sportsrace-borough-map.png"));
+	RegisterImage(ImageAssetMainMenuBackground, Renderer.LoadImageResource("media/screen.png"));
+	RegisterImage(ImageAssetRaceBackground, Renderer.LoadImageResource("media/screen.png"));
+	RegisterImage(ImageAssetRaceIcon, Renderer.LoadImageResource("media/race_icon.png"));
+	RegisterImage(ImageAssetRacerIcon, Renderer.LoadImageResource("media/racer_icon.png"));
+	RegisterImage(ImageAssetTrainingIcon, Renderer.LoadImageResource("media/training_icon.png"));
+	RegisterImage(ImageAssetRankingIcon, Renderer.LoadImageResource("media/ranking_icon.png"));
+	RegisterImage(ImageAssetHead, Renderer.LoadImageResource("media/reido.png"));
+	RegisterImage(ImageAssetTrack, Renderer.LoadImageResource("media/track.png"));
+	RegisterImage(ImageAssetStadium, Renderer.LoadImageResource("media/stadium.png"));
+	RegisterImage(ImageAssetStartingBlock, Renderer.LoadImageResource("media/startingblock.png"));
+	RegisterImage(ImageAssetClouds, Renderer.LoadImageResource("media/clouds.png"));
+	RegisterImage(ImageAssetMountains, Renderer.LoadImageResource("media/mountains.png"));
+	RegisterImage(ImageAssetFellaRun, Renderer.LoadImageResource("media/fellarun.png"));
+	RegisterImage(ImageAssetFellaStumble, Renderer.LoadImageResource("media/fellastumble.png"));
+	RegisterImage(ImageAssetFellaWait, Renderer.LoadImageResource("media/fellawait.png"));
+	RegisterImage(ImageAssetScreen, Renderer.LoadImageResource("media/screen.png"));
+	RegisterImage(ImageAssetWorldMap, Renderer.LoadImageResource("media/city/sportsrace-borough-map.png"));
 	for (unsigned int Index = 0; Index < 12; ++Index)
 	{
 		std::string Filename = "media/city/cityTiles_";
 		Filename += Index < 10 ? "00" : "0";
 		Filename += std::to_string(Index) + ".png";
-		RegisterImage(static_cast<ImageAssetId>(ImageAssetCityTile000 + Index), Renderer.LoadImageFile(Filename));
+		RegisterImage(static_cast<ImageAssetId>(ImageAssetCityTile000 + Index), Renderer.LoadImageResource(Filename));
 	}
 
 	for (unsigned int Index = 0; Index < 12; ++Index)
@@ -108,7 +115,7 @@ bool Game::Assets::AssetStore::RegisterAll(Game::Render::BaseRenderer& Renderer)
 		Filename += Index < 10 ? "00" : "0";
 		Filename += std::to_string(Index) + ".png";
 		RegisterImage(static_cast<ImageAssetId>(ImageAssetIsometricCity000 + Index),
-			Renderer.LoadImageFile(Filename));
+			Renderer.LoadImageResource(Filename));
 	}
 
 	const std::array<std::string, 12> IsometricBuildingFiles{
@@ -119,7 +126,7 @@ bool Game::Assets::AssetStore::RegisterAll(Game::Render::BaseRenderer& Renderer)
 	};
 	for (std::size_t Index = 0; Index < IsometricBuildingFiles.size(); ++Index)
 		RegisterImage(static_cast<ImageAssetId>(ImageAssetIsometricBuilding000 + Index),
-			Renderer.LoadImageFile("media/city/isometric/buildings/" + IsometricBuildingFiles[Index]));
+			Renderer.LoadImageResource("media/city/isometric/buildings/" + IsometricBuildingFiles[Index]));
 
 	const std::array<std::string, 5> IsometricVehicleFiles{
 		"carBlack2_000.png", "carBlue2_000.png", "carGreen2_000.png",
@@ -127,7 +134,7 @@ bool Game::Assets::AssetStore::RegisterAll(Game::Render::BaseRenderer& Renderer)
 	};
 	for (std::size_t Index = 0; Index < IsometricVehicleFiles.size(); ++Index)
 		RegisterImage(static_cast<ImageAssetId>(ImageAssetIsometricVehicleBlack + Index),
-			Renderer.LoadImageFile("media/city/isometric/vehicles/" + IsometricVehicleFiles[Index]));
+			Renderer.LoadImageResource("media/city/isometric/vehicles/" + IsometricVehicleFiles[Index]));
 
 	return true;
 }
@@ -159,23 +166,56 @@ Game::Render::BaseRenderer::BaseRenderer(AppRenderContext* Context)
 {
 }
 
-Game::Render::Image* Game::Render::BaseRenderer::LoadImageFile(const std::string File)
+Game::Render::Image* Game::Render::BaseRenderer::LoadImageResource(const std::string& ResourceName)
 {
-	using namespace std;
 	using namespace	Game::Render;
 
-	Image* Img = new Image();
-
-	spdlog::trace("Loading image: " + File);
-	if ((Img->Surface = IMG_Load(File.c_str())) == nullptr)
+	spdlog::trace("Loading image resource: {}", ResourceName);
+	const HMODULE Module = GetModuleHandleW(nullptr);
+	// RC preserves the quotes around string identifiers, so include them in the lookup.
+	const std::string ResourceIdentifier = "\"" + ResourceName + "\"";
+	const HRSRC Resource = FindResourceA(Module, ResourceIdentifier.c_str(), MAKEINTRESOURCEA(10));
+	if (Resource == nullptr)
 	{
-		spdlog::error("Failed to load image '{}': {}", File, SDL_GetError());
+		spdlog::error("Failed to find embedded image resource '{}'.", ResourceName);
+		return nullptr;
+	}
+
+	const DWORD ResourceSize = SizeofResource(Module, Resource);
+	const HGLOBAL ResourceData = LoadResource(Module, Resource);
+	if (ResourceSize == 0 || ResourceData == nullptr)
+	{
+		spdlog::error("Failed to load embedded image resource '{}'.", ResourceName);
+		return nullptr;
+	}
+
+	const void* ResourceBytes = LockResource(ResourceData);
+	if (ResourceBytes == nullptr)
+	{
+		spdlog::error("Failed to access embedded image resource '{}'.", ResourceName);
+		return nullptr;
+	}
+
+	SDL_IOStream* ImageStream = SDL_IOFromConstMem(ResourceBytes, static_cast<std::size_t>(ResourceSize));
+	if (ImageStream == nullptr)
+	{
+		spdlog::error("Failed to open embedded image resource '{}': {}", ResourceName, SDL_GetError());
+		return nullptr;
+	}
+
+	Image* Img = new Image{};
+	if ((Img->Surface = IMG_Load_IO(ImageStream, true)) == nullptr)
+	{
+		spdlog::error("Failed to decode embedded image '{}': {}", ResourceName, SDL_GetError());
+		delete Img;
 		return nullptr;
 	}
 
 	if ((Img->Texture = SDL_CreateTextureFromSurface(Context->MainRenderer, Img->Surface)) == nullptr)
 	{
-		spdlog::error("Failed to create texture for '{}': {}", File, SDL_GetError());
+		spdlog::error("Failed to create texture for embedded image '{}': {}", ResourceName, SDL_GetError());
+		SDL_DestroySurface(Img->Surface);
+		delete Img;
 		return nullptr;
 	}
 	return Img;
