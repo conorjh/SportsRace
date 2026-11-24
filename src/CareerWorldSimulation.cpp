@@ -41,14 +41,16 @@ namespace CareerWorldSimulationDetail
 	constexpr unsigned int CareerCityGridHeight = 5;
 	constexpr unsigned int CareerCitySpriteCount = 12;
 	constexpr std::size_t CareerStarterOwnedRacerCount = 2;
-	constexpr std::size_t CareerTargetPopulation = 256;
-	constexpr std::size_t CareerLeagueSize = 6;
+	constexpr std::size_t CareerTargetPopulation = 322;
+	constexpr std::size_t CareerTargetAiPopulation = CareerTargetPopulation - CareerStarterOwnedRacerCount;
+	constexpr std::size_t CareerLeagueSize = 8;
+	constexpr std::size_t CareerPreviousLeagueSize = 6;
 	constexpr std::uint64_t CareerAmateurCupId = std::uint64_t{ 1 } << 63;
 	constexpr std::size_t CareerMinimumRaceTrackCount = 5;
 	constexpr std::size_t CareerRacersPerRaceTrack = 20;
+	constexpr std::size_t CareerFullFieldRaceCount = (CareerLeagueSize + 1) / 2;
 	constexpr std::size_t CareerRegionCount = 2;
 	constexpr std::size_t CareerCitiesPerRegion = 3;
-	constexpr std::size_t CareerFixturesPerWorldRace = 3;
 	constexpr std::size_t CareerWorldRaceEntrantCount = 6;
 	constexpr std::size_t CareerPlayoffRaceEntrantCount = 2;
 	constexpr std::size_t CareerWorldRaceHistoryLimit = 1024;
@@ -68,6 +70,172 @@ namespace CareerWorldSimulationDetail
 	constexpr std::uint64_t CareerTravelBaseMs = 1000;
 	constexpr std::uint64_t CareerTravelPerGridStepMs = 1500;
 	constexpr std::uint64_t CareerPostRaceRestMs = 2000;
+
+	bool IsFullFieldLeagueFixture(const CareerLeagueFixture& Fixture)
+	{
+		return Fixture.Fixture.FirstCompetitorId == 0 && Fixture.Fixture.SecondCompetitorId == 0;
+	}
+
+	std::vector<Racer*> BuildCareerLeagueRaceEntrants(const CareerLeague& League, std::size_t RaceIndex)
+	{
+		std::vector<Racer*> Entrants;
+		if (League.Entrants.size() < CareerWorldRaceEntrantCount)
+			return Entrants;
+
+		Entrants.reserve(CareerWorldRaceEntrantCount);
+		const std::size_t FirstIndex = (RaceIndex * CareerWorldRaceEntrantCount) % League.Entrants.size();
+		for (std::size_t Offset = 0; Offset < CareerWorldRaceEntrantCount; ++Offset)
+			Entrants.push_back(League.Entrants[(FirstIndex + Offset) % League.Entrants.size()]);
+		return Entrants;
+	}
+
+	bool MigrateLegacyLeagueFixtures(CareerData& Data)
+	{
+		struct LeagueFixtureMigration
+		{
+			std::uint64_t LeagueId = 0;
+			std::vector<std::size_t> NewFixtureByOldIndex;
+		};
+
+		bool MigratedAny = false;
+		std::vector<LeagueFixtureMigration> Migrations;
+		for (CareerLeague& League : Data.Leagues)
+		{
+			if (League.IsCup || League.IsAmateurCup || League.IsOpenLobby || League.Fixtures.empty() ||
+				!std::any_of(League.Fixtures.begin(), League.Fixtures.end(), [](const CareerLeagueFixture& Fixture)
+				{
+					return !IsFullFieldLeagueFixture(Fixture);
+				}))
+				continue;
+
+			std::vector<std::uint32_t> Rounds;
+			Rounds.reserve(League.Fixtures.size());
+			for (const CareerLeagueFixture& Fixture : League.Fixtures)
+				Rounds.push_back(Fixture.Fixture.Round);
+			std::sort(Rounds.begin(), Rounds.end());
+			Rounds.erase(std::unique(Rounds.begin(), Rounds.end()), Rounds.end());
+
+			std::vector<CareerLeagueFixture> FullFieldFixtures;
+			FullFieldFixtures.reserve(Rounds.size());
+			std::vector<std::size_t> NewFixtureByOldIndex(League.Fixtures.size(),
+				std::numeric_limits<std::size_t>::max());
+			for (const std::uint32_t Round : Rounds)
+			{
+				const auto FirstFixture = std::find_if(League.Fixtures.begin(), League.Fixtures.end(),
+					[Round](const CareerLeagueFixture& Fixture) { return Fixture.Fixture.Round == Round; });
+				if (FirstFixture == League.Fixtures.end())
+					continue;
+
+				CareerLeagueFixture FullFieldFixture;
+				FullFieldFixture.Fixture.Round = Round;
+				FullFieldFixture.TrackPlotIndex = FirstFixture->TrackPlotIndex;
+				FullFieldFixture.ScheduledAtMs = FirstFixture->ScheduledAtMs;
+				const auto InProgressFixture = std::find_if(League.Fixtures.begin(), League.Fixtures.end(),
+					[Round](const CareerLeagueFixture& Fixture)
+					{
+						return Fixture.Fixture.Round == Round && Fixture.State == CareerFixtureState::InProgress;
+					});
+				const bool IsRoundComplete = std::all_of(League.Fixtures.begin(), League.Fixtures.end(),
+					[Round](const CareerLeagueFixture& Fixture)
+					{
+						return Fixture.Fixture.Round != Round || Fixture.State == CareerFixtureState::Complete;
+					});
+				if (InProgressFixture != League.Fixtures.end())
+				{
+					FullFieldFixture.State = CareerFixtureState::InProgress;
+					FullFieldFixture.RaceId = InProgressFixture->RaceId;
+					FullFieldFixture.TrackPlotIndex = InProgressFixture->TrackPlotIndex;
+				}
+				else if (IsRoundComplete)
+				{
+					FullFieldFixture.State = CareerFixtureState::Complete;
+					FullFieldFixture.HistoricalRaceId = FirstFixture->HistoricalRaceId;
+					const bool SameRace = std::all_of(League.Fixtures.begin(), League.Fixtures.end(),
+						[Round, RaceId = FirstFixture->RaceId](const CareerLeagueFixture& Fixture)
+						{
+							return Fixture.Fixture.Round != Round || Fixture.RaceId == RaceId;
+						});
+					FullFieldFixture.RaceId = SameRace ? FirstFixture->RaceId : 0;
+				}
+				else
+					for (const CareerLeagueFixture& Fixture : League.Fixtures)
+						if (Fixture.Fixture.Round == Round)
+							FullFieldFixture.ScheduledAtMs = std::min(FullFieldFixture.ScheduledAtMs,
+								Fixture.ScheduledAtMs);
+				for (std::size_t OldIndex = 0; OldIndex < League.Fixtures.size(); ++OldIndex)
+					if (League.Fixtures[OldIndex].Fixture.Round == Round)
+						NewFixtureByOldIndex[OldIndex] = FullFieldFixtures.size();
+				FullFieldFixtures.push_back(std::move(FullFieldFixture));
+			}
+
+			Migrations.push_back({ League.Id, std::move(NewFixtureByOldIndex) });
+			League.Fixtures = std::move(FullFieldFixtures);
+			for (CareerLeagueStanding& Standing : League.Standings)
+			{
+				Standing.Wins = 0;
+				Standing.Draws = 0;
+				Standing.Losses = 0;
+			}
+			spdlog::info("Migrated league {} from head-to-head fixtures to full-field races.", League.Name);
+			MigratedAny = true;
+		}
+
+		const auto FindMigration = [&Migrations](std::uint64_t LeagueId)
+		{
+			return std::find_if(Migrations.begin(), Migrations.end(), [LeagueId](const LeagueFixtureMigration& Migration)
+				{
+					return Migration.LeagueId == LeagueId;
+				});
+		};
+		const auto RemapFixtureReferences = [&FindMigration, &Migrations](
+			std::vector<CareerRaceFixtureReference>& FixtureReferences)
+		{
+			std::vector<CareerRaceFixtureReference> RemappedReferences;
+			RemappedReferences.reserve(FixtureReferences.size());
+			for (CareerRaceFixtureReference Reference : FixtureReferences)
+			{
+				const auto Migration = FindMigration(Reference.LeagueId);
+				if (Migration != Migrations.end())
+				{
+					if (Reference.FixtureIndex >= Migration->NewFixtureByOldIndex.size())
+					{
+						spdlog::error("Could not migrate a saved race reference for league {}.", Reference.LeagueId);
+						continue;
+					}
+					Reference.FixtureIndex = Migration->NewFixtureByOldIndex[Reference.FixtureIndex];
+					if (Reference.FixtureIndex == std::numeric_limits<std::size_t>::max())
+					{
+						spdlog::error("Could not map a saved race reference for league {}.", Reference.LeagueId);
+						continue;
+					}
+				}
+				const bool IsDuplicate = std::any_of(RemappedReferences.begin(), RemappedReferences.end(),
+					[&Reference](const CareerRaceFixtureReference& Candidate)
+					{
+						return Candidate.LeagueId == Reference.LeagueId &&
+							Candidate.FixtureIndex == Reference.FixtureIndex;
+					});
+				if (!IsDuplicate)
+					RemappedReferences.push_back(Reference);
+			}
+			FixtureReferences = std::move(RemappedReferences);
+		};
+		if (MigratedAny)
+		{
+			for (const std::shared_ptr<CareerWorldRace>& WorldRace : Data.WorldRaces)
+				if (WorldRace != nullptr)
+					RemapFixtureReferences(WorldRace->LeagueFixtures);
+			for (Game::Career::CareerPendingWorldLeagueRace& PendingRace : Data.PendingWorldLeagueRaces)
+				RemapFixtureReferences(PendingRace.LeagueFixtures);
+			CareerPendingLeagueRace& PendingPlayerRace = Data.PendingPlayerLeagueRace;
+			const auto Migration = FindMigration(PendingPlayerRace.LeagueId);
+			if (!PendingPlayerRace.IsPlayoff && Migration != Migrations.end() &&
+				PendingPlayerRace.FixtureIndex < Migration->NewFixtureByOldIndex.size())
+				PendingPlayerRace.FixtureIndex = Migration->NewFixtureByOldIndex[PendingPlayerRace.FixtureIndex];
+			RemapFixtureReferences(PendingPlayerRace.LeagueFixtures);
+		}
+		return MigratedAny;
+	}
 	constexpr std::uint64_t CareerInitialWorldPresimMs = 7ull * 24 * 60 * 60 * 1000;
 	constexpr std::uint64_t CareerInitialWorldSimulationStepMs = 1000;
 	constexpr std::uint64_t CareerInitialWorldHistoryCatchupLimitMs = 30ull * 60 * 1000;
@@ -455,54 +623,6 @@ namespace CareerWorldSimulationDetail
 		return Sorted;
 	}
 
-	void RecordLeagueFixture(CareerLeague& League, CareerLeagueFixture& Fixture, std::uint64_t WinnerId,
-		bool AwardMatchPoints = true)
-	{
-		Racer* First = nullptr;
-		Racer* Second = nullptr;
-		for (CareerLeagueStanding& Standing : League.Standings)
-		{
-			if (GetRacerId(Standing.Runner) == Fixture.Fixture.FirstCompetitorId)
-				First = Standing.Runner;
-			if (GetRacerId(Standing.Runner) == Fixture.Fixture.SecondCompetitorId)
-				Second = Standing.Runner;
-		}
-		CareerLeagueStanding* FirstStanding = FindStanding(League, First);
-		CareerLeagueStanding* SecondStanding = FindStanding(League, Second);
-		if (FirstStanding == nullptr || SecondStanding == nullptr)
-		{
-			Fixture.State = CareerFixtureState::Cancelled;
-			return;
-		}
-
-		Fixture.WinnerId = WinnerId;
-		Fixture.State = CareerFixtureState::Complete;
-		if (WinnerId == GetRacerId(First))
-		{
-			++FirstStanding->Wins;
-			if (AwardMatchPoints)
-				FirstStanding->Points += 3;
-			++SecondStanding->Losses;
-		}
-		else if (WinnerId == GetRacerId(Second))
-		{
-			++SecondStanding->Wins;
-			if (AwardMatchPoints)
-				SecondStanding->Points += 3;
-			++FirstStanding->Losses;
-		}
-		else
-		{
-			++FirstStanding->Draws;
-			++SecondStanding->Draws;
-			if (AwardMatchPoints)
-			{
-				++FirstStanding->Points;
-				++SecondStanding->Points;
-			}
-		}
-	}
-
 	std::uint64_t GetFixtureWinner(const RaceResult& Result, Racer* First, Racer* Second)
 	{
 		unsigned int FirstPosition = Game::Race::PulledUpPosition;
@@ -540,9 +660,15 @@ namespace CareerWorldSimulationDetail
 			if (League == nullptr || Reference.FixtureIndex >= League->Fixtures.size())
 				continue;
 			CareerLeagueFixture& Fixture = League->Fixtures[Reference.FixtureIndex];
-			Racer* First = GetRacerById(Data, Fixture.Fixture.FirstCompetitorId);
-			Racer* Second = GetRacerById(Data, Fixture.Fixture.SecondCompetitorId);
-			RecordLeagueFixture(*League, Fixture, GetFixtureWinner(Result, First, Second), false);
+			if (!IsFullFieldLeagueFixture(Fixture))
+			{
+				spdlog::error("Cannot record league race for {}: fixture was not migrated to a full field.",
+					League->Name);
+				Fixture.State = CareerFixtureState::Cancelled;
+				continue;
+			}
+			Fixture.State = CareerFixtureState::Complete;
+			Fixture.WinnerId = 0;
 
 			auto LeagueEntrants = std::find_if(EntrantsByLeague.begin(), EntrantsByLeague.end(),
 				[League](const LeagueRaceEntrants& Candidate) { return Candidate.League == League; });
@@ -551,25 +677,34 @@ namespace CareerWorldSimulationDetail
 				EntrantsByLeague.push_back({ League, {} });
 				LeagueEntrants = EntrantsByLeague.end() - 1;
 			}
-			if (First != nullptr)
-				LeagueEntrants->RacerIds.insert(GetRacerId(First));
-			if (Second != nullptr)
-				LeagueEntrants->RacerIds.insert(GetRacerId(Second));
+			for (Racer* Runner : BuildCareerLeagueRaceEntrants(*League, Fixture.Fixture.Round))
+				if (Runner != nullptr)
+					LeagueEntrants->RacerIds.insert(GetRacerId(Runner));
+			for (const Game::Race::RacerRaceResult& RacerResult : Result.RacerResults)
+				if (RacerResult.Position == Game::Race::FirstPlaceRank && RacerResult.Racer != nullptr &&
+					LeagueEntrants->RacerIds.contains(GetRacerId(RacerResult.Racer)))
+					Fixture.WinnerId = GetRacerId(RacerResult.Racer);
 		}
 
 		for (const Game::Race::RacerRaceResult& RacerResult : Result.RacerResults)
 		{
-			if (RacerResult.Racer == nullptr || RacerResult.Position == 0 ||
-				RacerResult.Position > CareerWorldRaceEntrantCount)
+			if (RacerResult.Racer == nullptr)
 				continue;
 
 			const std::uint64_t RacerId = GetRacerId(RacerResult.Racer);
-			const unsigned int RacePoints = static_cast<unsigned int>(CareerWorldRaceEntrantCount + 1 -
-				RacerResult.Position);
 			for (const LeagueRaceEntrants& LeagueEntrants : EntrantsByLeague)
 				if (LeagueEntrants.League != nullptr && LeagueEntrants.RacerIds.contains(RacerId))
 					if (CareerLeagueStanding* Standing = FindStanding(*LeagueEntrants.League, RacerResult.Racer))
-						Standing->Points += RacePoints;
+					{
+						if (RacerResult.Position == Game::Race::FirstPlaceRank)
+							++Standing->Wins;
+						else
+							++Standing->Losses;
+						if (RacerResult.Position != 0 &&
+							RacerResult.Position <= CareerWorldRaceEntrantCount)
+							Standing->Points += static_cast<unsigned int>(CareerWorldRaceEntrantCount + 1 -
+								RacerResult.Position);
+					}
 		}
 	}
 
@@ -643,33 +778,30 @@ namespace CareerWorldSimulationDetail
 			return;
 		}
 
-		const std::vector<SportRaceCore::LeagueFixture> Fixtures =
-			SportRaceCore::GenerateRoundRobinFixtures(CompetitorIds);
-		if (Fixtures.size() != CareerLeagueSize * (CareerLeagueSize - 1) / 2)
-		{
-			spdlog::error("Could not generate the full fixture list for league {}.", League.Name);
-			League.State = CareerLeagueState::Filling;
-			return;
-		}
-
 		League.Fixtures.clear();
 		League.Standings.clear();
 		League.Playoffs = SportRaceCore::PlayoffBracket{};
-		League.Fixtures.reserve(Fixtures.size());
+		League.Fixtures.reserve(CareerFullFieldRaceCount);
 		League.Standings.reserve(League.Entrants.size());
 		for (Racer* Runner : League.Entrants)
 			League.Standings.push_back({ Runner, 0, 0, 0, 0 });
 
 		const std::uint64_t SeasonStartMs = Data.WorldClock.NowMs() + CareerLeagueFirstFixtureDelayMs;
-		for (std::size_t Index = 0; Index < Fixtures.size(); ++Index)
+		for (std::size_t Index = 0; Index < CareerFullFieldRaceCount; ++Index)
 		{
-			const SportRaceCore::LeagueFixture& Fixture = Fixtures[Index];
 			CareerLeagueFixture WorldFixture;
-			WorldFixture.Fixture = Fixture;
+			WorldFixture.Fixture.Round = static_cast<std::uint32_t>(Index);
+			if (BuildCareerLeagueRaceEntrants(League, Index).size() != CareerWorldRaceEntrantCount)
+			{
+				spdlog::error("Could not build full-field races for league {}.", League.Name);
+				League.State = CareerLeagueState::Filling;
+				League.Fixtures.clear();
+				League.Standings.clear();
+				return;
+			}
 			WorldFixture.ScheduledAtMs = SeasonStartMs +
-				static_cast<std::uint64_t>(Fixture.Round) * CareerLeagueRoundIntervalMs;
-			WorldFixture.TrackPlotIndex = Tracks[(Index / CareerFixturesPerWorldRace + Fixture.Round + League.Id) %
-				Tracks.size()];
+				static_cast<std::uint64_t>(Index) * CareerLeagueRoundIntervalMs;
+			WorldFixture.TrackPlotIndex = Tracks[(Index + League.Id) % Tracks.size()];
 			League.Fixtures.push_back(WorldFixture);
 		}
 		++League.Season;
@@ -820,37 +952,6 @@ namespace CareerWorldSimulationDetail
 		return WorldRace;
 	}
 
-	void ResolveFixtureByForfeit(CareerData& Data, CareerLeague& League, CareerLeagueFixture& Fixture)
-	{
-		Racer* First = GetRacerById(Data, Fixture.Fixture.FirstCompetitorId);
-		Racer* Second = GetRacerById(Data, Fixture.Fixture.SecondCompetitorId);
-		const CareerRacerState* FirstState = FindRacerState(Data, First);
-		const CareerRacerState* SecondState = FindRacerState(Data, Second);
-		const bool FirstCanRace = First == Data.PlayerLeagueRacer ||
-		(FirstState != nullptr && FirstState->Activity != CareerRacerActivity::Retired);
-		const bool SecondCanRace = Second == Data.PlayerLeagueRacer ||
-		(SecondState != nullptr && SecondState->Activity != CareerRacerActivity::Retired);
-		if (FirstCanRace == SecondCanRace)
-			RecordLeagueFixture(League, Fixture, 0);
-		else
-			RecordLeagueFixture(League, Fixture, FirstCanRace ? GetRacerId(First) : GetRacerId(Second));
-	}
-
-	void CancelRetiredRacerFixtures(CareerData& Data, CareerRacerState& RetiredState)
-	{
-		if (RetiredState.LeagueId == 0 || RetiredState.Runner == nullptr)
-			return;
-		CareerLeague* League = FindLeague(Data, RetiredState.LeagueId);
-		if (League == nullptr)
-			return;
-		const std::uint64_t RetiredId = GetRacerId(RetiredState.Runner);
-		for (CareerLeagueFixture& Fixture : League->Fixtures)
-			if (Fixture.State == CareerFixtureState::Scheduled &&
-				(Fixture.Fixture.FirstCompetitorId == RetiredId ||
-					Fixture.Fixture.SecondCompetitorId == RetiredId))
-				ResolveFixtureByForfeit(Data, *League, Fixture);
-	}
-
 	CareerRacerState MakeRacerWorldState(CareerData& Data, Racer* Runner, std::uint64_t CityId = 0)
 	{
 		CareerRacerState State;
@@ -896,7 +997,6 @@ namespace CareerWorldSimulationDetail
 		RetiredState->Activity = CareerRacerActivity::Retired;
 		RetiredState->RetiredAtMs = Data.WorldClock.NowMs();
 		RetiredState->ActiveRaceId = 0;
-		CancelRetiredRacerFixtures(Data, *RetiredState);
 		if (CareerLeague* League = FindLeague(Data, RetiredState->LeagueId);
 			League != nullptr && League->State == CareerLeagueState::Filling)
 		{
@@ -1466,8 +1566,13 @@ namespace CareerWorldSimulationDetail
 				for (const CareerLeagueFixture& Fixture : League.Fixtures)
 					if (Fixture.State == CareerFixtureState::Scheduled && Fixture.ScheduledAtMs <= WindowEnd)
 					{
-						RacerIds.insert(Fixture.Fixture.FirstCompetitorId);
-						RacerIds.insert(Fixture.Fixture.SecondCompetitorId);
+						if (IsFullFieldLeagueFixture(Fixture))
+						{
+							for (const Racer* Runner : BuildCareerLeagueRaceEntrants(League,
+								Fixture.Fixture.Round))
+								if (Runner != nullptr)
+									RacerIds.insert(GetRacerId(Runner));
+						}
 					}
 		return RacerIds;
 	}
@@ -1612,8 +1717,7 @@ namespace CareerWorldSimulationDetail
 			CareerRaceFixtureReference Reference;
 			std::uint64_t ScheduledAtMs = 0;
 			std::size_t TrackPlotIndex = 0;
-			Racer* First = nullptr;
-			Racer* Second = nullptr;
+			std::vector<Racer*> Entrants;
 		};
 
 		const std::uint64_t Now = Data.WorldClock.NowMs();
@@ -1634,44 +1738,32 @@ namespace CareerWorldSimulationDetail
 			{
 				CareerLeagueFixture& Fixture = League.Fixtures[FixtureIndex];
 				if (Fixture.State != CareerFixtureState::Scheduled ||
-					Fixture.Fixture.Round != EarliestUnresolvedRound || Fixture.ScheduledAtMs > Now)
+					Fixture.Fixture.Round != EarliestUnresolvedRound || Fixture.ScheduledAtMs > Now ||
+					!IsFullFieldLeagueFixture(Fixture))
 					continue;
 
-				Racer* First = GetRacerById(Data, Fixture.Fixture.FirstCompetitorId);
-				Racer* Second = GetRacerById(Data, Fixture.Fixture.SecondCompetitorId);
-				CareerRacerState* FirstState = FindRacerState(Data, First);
-				CareerRacerState* SecondState = FindRacerState(Data, Second);
-				const bool FirstCanRace = First == Data.PlayerLeagueRacer ||
-					(FirstState != nullptr && FirstState->Activity != CareerRacerActivity::Retired);
-				const bool SecondCanRace = Second == Data.PlayerLeagueRacer ||
-					(SecondState != nullptr && SecondState->Activity != CareerRacerActivity::Retired);
-				if (!FirstCanRace || !SecondCanRace)
-				{
-					ResolveFixtureByForfeit(Data, League, Fixture);
+				std::vector<Racer*> Entrants = BuildCareerLeagueRaceEntrants(League, Fixture.Fixture.Round);
+				if (Entrants.size() != CareerWorldRaceEntrantCount ||
+					std::find(Entrants.begin(), Entrants.end(), Data.PlayerLeagueRacer) != Entrants.end())
 					continue;
-				}
 
-				if (First == Data.PlayerLeagueRacer || Second == Data.PlayerLeagueRacer)
-				{
-					Racer* Opponent = First == Data.PlayerLeagueRacer ? Second : First;
-					CareerRacerState* OpponentState = FindRacerState(Data, Opponent);
-					if (OpponentState != nullptr &&
-						OpponentState->Activity != CareerRacerActivity::InRace &&
-						OpponentState->Activity != CareerRacerActivity::Training &&
-						OpponentState->Activity != CareerRacerActivity::Travelling &&
-						OpponentState->LocationPlotIndex != Fixture.TrackPlotIndex)
-						BeginTravel(Data, *OpponentState, Fixture.TrackPlotIndex);
-					continue;
-				}
-				if (IsPendingWorldRaceEntrant(Data, First) || IsPendingWorldRaceEntrant(Data, Second) ||
-					FirstState->Activity == CareerRacerActivity::InRace ||
-					FirstState->Activity == CareerRacerActivity::Training ||
-					SecondState->Activity == CareerRacerActivity::InRace ||
-					SecondState->Activity == CareerRacerActivity::Training)
+				Entrants.erase(std::remove_if(Entrants.begin(), Entrants.end(), [&Data](Racer* Runner)
+					{
+						const CareerRacerState* State = FindRacerState(Data, Runner);
+						return Runner == nullptr || State == nullptr || State->Activity == CareerRacerActivity::Retired;
+					}), Entrants.end());
+				const bool HasBusyEntrant = std::any_of(Entrants.begin(), Entrants.end(), [&Data](Racer* Runner)
+					{
+						const CareerRacerState* State = FindRacerState(Data, Runner);
+						return State == nullptr || IsPendingWorldRaceEntrant(Data, Runner) ||
+							State->Activity == CareerRacerActivity::InRace ||
+							State->Activity == CareerRacerActivity::Training;
+					});
+				if (HasBusyEntrant || !FillWorldRaceToSix(Data, Entrants, true))
 					continue;
 
 				DueFixtures.push_back({ { League.Id, FixtureIndex }, Fixture.ScheduledAtMs,
-					Fixture.TrackPlotIndex, First, Second });
+					Fixture.TrackPlotIndex, std::move(Entrants) });
 			}
 		}
 
@@ -1702,108 +1794,50 @@ namespace CareerWorldSimulationDetail
 				}
 		};
 
-		auto StartRaceGroup = [&Data, &DeferFixtures](const std::vector<DueFixture>& Group,
-			std::size_t TrackPlotIndex)
+		auto StartFullFieldRace = [&Data, &DeferFixtures](const DueFixture& Candidate)
 		{
-			std::vector<CareerRaceFixtureReference> References;
-			std::vector<Racer*> Entrants;
-			std::unordered_set<std::uint64_t> EntrantIds;
-			for (const DueFixture& Candidate : Group)
-			{
-				CareerLeague* League = FindLeague(Data, Candidate.Reference.LeagueId);
-				if (League == nullptr || Candidate.Reference.FixtureIndex >= League->Fixtures.size())
-					continue;
-				CareerLeagueFixture& Fixture = League->Fixtures[Candidate.Reference.FixtureIndex];
-				if (Fixture.State != CareerFixtureState::Scheduled)
-					continue;
-
-				const std::uint64_t FirstId = GetRacerId(Candidate.First);
-				const std::uint64_t SecondId = GetRacerId(Candidate.Second);
-				if (FirstId == 0 || SecondId == 0 || EntrantIds.contains(FirstId) || EntrantIds.contains(SecondId) ||
-					Entrants.size() + 2 > CareerWorldRaceEntrantCount ||
-					IsPendingWorldRaceEntrant(Data, Candidate.First) ||
-					IsPendingWorldRaceEntrant(Data, Candidate.Second))
-					continue;
-				const CareerRacerState* FirstState = FindRacerState(Data, Candidate.First);
-				const CareerRacerState* SecondState = FindRacerState(Data, Candidate.Second);
-				if (FirstState == nullptr || SecondState == nullptr ||
-					FirstState->Activity == CareerRacerActivity::Retired ||
-					FirstState->Activity == CareerRacerActivity::InRace ||
-					SecondState->Activity == CareerRacerActivity::Retired ||
-					SecondState->Activity == CareerRacerActivity::InRace)
-					continue;
-
-				Fixture.TrackPlotIndex = TrackPlotIndex;
-				EntrantIds.insert(FirstId);
-				EntrantIds.insert(SecondId);
-				Entrants.push_back(Candidate.First);
-				Entrants.push_back(Candidate.Second);
-				References.push_back(Candidate.Reference);
-			}
-			if (Entrants.empty())
+			CareerLeague* League = FindLeague(Data, Candidate.Reference.LeagueId);
+			if (League == nullptr || Candidate.Reference.FixtureIndex >= League->Fixtures.size())
 				return;
-			if (!FillWorldRaceToSix(Data, Entrants) || References.size() * 2 > Entrants.size())
-			{
-				DeferFixtures(References, GetWorldTimeAfterRealDelay(Data, CareerRaceRetryDelayMs));
+			CareerLeagueFixture& Fixture = League->Fixtures[Candidate.Reference.FixtureIndex];
+			if (Fixture.State != CareerFixtureState::Scheduled || !IsFullFieldLeagueFixture(Fixture) ||
+				Candidate.Entrants.size() != CareerWorldRaceEntrantCount)
 				return;
-			}
 
-			const std::uint64_t FirstLeagueId = References.front().LeagueId;
-			const bool SameLeague = std::all_of(References.begin(), References.end(),
-				[FirstLeagueId](const CareerRaceFixtureReference& Reference)
+			const std::vector<CareerRaceFixtureReference> References{ Candidate.Reference };
+			for (Racer* Runner : Candidate.Entrants)
+				if (Runner == nullptr || IsPendingWorldRaceEntrant(Data, Runner))
 				{
-					return Reference.LeagueId == FirstLeagueId;
-				});
-			CareerLeague* League = FindLeague(Data, FirstLeagueId);
-			const std::size_t FirstFixtureIndex = References.front().FixtureIndex;
-			const std::uint32_t Round = League != nullptr && FirstFixtureIndex < League->Fixtures.size()
-				? League->Fixtures[FirstFixtureIndex].Fixture.Round : 0;
-			const std::string EventName = SameLeague && League != nullptr
-				? League->Name + " - round " + std::to_string(Round + 1) : "League fixture race";
-			const std::uint64_t RaceLeagueId = SameLeague ? FirstLeagueId : 0;
-
+					DeferFixtures(References, GetWorldTimeAfterRealDelay(Data, CareerRaceRetryDelayMs));
+					return;
+				}
+				else if (const CareerRacerState* State = FindRacerState(Data, Runner);
+					State == nullptr || State->Activity == CareerRacerActivity::Retired ||
+					State->Activity == CareerRacerActivity::InRace ||
+					State->Activity == CareerRacerActivity::Training)
+				{
+					DeferFixtures(References, GetWorldTimeAfterRealDelay(Data, CareerRaceRetryDelayMs));
+					return;
+				}
+			const std::string EventName = League->Name + " - heat " +
+				std::to_string(Fixture.Fixture.Round + 1);
 			bool Ready = false;
 			std::uint64_t RetryAtWorldMs = 0;
-			RecordRaceStartTravel(Data, Entrants, TrackPlotIndex, RetryAtWorldMs, Ready);
+			RecordRaceStartTravel(Data, Candidate.Entrants, Candidate.TrackPlotIndex, RetryAtWorldMs, Ready);
 			if (!Ready)
 			{
-				Data.PendingWorldLeagueRaces.push_back({ TrackPlotIndex, RaceLeagueId, EventName,
-					std::move(Entrants), std::move(References) });
+				Data.PendingWorldLeagueRaces.push_back({ Candidate.TrackPlotIndex, League->Id, EventName,
+					Candidate.Entrants, References });
 				return;
 			}
 
-			if (StartWorldRace(Data, TrackPlotIndex, Entrants, EventName, References, RaceLeagueId) == nullptr)
+			if (StartWorldRace(Data, Candidate.TrackPlotIndex, Candidate.Entrants, EventName, References,
+				League->Id) == nullptr)
 				DeferFixtures(References, GetWorldTimeAfterRealDelay(Data, CareerRaceRetryDelayMs));
 		};
 
-		std::vector<DueFixture> Remainder;
-		for (std::size_t TrackStart = 0; TrackStart < DueFixtures.size();)
-		{
-			std::size_t TrackEnd = TrackStart + 1;
-			while (TrackEnd < DueFixtures.size() &&
-				DueFixtures[TrackEnd].TrackPlotIndex == DueFixtures[TrackStart].TrackPlotIndex)
-				++TrackEnd;
-
-			const std::size_t FullGroupCount = (TrackEnd - TrackStart) / CareerFixturesPerWorldRace;
-			const std::size_t FullGroupEnd = TrackStart + FullGroupCount * CareerFixturesPerWorldRace;
-			for (std::size_t GroupStart = TrackStart; GroupStart < FullGroupEnd;
-				GroupStart += CareerFixturesPerWorldRace)
-			{
-				const std::vector<DueFixture> Group(DueFixtures.begin() + GroupStart,
-					DueFixtures.begin() + GroupStart + CareerFixturesPerWorldRace);
-				StartRaceGroup(Group, DueFixtures[GroupStart].TrackPlotIndex);
-			}
-			Remainder.insert(Remainder.end(), DueFixtures.begin() + FullGroupEnd, DueFixtures.begin() + TrackEnd);
-			TrackStart = TrackEnd;
-		}
-
-		for (std::size_t GroupStart = 0; GroupStart < Remainder.size();
-			GroupStart += CareerFixturesPerWorldRace)
-		{
-			const std::size_t GroupEnd = std::min(GroupStart + CareerFixturesPerWorldRace, Remainder.size());
-			const std::vector<DueFixture> Group(Remainder.begin() + GroupStart, Remainder.begin() + GroupEnd);
-			StartRaceGroup(Group, Group.front().TrackPlotIndex);
-		}
+		for (const DueFixture& Candidate : DueFixtures)
+			StartFullFieldRace(Candidate);
 	}
 
 	void TryStartPendingWorldPlayoffRaces(CareerData& Data)
@@ -2415,6 +2449,7 @@ namespace CareerWorldSimulationDetail
 	{
 		CareerLeague* League = nullptr;
 		Racer* Opponent = nullptr;
+		std::vector<Racer*> Entrants;
 		std::size_t FixtureIndex = InvalidPlotIndex;
 		std::size_t PlayoffRoundIndex = InvalidPlotIndex;
 		std::size_t PlayoffMatchIndex = InvalidPlotIndex;
@@ -2425,6 +2460,7 @@ namespace CareerWorldSimulationDetail
 
 	bool FindNextPlayerLeagueMatch(CareerData& Data, PlayerLeagueMatch& Match)
 	{
+		MigrateLegacyLeagueFixtures(Data);
 		if (Data.PlayerLeagueRacer == nullptr || Data.PlayerLeagueId == 0)
 			return false;
 
@@ -2453,21 +2489,21 @@ namespace CareerWorldSimulationDetail
 					Fixture.ScheduledAtMs > Data.WorldClock.NowMs())
 					continue;
 
-				std::uint64_t OpponentId = 0;
-				if (Fixture.Fixture.FirstCompetitorId == PlayerId)
-					OpponentId = Fixture.Fixture.SecondCompetitorId;
-				else if (Fixture.Fixture.SecondCompetitorId == PlayerId)
-					OpponentId = Fixture.Fixture.FirstCompetitorId;
-				if (OpponentId == 0)
-					continue;
-
-				Match.League = League;
-				Match.Opponent = GetRacerById(Data, OpponentId);
-				Match.FixtureIndex = Index;
-				Match.TrackPlotIndex = Fixture.TrackPlotIndex;
-				Match.EventName = League->Name + " - round " +
-					std::to_string(Fixture.Fixture.Round + 1);
-				return Match.Opponent != nullptr;
+				if (IsFullFieldLeagueFixture(Fixture))
+				{
+					std::vector<Racer*> Entrants = BuildCareerLeagueRaceEntrants(*League,
+						Fixture.Fixture.Round);
+					if (Entrants.size() != CareerWorldRaceEntrantCount ||
+						std::find(Entrants.begin(), Entrants.end(), Data.PlayerLeagueRacer) == Entrants.end())
+						continue;
+					Match.League = League;
+					Match.Entrants = std::move(Entrants);
+					Match.FixtureIndex = Index;
+					Match.TrackPlotIndex = Fixture.TrackPlotIndex;
+					Match.EventName = League->Name + " - heat " +
+						std::to_string(Fixture.Fixture.Round + 1);
+					return true;
+				}
 			}
 			return false;
 		}
@@ -2522,48 +2558,45 @@ namespace CareerWorldSimulationDetail
 	bool CollectPlayerLeagueRaceEntrants(CareerData& Data, const PlayerLeagueMatch& Match,
 		std::vector<Racer*>& Entrants, std::vector<CareerRaceFixtureReference>& Fixtures)
 	{
-		if (Match.League == nullptr || Match.Opponent == nullptr ||
-			Match.TrackPlotIndex >= Data.CityPlots.size() ||
+		if (Match.League == nullptr || Match.TrackPlotIndex >= Data.CityPlots.size() ||
 			Data.CityPlots[Match.TrackPlotIndex].Type != Game::Career::CityPlotType::RaceTrack ||
-			!IsPlayerRaceEntrantAvailable(Data, Match.Opponent, Match.TrackPlotIndex))
+			(!Match.IsPlayoff && Match.FixtureIndex >= Match.League->Fixtures.size()))
 			return false;
 
-		Entrants = { Data.PlayerLeagueRacer, Match.Opponent };
-		if (!Match.IsPlayoff)
-			Fixtures.push_back({ Match.League->Id, Match.FixtureIndex });
-
-		if (!Match.IsPlayoff && Match.FixtureIndex < Match.League->Fixtures.size())
+		if (Match.IsPlayoff)
 		{
-			const std::uint32_t MatchRound = Match.League->Fixtures[Match.FixtureIndex].Fixture.Round;
-			for (std::size_t Index = 0; Index < Match.League->Fixtures.size() &&
-				Entrants.size() + 2 <= CareerWorldRaceEntrantCount; ++Index)
-			{
-				const CareerLeagueFixture& Fixture = Match.League->Fixtures[Index];
-				if (Index == Match.FixtureIndex || Fixture.State != CareerFixtureState::Scheduled ||
-					Fixture.Fixture.Round != MatchRound ||
-					Fixture.ScheduledAtMs > Data.WorldClock.NowMs())
-					continue;
-
-				Racer* First = GetRacerById(Data, Fixture.Fixture.FirstCompetitorId);
-				Racer* Second = GetRacerById(Data, Fixture.Fixture.SecondCompetitorId);
-				if (First == nullptr || Second == nullptr ||
-					std::find(Entrants.begin(), Entrants.end(), First) != Entrants.end() ||
-					std::find(Entrants.begin(), Entrants.end(), Second) != Entrants.end() ||
-					!IsPlayerRaceEntrantAvailable(Data, First, Match.TrackPlotIndex) ||
-					!IsPlayerRaceEntrantAvailable(Data, Second, Match.TrackPlotIndex))
-					continue;
-
-				Entrants.push_back(First);
-				Entrants.push_back(Second);
-				Fixtures.push_back({ Match.League->Id, Index });
-			}
+			if (Match.Opponent == nullptr ||
+				!IsPlayerRaceEntrantAvailable(Data, Match.Opponent, Match.TrackPlotIndex))
+				return false;
+			Entrants = { Data.PlayerLeagueRacer, Match.Opponent };
+			return Entrants.size() == CareerPlayoffRaceEntrantCount;
 		}
 
-		return Match.IsPlayoff ? Entrants.size() == CareerPlayoffRaceEntrantCount :
-			FillWorldRaceToSix(Data, Entrants);
+		const CareerLeagueFixture& SelectedFixture = Match.League->Fixtures[Match.FixtureIndex];
+		if (IsFullFieldLeagueFixture(SelectedFixture))
+		{
+			Entrants = Match.Entrants;
+			if (Entrants.size() != CareerWorldRaceEntrantCount ||
+				std::find(Entrants.begin(), Entrants.end(), Data.PlayerLeagueRacer) == Entrants.end())
+				return false;
+			for (Racer* Runner : Entrants)
+				if (Runner != Data.PlayerLeagueRacer &&
+					!IsPlayerRaceEntrantAvailable(Data, Runner, Match.TrackPlotIndex))
+					return false;
+			Fixtures.push_back({ Match.League->Id, Match.FixtureIndex });
+			return true;
+		}
+
+		return false;
 	}
 }
 using namespace CareerWorldSimulationDetail;
+
+std::vector<Game::Race::Racer*> Game::Career::GetCareerLeagueRaceEntrants(
+	const Game::Career::CareerLeague& League, std::size_t RaceIndex)
+{
+	return CareerWorldSimulationDetail::BuildCareerLeagueRaceEntrants(League, RaceIndex);
+}
 
 void Game::Career::CareerOrchestrator::Init()
 {
@@ -3001,7 +3034,7 @@ bool Game::Career::CareerOrchestrator::JoinLeague(std::uint64_t LeagueId)
 	Data->PlayerLeagueRacer = &Profile->MainFella;
 	Data->PlayerLeagueId = League->Id;
 	League->IsOpenLobby = false;
-	League->Entrants.push_back(Data->PlayerLeagueRacer);
+	League->Entrants.insert(League->Entrants.begin(), Data->PlayerLeagueRacer);
 
 	Race::RacerNameMaker NameMaker;
 	for (std::size_t Index = 0; Index < MissingAiCount; ++Index)
@@ -3017,7 +3050,7 @@ bool Game::Career::CareerOrchestrator::JoinLeague(std::uint64_t LeagueId)
 		State.LeagueId = League->Id;
 		State.Activity = CareerRacerActivity::InBuilding;
 		Data->RacerStates.push_back(std::move(State));
-		League->Entrants.push_back(Runner);
+		League->Entrants.insert(League->Entrants.begin(), Runner);
 		++Data->TargetAiPopulation;
 	}
 
@@ -3332,6 +3365,16 @@ void Game::Career::CareerOrchestrator::Update(std::uint64_t Ms)
 		return;
 	}
 	Data->RealTimeMs += Ms;
+	MigrateLegacyLeagueFixtures(*Data);
+	const bool HasLegacyLeagueRoster = std::any_of(Data->Leagues.begin(), Data->Leagues.end(),
+		[](const CareerLeague& League)
+		{
+			return !League.IsCup && !League.IsAmateurCup && !League.IsOpenLobby &&
+				League.Entrants.size() == CareerPreviousLeagueSize;
+		});
+	if (HasLegacyLeagueRoster && Data->TargetAiPopulation < CareerTargetAiPopulation)
+		SpawnRacers(CareerTargetAiPopulation - Data->TargetAiPopulation);
+
 	TickWorldRaces(*Data, Ms);
 	UpdateAgentActivities(*Data);
 	UpdateLicenseStatus(*Data);

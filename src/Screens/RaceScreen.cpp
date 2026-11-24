@@ -13,8 +13,12 @@ namespace RaceScreenDetail
 	constexpr unsigned int RacerDetailsVerticalOffset = 40;
 	constexpr int RacerNameVerticalOffset = 50;
 	constexpr int RacerTextLineSpacing = 20;
+	constexpr unsigned int RaceLaneBaseY = 300;
+	constexpr unsigned int RaceLaneSpacing = 40;
+	constexpr unsigned int RaceSpectatorLaneSpacing = 36;
 	constexpr unsigned int RaceScreenCameraLookAhead = 75;
 	constexpr int RaceSpectatorControlBarTop = 698;
+	constexpr int RaceSpectatorProgressBarY = 74;
 	constexpr int RaceSpectatorButtonY = 712;
 	constexpr int RaceSpectatorButtonWidth = 64;
 	constexpr int RaceSpectatorButtonHeight = 42;
@@ -421,8 +425,8 @@ void Game::Render::RaceScreenRenderer::DrawRacer(const Race::Racer& Racer, unsig
 {
 	using namespace Game::Race;
 
-	const unsigned int RaceLaneTop = Screen->IsWorldRaceViewer ? 260 : 300;
-	unsigned int yOffset = ((Track + 1) * 40) + RaceLaneTop;
+	const unsigned int LaneSpacing = Screen->IsWorldRaceViewer ? RaceSpectatorLaneSpacing : RaceLaneSpacing;
+	const unsigned int yOffset = RaceLaneBaseY + (Track + 1) * LaneSpacing;
 	unsigned int StaggerOffset = (Track + 1) * 20;
 	int xOffset = 200;
 	if (Camera.CameraX > 0)
@@ -574,7 +578,7 @@ void Game::Render::RaceScreenRenderer::DrawProgressBar()
 	//Render red filled quad
 	int W = 200, H = 7;
 	int X = (1024 / 2) - (W / 2);
-	int Y = Screen->IsWorldRaceViewer ? RaceSpectatorControlBarTop - 12 : 740;
+	int Y = Screen->IsWorldRaceViewer ? RaceSpectatorProgressBarY : 740;
 	SDL_Rect fillRect = { X ,Y , W,H };
 	SDL_SetRenderDrawColor(Context->MainRenderer, 0, 0, 0, 255);
 	SDL_FRect fillRectF;

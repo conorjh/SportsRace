@@ -231,7 +231,7 @@ Game::Screens::LeagueBrowserScreen::LeagueBrowserScreen(AppScreenStateMachine& _
 	LocationContext(_LocationContext),
 	LocationFilter(_LocationContext.Filter),
 	StandingsButton(_IO, "Standings", 350, 112, 150, 42),
-	FixturesButton(_IO, "Fixtures", 512, 112, 150, 42),
+	FixturesButton(_IO, "Races", 512, 112, 150, 42),
 	PlayoffsButton(_IO, "Playoffs", 674, 112, 150, 42),
 	JoinLeagueButton(_IO, "Join league", 835, 112, 150, 42),
 	BackButton(_IO, "Back to career", 824, LeagueButtonY, 160, 48)
@@ -722,7 +722,7 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 		}
 		else if (Screen->GetSelectedTab() == Screens::LeagueBrowserTab::Fixtures)
 		{
-			RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "ROUND  FIXTURE                                     STATUS       RESULT / TRACK",
+			RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "HEAT   SIX-RACER FIELD                         STATUS       RESULT / TRACK",
 				LeagueContentLeft, 190, LeagueMuted);
 			const std::size_t FirstFixture = Screen->GetFixtureScrollOffset();
 			const std::size_t EndFixture = std::min(League->Fixtures.size(),
@@ -730,18 +730,23 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 			for (std::size_t Index = FirstFixture; Index < EndFixture; ++Index)
 			{
 				const Career::CareerLeagueFixture& Fixture = League->Fixtures[Index];
-				const Race::Racer* FirstRacer = GetCompetitor(*CareerData,
-					Fixture.Fixture.FirstCompetitorId);
-				const Race::Racer* SecondRacer = GetCompetitor(*CareerData,
-					Fixture.Fixture.SecondCompetitorId);
-				const std::string FirstName = GetCompetitorName(*CareerData, Fixture.Fixture.FirstCompetitorId);
-				const std::string SecondName = GetCompetitorName(*CareerData, Fixture.Fixture.SecondCompetitorId);
+				const std::vector<Race::Racer*> RaceEntrants =
+					Career::GetCareerLeagueRaceEntrants(*League, Fixture.Fixture.Round);
+				std::string RaceEntrantNames;
+				for (const Race::Racer* Runner : RaceEntrants)
+				{
+					if (Runner == nullptr)
+						continue;
+					if (!RaceEntrantNames.empty())
+						RaceEntrantNames += ", ";
+					RaceEntrantNames += Runner->Name;
+				}
 				std::string Result = GetFixtureState(Fixture.State);
 				const Race::Racer* Winner = nullptr;
 				if (Fixture.State == Career::CareerFixtureState::Complete)
 				{
 					Winner = Fixture.WinnerId == 0 ? nullptr : GetCompetitor(*CareerData, Fixture.WinnerId);
-					Result = Fixture.WinnerId == 0 ? "Draw" : "Winner: " +
+					Result = Fixture.WinnerId == 0 ? "Race complete" : "Winner: " +
 						ClipText(GetCompetitorName(*CareerData, Fixture.WinnerId), 16);
 				}
 				else if (Fixture.State == Career::CareerFixtureState::InProgress)
@@ -751,14 +756,8 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 				const int Y = 216 + static_cast<int>(Index - FirstFixture) * LeagueFixtureRowStep;
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
 					std::to_string(Fixture.Fixture.Round + 1), LeagueContentLeft, Y, LeagueText);
-				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), ClipText(FirstName, 16),
-					LeagueContentLeft + 50, Y, Screen->Data.IsPlayerOwnedRacer(FirstRacer)
-						? Render::PlayerOwnedRacerHighlightColor : LeagueText);
-				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "v",
-					LeagueContentLeft + 170, Y, LeagueMuted);
-				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), ClipText(SecondName, 16),
-					LeagueContentLeft + 186, Y, Screen->Data.IsPlayerOwnedRacer(SecondRacer)
-						? Render::PlayerOwnedRacerHighlightColor : LeagueText);
+				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), ClipText(RaceEntrantNames, 40),
+					LeagueContentLeft + 50, Y, LeagueText);
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), Result,
 					LeagueContentLeft + 360, Y,
 					Winner != nullptr && Screen->Data.IsPlayerOwnedRacer(Winner)
@@ -768,12 +767,12 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 					LeagueContentLeft + 520, Y, LeagueMuted);
 			}
 			if (League->Fixtures.empty())
-				RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "Fixtures are generated when all league places are filled.",
+				RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "Races are generated when all league places are filled.",
 					LeagueContentLeft, LeagueContentTop, LeagueText);
 			else
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
 					"Showing " + std::to_string(FirstFixture + 1) + "-" + std::to_string(EndFixture) +
-					" of " + std::to_string(League->Fixtures.size()) + " fixtures  |  scroll to browse",
+					" of " + std::to_string(League->Fixtures.size()) + " races  |  scroll to browse",
 					LeagueContentLeft, 624, LeagueMuted);
 		}
 		else
