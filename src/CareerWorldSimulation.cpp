@@ -49,6 +49,7 @@ namespace CareerWorldSimulationDetail
 	constexpr std::size_t CareerMinimumRaceTrackCount = 5;
 	constexpr std::size_t CareerRacersPerRaceTrack = 20;
 	constexpr std::size_t CareerFullFieldRaceCount = (CareerLeagueSize + 1) / 2;
+	constexpr std::size_t CareerAmateurLeagueHeatCount = 1;
 	constexpr std::size_t CareerRegionCount = 2;
 	constexpr std::size_t CareerCitiesPerRegion = 3;
 	constexpr std::size_t CareerWorldRaceEntrantCount = 6;
@@ -757,6 +758,22 @@ namespace CareerWorldSimulationDetail
 			return;
 		}
 		League.IsOpenLobby = false;
+		if (League.Division == CareerLeagueDivision::Amateur)
+		{
+			auto PlayerEntrant = std::find(League.Entrants.begin(), League.Entrants.end(),
+				Data.PlayerLeagueRacer);
+			std::size_t RotationStart = 0;
+			if (PlayerEntrant != League.Entrants.end())
+			{
+				std::rotate(League.Entrants.begin(), PlayerEntrant, PlayerEntrant + 1);
+				RotationStart = 1;
+			}
+			const std::size_t RotationCount = League.Entrants.size() - RotationStart;
+			const std::size_t RotationOffset =
+				(static_cast<std::size_t>(League.Season % RotationCount) * 2) % RotationCount;
+			std::rotate(League.Entrants.begin() + RotationStart,
+				League.Entrants.begin() + RotationStart + RotationOffset, League.Entrants.end());
+		}
 
 		std::vector<std::uint64_t> CompetitorIds;
 		CompetitorIds.reserve(League.Entrants.size());
@@ -781,13 +798,15 @@ namespace CareerWorldSimulationDetail
 		League.Fixtures.clear();
 		League.Standings.clear();
 		League.Playoffs = SportRaceCore::PlayoffBracket{};
-		League.Fixtures.reserve(CareerFullFieldRaceCount);
+		const std::size_t HeatCount = League.Division == CareerLeagueDivision::Amateur
+			? CareerAmateurLeagueHeatCount : CareerFullFieldRaceCount;
+		League.Fixtures.reserve(HeatCount);
 		League.Standings.reserve(League.Entrants.size());
 		for (Racer* Runner : League.Entrants)
 			League.Standings.push_back({ Runner, 0, 0, 0, 0 });
 
 		const std::uint64_t SeasonStartMs = Data.WorldClock.NowMs() + CareerLeagueFirstFixtureDelayMs;
-		for (std::size_t Index = 0; Index < CareerFullFieldRaceCount; ++Index)
+		for (std::size_t Index = 0; Index < HeatCount; ++Index)
 		{
 			CareerLeagueFixture WorldFixture;
 			WorldFixture.Fixture.Round = static_cast<std::uint32_t>(Index);

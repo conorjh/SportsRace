@@ -736,7 +736,7 @@ TEST_CASE(Career_Initializes322RacerWorldWithGeographicEightMemberLeagues)
 				ASSERT_TRUE(!League.IsOpenLobby);
 				ASSERT_TRUE(League.State == Game::Career::CareerLeagueState::RegularSeason);
 				ASSERT_EQ(static_cast<std::size_t>(8), League.Entrants.size());
-				ASSERT_EQ(static_cast<std::size_t>(4), League.Fixtures.size());
+				ASSERT_EQ(static_cast<std::size_t>(1), League.Fixtures.size());
 				ASSERT_EQ(static_cast<std::size_t>(8), League.Standings.size());
 				for (std::size_t RaceIndex = 0; RaceIndex < League.Fixtures.size(); ++RaceIndex)
 					ASSERT_EQ(static_cast<std::size_t>(6),
@@ -983,7 +983,7 @@ TEST_CASE(Career_PlayerCanJoinAnAmateurLeagueAndRaceItsScheduledFixture)
 		});
 	ASSERT_TRUE(AmateurLeague != careerData.Leagues.end());
 	ASSERT_EQ(static_cast<std::size_t>(8), AmateurLeague->Entrants.size());
-	ASSERT_EQ(static_cast<std::size_t>(4), AmateurLeague->Fixtures.size());
+	ASSERT_EQ(static_cast<std::size_t>(1), AmateurLeague->Fixtures.size());
 	ASSERT_EQ(static_cast<std::size_t>(8), AmateurLeague->Standings.size());
 	ASSERT_TRUE(AmateurLeague->State == Game::Career::CareerLeagueState::RegularSeason);
 
@@ -1206,6 +1206,9 @@ TEST_CASE(Career_CompletedLeaguesAndDailyCupAdvanceAndRestart)
 	ASSERT_TRUE(orchestrator.JoinLeague(OpenLobbyId));
 
 	std::vector<std::pair<std::uint64_t, unsigned int>> PreviousSeasons;
+	std::uint64_t PlayerAmateurLeagueId = 0;
+	std::vector<Racer*> PreviousPlayerAmateurEntrants;
+	std::vector<Racer*> PreviousPlayerAmateurField;
 	for (Game::Career::CareerRacerState& State : careerData.RacerStates)
 	{
 		State.Cash = 1000;
@@ -1226,6 +1229,14 @@ TEST_CASE(Career_CompletedLeaguesAndDailyCupAdvanceAndRestart)
 			continue;
 		ASSERT_EQ(static_cast<std::size_t>(8), League.Entrants.size());
 		ASSERT_EQ(static_cast<std::size_t>(8), League.Standings.size());
+		if (League.Id == careerData.PlayerLeagueId)
+		{
+			PlayerAmateurLeagueId = League.Id;
+			PreviousPlayerAmateurEntrants = League.Entrants;
+			PreviousPlayerAmateurField = Game::Career::GetCareerLeagueRaceEntrants(
+				League, League.Fixtures.front().Fixture.Round);
+			ASSERT_EQ(static_cast<std::size_t>(6), PreviousPlayerAmateurField.size());
+		}
 		PreviousSeasons.emplace_back(League.Id, League.Season);
 		League.State = Game::Career::CareerLeagueState::RegularSeason;
 		for (Game::Career::CareerLeagueFixture& Fixture : League.Fixtures)
@@ -1233,6 +1244,9 @@ TEST_CASE(Career_CompletedLeaguesAndDailyCupAdvanceAndRestart)
 		for (std::size_t Index = 0; Index < League.Standings.size(); ++Index)
 			League.Standings[Index].Points = static_cast<unsigned int>(League.Standings.size() - Index);
 	}
+	ASSERT_TRUE(PlayerAmateurLeagueId != 0);
+	ASSERT_EQ(static_cast<std::size_t>(8), PreviousPlayerAmateurEntrants.size());
+	ASSERT_EQ(static_cast<std::size_t>(6), PreviousPlayerAmateurField.size());
 	careerData.NextOpenRaceAtMs = std::numeric_limits<std::uint64_t>::max();
 	careerData.NextAmateurCupAtMs = std::numeric_limits<std::uint64_t>::max();
 
@@ -1279,13 +1293,28 @@ TEST_CASE(Career_CompletedLeaguesAndDailyCupAdvanceAndRestart)
 		ASSERT_EQ(PreviousSeason + 1, League->Season);
 		ASSERT_TRUE(League->State == Game::Career::CareerLeagueState::RegularSeason);
 		ASSERT_EQ(static_cast<std::size_t>(8), League->Entrants.size());
-		ASSERT_EQ(static_cast<std::size_t>(4), League->Fixtures.size());
+		const std::size_t ExpectedHeatCount = League->Division == Game::Career::CareerLeagueDivision::Amateur
+			? 1 : 4;
+		ASSERT_EQ(ExpectedHeatCount, League->Fixtures.size());
 		ASSERT_EQ(static_cast<std::size_t>(8), League->Standings.size());
 		ASSERT_TRUE(std::all_of(League->Fixtures.begin(), League->Fixtures.end(),
 			[](const Game::Career::CareerLeagueFixture& Fixture)
 			{
 				return Fixture.State == Game::Career::CareerFixtureState::Scheduled;
 			}));
+		if (LeagueId == PlayerAmateurLeagueId)
+		{
+			const std::vector<Racer*> NextField = Game::Career::GetCareerLeagueRaceEntrants(
+				*League, League->Fixtures.front().Fixture.Round);
+			ASSERT_EQ(static_cast<std::size_t>(6), NextField.size());
+			ASSERT_TRUE(NextField != PreviousPlayerAmateurField);
+			ASSERT_TRUE(std::find(NextField.begin(), NextField.end(), careerData.PlayerLeagueRacer) !=
+				NextField.end());
+			for (Racer* Runner : PreviousPlayerAmateurEntrants)
+				ASSERT_TRUE(std::find(PreviousPlayerAmateurField.begin(), PreviousPlayerAmateurField.end(), Runner) !=
+					PreviousPlayerAmateurField.end() ||
+					std::find(NextField.begin(), NextField.end(), Runner) != NextField.end());
+		}
 	}
 	ASSERT_EQ(static_cast<unsigned int>(2), Cup->Season);
 	ASSERT_TRUE(Cup->State == Game::Career::CareerLeagueState::Playoffs);
@@ -2246,7 +2275,9 @@ TEST_CASE(Career_CompletedSeasonsPromoteRelegateAndRegenerateFixtures)
 		ASSERT_EQ(PreviousSeason + 1, League->Season);
 		ASSERT_TRUE(League->State == Game::Career::CareerLeagueState::RegularSeason);
 		ASSERT_EQ(static_cast<std::size_t>(8), League->Entrants.size());
-		ASSERT_EQ(static_cast<std::size_t>(4), League->Fixtures.size());
+		const std::size_t ExpectedHeatCount = League->Division == Game::Career::CareerLeagueDivision::Amateur
+			? 1 : 4;
+		ASSERT_EQ(ExpectedHeatCount, League->Fixtures.size());
 		ASSERT_EQ(static_cast<std::size_t>(8), League->Standings.size());
 	}
 	const auto ContainsRunner = [](const Game::Career::CareerLeague& League, const Racer* Runner)
