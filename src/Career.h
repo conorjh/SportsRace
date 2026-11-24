@@ -172,7 +172,7 @@ namespace Game
 
 		struct CareerLeagueFixture
 		{
-			// Pair IDs are retained for old saves; zero IDs mean Round selects a six-runner heat.
+			// Pair IDs are retained for old saves; zero IDs use Round as the six-runner heat index.
 			SportRaceCore::LeagueFixture Fixture;
 			CareerFixtureState State = CareerFixtureState::Scheduled;
 			std::uint64_t ScheduledAtMs = 0;
@@ -215,7 +215,7 @@ namespace Game
 		};
 
 		std::vector<Race::Racer*> GetCareerLeagueRaceEntrants(const CareerLeague& League,
-			std::size_t RaceIndex);
+			std::size_t HeatIndex);
 
 		struct CareerHistoricalRace
 		{
