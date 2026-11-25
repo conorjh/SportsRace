@@ -72,6 +72,8 @@ namespace CareerWorldSimulationDetail
 	constexpr std::uint64_t CareerTrainingDurationMs = 10000;
 	constexpr std::uint64_t CareerRecoveryIntervalMs = 5000;
 	constexpr std::uint64_t CareerRaceRetryDelayMs = 2000;
+	constexpr std::uint64_t CareerRacePreStartPhaseMs = 1000;
+	constexpr std::uint64_t CareerRaceStartSequenceMs = CareerRacePreStartPhaseMs * 2;
 	constexpr std::uint64_t CareerTravelBaseMs = 1000;
 	constexpr std::uint64_t CareerTravelPerGridStepMs = 1500;
 	constexpr std::uint64_t CareerPostRaceRestMs = 2000;
@@ -985,6 +987,7 @@ namespace CareerWorldSimulationDetail
 		WorldRace->PlayoffRoundIndex = PlayoffRoundIndex;
 		WorldRace->PlayoffMatchIndex = PlayoffMatchIndex;
 		WorldRace->StartedAtMs = Data.WorldClock.NowMs();
+		WorldRace->StartedAtRealMs = Data.RealTimeMs;
 		WorldRace->IsPlayoff = IsPlayoff;
 		WorldRace->EventName = EventName;
 		WorldRace->Entrants = Entrants;
@@ -1206,7 +1209,7 @@ namespace CareerWorldSimulationDetail
 			RetireAndReplaceRacer(Data, Runner);
 }
 
-	void TickWorldRaces(CareerData& Data, std::uint64_t ElapsedRealMs)
+	void UpdateWorldRaceTimelines(CareerData& Data)
 	{
 		std::vector<std::shared_ptr<CareerWorldRace>> ActiveRaces;
 		for (const std::shared_ptr<CareerWorldRace>& WorldRace : Data.WorldRaces)
@@ -1216,20 +1219,64 @@ namespace CareerWorldSimulationDetail
 			ActiveRaces.push_back(WorldRace);
 		}
 
+		const std::uint64_t CurrentRealTimeMs = Data.RealTimeMs;
 		std::vector<std::shared_ptr<CareerWorldRace>> CompletedRaces(ActiveRaces.size());
 		std::transform(std::execution::par, ActiveRaces.begin(), ActiveRaces.end(), CompletedRaces.begin(),
-			[ElapsedRealMs](const std::shared_ptr<CareerWorldRace>& WorldRace)
+			[CurrentRealTimeMs](const std::shared_ptr<CareerWorldRace>& WorldRace)
 			{
-				WorldRace->TickAccumulatorMs += ElapsedRealMs;
-				while (WorldRace->TickAccumulatorMs >= Game::Race::RaceTickIntervalMs && !WorldRace->IsComplete)
+				Game::Race::RaceStateMachine& StateMachine = *WorldRace->StateMachine;
+				Game::Race::Race& CurrentRace = StateMachine.Data.ThisRace;
+				if (!CurrentRace.IsPrecomputed())
 				{
-					WorldRace->TickAccumulatorMs -= Game::Race::RaceTickIntervalMs;
-					const Game::Race::RaceStateType State =
-						WorldRace->StateMachine->Tick(Game::Race::RaceTickIntervalMs);
-					if (State == Game::Race::RaceStateType::Finished || State == Game::Race::RaceStateType::Failed)
+					const Game::Race::RaceError Error = CurrentRace.Precompute();
+					if (Error != Game::Race::RaceError::None)
+					{
+						spdlog::error("Could not precompute background race {}: {}.", WorldRace->Id,
+							Game::Race::RaceErrorToString(Error));
+						if (StateMachine.State != nullptr)
+							StateMachine.State->Type = Game::Race::RaceStateType::Failed;
 						return WorldRace;
+					}
 				}
-				return std::shared_ptr<CareerWorldRace>{};
+
+				const std::uint64_t ElapsedRealMs = CurrentRealTimeMs >= WorldRace->StartedAtRealMs
+					? CurrentRealTimeMs - WorldRace->StartedAtRealMs : 0;
+				StateMachine.Data.CurrentTick = static_cast<unsigned int>(std::min<std::uint64_t>(ElapsedRealMs,
+					std::numeric_limits<unsigned int>::max()));
+				if (StateMachine.State == nullptr)
+				{
+					spdlog::error("Background race {} has no race state.", WorldRace->Id);
+					return WorldRace;
+				}
+				if (StateMachine.State->Type == Game::Race::RaceStateType::PreRace &&
+					ElapsedRealMs >= CareerRacePreStartPhaseMs)
+					StateMachine.Push(new Game::Race::RaceState_StartersOrders(StateMachine.Data));
+				if (StateMachine.State->Type == Game::Race::RaceStateType::StartersOrders &&
+					ElapsedRealMs >= CareerRaceStartSequenceMs)
+					StateMachine.Push(new Game::Race::RaceState_Racing(StateMachine.Data));
+
+				if (StateMachine.State->Type == Game::Race::RaceStateType::Failed ||
+					StateMachine.State->Type == Game::Race::RaceStateType::Finished)
+					return WorldRace;
+				if (StateMachine.State->Type != Game::Race::RaceStateType::Racing &&
+					StateMachine.State->Type != Game::Race::RaceStateType::Finishing)
+				{
+					WorldRace->PlaybackElapsedMs = 0.0;
+					return std::shared_ptr<CareerWorldRace>{};
+				}
+
+				WorldRace->PlaybackElapsedMs = ElapsedRealMs > CareerRaceStartSequenceMs
+					? static_cast<double>(ElapsedRealMs - CareerRaceStartSequenceMs) : 0.0;
+				const double TimelineDurationMs = CurrentRace.GetPrecomputedDurationMs();
+				if (WorldRace->PlaybackElapsedMs < TimelineDurationMs)
+					return std::shared_ptr<CareerWorldRace>{};
+
+				const Game::Race::RaceResult Result = CurrentRace.Sim();
+				if (Result.Error == Game::Race::RaceError::None)
+					StateMachine.Push(new Game::Race::RaceState_Finished(StateMachine.Data));
+				else
+					StateMachine.State->Type = Game::Race::RaceStateType::Failed;
+				return WorldRace;
 			});
 
 		for (const std::shared_ptr<CareerWorldRace>& WorldRace : CompletedRaces)
@@ -3626,7 +3673,7 @@ void Game::Career::CareerOrchestrator::Update(std::uint64_t Ms)
 	if (!MigrateLeagueStructure(*Data))
 		return;
 
-	TickWorldRaces(*Data, Ms);
+	UpdateWorldRaceTimelines(*Data);
 	UpdateAgentActivities(*Data);
 	UpdateLicenseStatus(*Data);
 	UpdateLeagueStates(*Data);

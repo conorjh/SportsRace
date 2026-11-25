@@ -435,9 +435,9 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 				}
 			if (EntrantNames.size() > 84)
 				EntrantNames = EntrantNames.substr(0, 81) + "...";
-			const Race::Race& CurrentRace = WorldRace->StateMachine->Data.ThisRace;
 			const std::string Phase = Race::RaceStateTypeToString(WorldRace->StateMachine->State->Type);
-			const std::string Elapsed = std::to_string(static_cast<unsigned int>(CurrentRace.GetCurrentTimeMs() / 1000.0)) + "s";
+			const std::string Elapsed = std::to_string(
+				static_cast<unsigned int>(WorldRace->PlaybackElapsedMs / 1000.0)) + "s";
 			RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), WorldRace->EventName + "   |   " +
 				Phase + "   |   " + Elapsed, 74, RowY + 5, BuildingTextColor);
 			RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), EntrantNames, 74, RowY + 23,

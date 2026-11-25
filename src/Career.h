@@ -297,7 +297,9 @@ namespace Game
 			std::size_t PlayoffMatchIndex = 0;
 			std::uint64_t StartedAtMs = 0;
 			std::uint64_t FinishedAtMs = 0;
-			std::uint64_t TickAccumulatorMs = 0;
+			std::uint64_t StartedAtRealMs = 0;
+			// Background races are sampled from their precomputed timeline, not ticked every frame.
+			double PlaybackElapsedMs = 0.0;
 			bool IsPlayoff = false;
 			bool IsComplete = false;
 			bool IsSettled = false;

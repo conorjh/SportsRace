@@ -232,7 +232,8 @@ Game::Screens::RaceScreen::RaceScreen(AppScreenStateMachine& _Machine, App::AppI
 		RaceSpectatorButtonWidth, RaceSpectatorButtonHeight),
 	NextViewedRacerButton(_IO, ">", RaceSpectatorNextButtonX, RaceSpectatorButtonY,
 		RaceSpectatorButtonWidth, RaceSpectatorButtonHeight),
-	RaceSM(WorldRace->StateMachine)
+	RaceSM(WorldRace->StateMachine),
+	ViewedWorldRace(WorldRace)
 {
 	Type = AppScreenType::RaceScreen;
 	LastFrameEnd = SDL_GetTicks();
@@ -294,7 +295,7 @@ Game::Screens::AppScreen* Game::Screens::RaceScreen::Update()
 	using namespace Game::Race;
 	using namespace Game::Audio;
 
-	// Consume fixed-size race ticks to keep simulation cadence independent of render frame rate.
+	// Player races advance on fixed ticks; world-race viewers sample their precomputed timeline.
 	while (!IsWorldRaceViewer && SDL_GetTicks() > LastFrameEnd + RaceTickIntervalMs)
 	{
 		auto OldType = RaceSM->State->Type;
@@ -308,6 +309,10 @@ Game::Screens::AppScreen* Game::Screens::RaceScreen::Update()
 		}
 
 	}
+	if (IsWorldRaceViewer && ViewedWorldRace != nullptr &&
+		(RaceSM->State->Type == RaceStateType::Racing || RaceSM->State->Type == RaceStateType::Finishing) &&
+		!RaceSM->Data.ThisRace.SamplePlaybackAt(ViewedWorldRace->PlaybackElapsedMs))
+		spdlog::error("Could not sample playback for viewed background race {}.", ViewedWorldRace->Id);
 	if (IsWorldRaceViewer)
 	{
 		const auto& Entrants = RaceSM->Data.ThisRace.GetEntrants();

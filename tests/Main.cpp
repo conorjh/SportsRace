@@ -1339,13 +1339,18 @@ TEST_CASE(Career_CompletedLeaguesAndDailyCupAdvanceAndRestart)
 	ASSERT_TRUE(careerData.NextAmateurCupAtMs > careerData.WorldClock.NowMs());
 }
 
-TEST_CASE(Career_WorldSimulationAdvancesSeveralIndependentBackgroundRaces)
+TEST_CASE(Career_WorldSimulationSamplesPrecomputedRacesWithoutPlaybackTicks)
 {
 	srand(233);
 	Game::Career::CareerData careerData;
 	Game::Career::CareerProfile careerProfile;
 	Game::Career::CareerOrchestrator orchestrator(&careerData, &careerProfile);
 	orchestrator.Init();
+	for (Game::Career::CityPlot& Plot : careerData.CityPlots)
+		if (Plot.Type == Game::Career::CityPlotType::RaceTrack)
+			Plot.TrackLength = static_cast<unsigned int>(Game::Race::TrackLength::Standard1000m);
+	careerData.NextOpenRaceAtMs = std::numeric_limits<std::uint64_t>::max();
+	careerData.NextAmateurCupAtMs = std::numeric_limits<std::uint64_t>::max();
 
 	std::vector<std::shared_ptr<Game::Career::CareerWorldRace>> ConcurrentRaces;
 	for (unsigned int UpdateIndex = 0; UpdateIndex < 60 && ConcurrentRaces.size() < 2; ++UpdateIndex)
@@ -1368,21 +1373,37 @@ TEST_CASE(Career_WorldSimulationAdvancesSeveralIndependentBackgroundRaces)
 	}
 
 	ASSERT_TRUE(ConcurrentRaces.size() >= 2);
-	std::vector<unsigned int> PreviousTicks;
-	for (const std::shared_ptr<Game::Career::CareerWorldRace>& WorldRace : ConcurrentRaces)
-		PreviousTicks.push_back(WorldRace->StateMachine->Data.CurrentTick);
 	const std::uint64_t PreviousRealTimeMs = careerData.RealTimeMs;
 	const std::uint64_t PreviousWorldTimeMs = careerData.WorldClock.NowMs();
 
 	orchestrator.Update(1000);
 	ASSERT_EQ(PreviousRealTimeMs + 1000, careerData.RealTimeMs);
 	ASSERT_EQ(PreviousWorldTimeMs + 24000, careerData.WorldClock.NowMs());
-	for (std::size_t Index = 0; Index < ConcurrentRaces.size(); ++Index)
+	for (const std::shared_ptr<Game::Career::CareerWorldRace>& WorldRace : ConcurrentRaces)
 	{
-		const std::uint64_t SimulatedRaceMs =
-			ConcurrentRaces[Index]->StateMachine->Data.CurrentTick - PreviousTicks[Index] +
-			ConcurrentRaces[Index]->TickAccumulatorMs;
-		ASSERT_EQ(static_cast<std::uint64_t>(1000), SimulatedRaceMs);
+		ASSERT_TRUE(WorldRace->StateMachine->Data.ThisRace.IsPrecomputed());
+		ASSERT_EQ(static_cast<std::uint64_t>(1000), WorldRace->StateMachine->Data.CurrentTick);
+		ASSERT_TRUE(WorldRace->StateMachine->State->Type == Game::Race::RaceStateType::StartersOrders);
+		ASSERT_EQ(0.0, WorldRace->StateMachine->Data.ThisRace.GetCurrentTimeMs());
+		ASSERT_EQ(0.0, WorldRace->PlaybackElapsedMs);
+	}
+
+	orchestrator.Update(1000);
+	for (const std::shared_ptr<Game::Career::CareerWorldRace>& WorldRace : ConcurrentRaces)
+	{
+		ASSERT_TRUE(WorldRace->StateMachine->State->Type == Game::Race::RaceStateType::Racing);
+		ASSERT_EQ(0.0, WorldRace->StateMachine->Data.ThisRace.GetCurrentTimeMs());
+		ASSERT_EQ(0.0, WorldRace->PlaybackElapsedMs);
+	}
+
+	orchestrator.Update(1000);
+	for (const std::shared_ptr<Game::Career::CareerWorldRace>& WorldRace : ConcurrentRaces)
+	{
+		ASSERT_EQ(1000.0, WorldRace->PlaybackElapsedMs);
+		ASSERT_EQ(0.0, WorldRace->StateMachine->Data.ThisRace.GetCurrentTimeMs());
+		ASSERT_TRUE(WorldRace->StateMachine->Data.ThisRace.SamplePlaybackAt(WorldRace->PlaybackElapsedMs));
+		ASSERT_EQ(WorldRace->PlaybackElapsedMs, WorldRace->StateMachine->Data.ThisRace.GetCurrentTimeMs());
+		ASSERT_TRUE(!WorldRace->IsComplete);
 	}
 }
 

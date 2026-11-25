@@ -1380,6 +1380,19 @@ bool Game::Race::Race::GetTimelinePositionAt(const Racer* Runner, double TimeMs,
 	return true;
 }
 
+bool Game::Race::Race::SamplePlaybackAt(double TimeMs)
+{
+	// Render background races from their precomputed nodes without advancing the race state machine.
+	if (!TimelineReady || Complete || !std::isfinite(TimeMs))
+		return false;
+
+	PlaybackTimeMs = std::clamp(TimeMs, 0.0, TimelineDurationMs);
+	CurrentTick = ToMilliseconds(PlaybackTimeMs);
+	UpdatePlaybackStateAt(PlaybackTimeMs);
+	RecordResultsThrough(PlaybackTimeMs);
+	return true;
+}
+
 bool Game::Race::IsValidRaceHistorySnapshot(const RaceHistorySnapshot& Snapshot)
 {
 	const std::size_t EntrantCount = Snapshot.Entrants.size();

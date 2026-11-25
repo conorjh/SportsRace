@@ -229,7 +229,7 @@ namespace Game
 
 		bool IsValidRaceHistorySnapshot(const RaceHistorySnapshot& Snapshot);
 
-		// Simulate the race once into entrant timelines, then advance those timelines for playback.
+		// Precompute one outcome; player races tick playback while background viewers sample the timeline.
 		class Race
 		{
 			void Finished(Racer*, unsigned int FinishTimeMs);
@@ -287,6 +287,7 @@ namespace Game
 			const RacerRaceTimeline* GetTimelineFor(const Racer* Runner) const;
 			bool GetTimelineStateAt(const Racer* Runner, double TimeMs, RaceTimelineState& State) const;
 			bool GetTimelinePositionAt(const Racer* Runner, double TimeMs, double& Position) const;
+			bool SamplePlaybackAt(double TimeMs);
 			bool CaptureHistorySnapshot(RaceHistorySnapshot& Snapshot) const;
 			bool RestoreHistorySnapshot(const RaceHistorySnapshot& Snapshot,
 				const std::vector<Racer*>& SnapshotEntrants);
@@ -294,6 +295,10 @@ namespace Game
 			double GetTimelineDurationMs() const
 			{
 				return Complete ? TimelineDurationMs : 0.0;
+			}
+			double GetPrecomputedDurationMs() const
+			{
+				return TimelineReady ? TimelineDurationMs : 0.0;
 			}
 
 			const std::vector<Racer*>& GetEntrants() const

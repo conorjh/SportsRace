@@ -61,6 +61,7 @@ namespace Game
 
 			AppScreen* Update();
 			std::shared_ptr<Race::RaceStateMachine> RaceSM;
+			std::shared_ptr<Career::CareerWorldRace> ViewedWorldRace;
 			RaceScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data,
 				const std::shared_ptr<Career::CareerWorldRace>& WorldRace);
 		};
