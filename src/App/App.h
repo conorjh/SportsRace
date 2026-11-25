@@ -63,7 +63,7 @@ namespace Game
 			AppData();
 
 			unsigned int ScreenWidth = 1024, ScreenHeight = 768;
-			unsigned int WindowedWidth = 1024, WindowedHeight = 768;
+			unsigned int WindowedWidth = 1280, WindowedHeight = 720;
 			bool Fullscreen = false;
 			bool ShowFPS = false, Halted = false;
 			bool DebugMenuOpen = false;

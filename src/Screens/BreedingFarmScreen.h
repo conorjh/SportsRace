@@ -12,6 +12,7 @@ namespace Game
 
 			std::size_t FirstParentIndex = 0;
 			std::size_t SecondParentIndex = 1;
+			GUI::Button GenerateRacerButton;
 
 			void UpdateActivity() override;
 

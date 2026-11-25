@@ -9,6 +9,7 @@
 #include "SDL3_mixer/SDL_mixer.h"
 #include "spdlog/spdlog.h"
 #include <algorithm>
+#include <cmath>
 #include <filesystem>
 
 using namespace std;
@@ -17,6 +18,46 @@ using namespace Game::App;
 using namespace Game::Screens;
 using namespace Game::Util;
 using enum CommandLineArgumentType;
+
+namespace AppLayoutDetail
+{
+	bool UpdateRenderLogicalPresentation(Game::Render::AppRenderContext* Context, bool Force = false)
+	{
+		if (Context == nullptr || Context->MainRenderer == nullptr)
+			return false;
+
+		int OutputWidth = 0;
+		int OutputHeight = 0;
+		if (!SDL_GetRenderOutputSize(Context->MainRenderer, &OutputWidth, &OutputHeight) ||
+			OutputWidth <= 0 || OutputHeight <= 0)
+		{
+			spdlog::error("Could not determine renderer output size: {}", SDL_GetError());
+			return false;
+		}
+
+		constexpr double ReferenceWidth = 1024.0;
+		constexpr double ReferenceHeight = 768.0;
+		const double OutputAspect = static_cast<double>(OutputWidth) / OutputHeight;
+		const double ReferenceAspect = ReferenceWidth / ReferenceHeight;
+		const unsigned int LogicalWidth = OutputAspect >= ReferenceAspect
+			? static_cast<unsigned int>(std::lround(ReferenceHeight * OutputAspect))
+			: static_cast<unsigned int>(ReferenceWidth);
+		const unsigned int LogicalHeight = OutputAspect < ReferenceAspect
+			? static_cast<unsigned int>(std::lround(ReferenceWidth / OutputAspect))
+			: static_cast<unsigned int>(ReferenceHeight);
+		if (!Force && Context->ScreenWidth == LogicalWidth && Context->ScreenHeight == LogicalHeight)
+			return true;
+		if (!SDL_SetRenderLogicalPresentation(Context->MainRenderer, static_cast<int>(LogicalWidth),
+			static_cast<int>(LogicalHeight), SDL_LOGICAL_PRESENTATION_LETTERBOX))
+		{
+			spdlog::error("Could not configure aspect-matched logical rendering: {}", SDL_GetError());
+			return false;
+		}
+		Context->ScreenWidth = LogicalWidth;
+		Context->ScreenHeight = LogicalHeight;
+		return true;
+	}
+}
 
 std::string CommandLineToString(int argc, char* argv[])
 {
@@ -146,6 +187,20 @@ bool Game::App::Application::SDLInit(Game::Render::AppRenderContext* RenderConte
 		spdlog::critical("SDL init error: {}", SDL_GetError());
 		return false;
 	}
+	if (!Data.Fullscreen)
+	{
+		const SDL_DisplayMode* DesktopMode = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
+		if (DesktopMode != nullptr && DesktopMode->w > 0 && DesktopMode->h > 0)
+		{
+			const double Scale = std::min({ 0.85, 1600.0 / DesktopMode->w, 900.0 / DesktopMode->h });
+			ScreenWidth = static_cast<unsigned int>(DesktopMode->w * Scale);
+			ScreenHeight = static_cast<unsigned int>(DesktopMode->h * Scale);
+			Data.WindowedWidth = ScreenWidth;
+			Data.WindowedHeight = ScreenHeight;
+			Data.ScreenWidth = ScreenWidth;
+			Data.ScreenHeight = ScreenHeight;
+		}
+	}
 
 	spdlog::debug("SDL Init - Creating main window {}, {}", ScreenWidth, ScreenHeight);
 	SDL_WindowFlags WindowFlags = SDL_WINDOW_RESIZABLE;
@@ -157,14 +212,13 @@ bool Game::App::Application::SDLInit(Game::Render::AppRenderContext* RenderConte
 		spdlog::critical("SDL init error, SDL_CreateWindowAndRenderer(): {}", SDL_GetError());
 		return false;
 	}
-	RenderContext->ScreenWidth = 1024;
-	RenderContext->ScreenHeight = 768;
-	if (!SDL_SetRenderLogicalPresentation(RenderContext->MainRenderer, RenderContext->ScreenWidth,
-		RenderContext->ScreenHeight, SDL_LOGICAL_PRESENTATION_LETTERBOX))
+	if (!AppLayoutDetail::UpdateRenderLogicalPresentation(RenderContext, true))
 	{
-		spdlog::critical("SDL init error, SDL_SetRenderLogicalPresentation(): {}", SDL_GetError());
+		spdlog::critical("SDL init error while configuring responsive rendering.");
 		return false;
 	}
+	Data.ScreenWidth = RenderContext->ScreenWidth;
+	Data.ScreenHeight = RenderContext->ScreenHeight;
 	RenderContext->MainSurface = SDL_CreateSurface(RenderContext->ScreenWidth, RenderContext->ScreenHeight,
 		SDL_GetWindowPixelFormat(RenderContext->MainWindow));
 	SDL_SetRenderDrawColor(RenderContext->MainRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
@@ -329,6 +383,13 @@ void Game::App::AppIO::Update()
 			Data.Halted = true;
 			break;
 		}
+
+	if (Data.RenderContext != nullptr && Data.RenderContext->MainRenderer != nullptr &&
+		AppLayoutDetail::UpdateRenderLogicalPresentation(Data.RenderContext, false))
+	{
+		Data.ScreenWidth = Data.RenderContext->ScreenWidth;
+		Data.ScreenHeight = Data.RenderContext->ScreenHeight;
+	}
 
 	float WindowMouseX = 0.0f;
 	float WindowMouseY = 0.0f;

@@ -2,6 +2,7 @@
 #include "..\Audio.h"
 #include "..\App\App.h"
 #include "..\Render\RaceCurveVisualization.h"
+#include "WorldMapScreen.h"
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
@@ -17,10 +18,6 @@ namespace RacerScreenDetail
 	constexpr int RacerScreenPanelPadding = 18;
 	constexpr float RacerScreenPanelAccentWidth = 4.0f;
 	constexpr int RacerScreenPanelTop = 94;
-	constexpr int RacerScreenPanelWidth =
-		(RacerScreenWidth - RacerScreenMargin * 2 - RacerScreenColumnGap) / 2;
-	constexpr int RacerScreenLeftColumnX = RacerScreenMargin;
-	constexpr int RacerScreenRightColumnX = RacerScreenLeftColumnX + RacerScreenPanelWidth + RacerScreenColumnGap;
 	constexpr int RacerScreenAttributesPanelHeight = 350;
 	constexpr int RacerScreenConditionsPanelTop = 458;
 	constexpr int RacerScreenConditionsPanelHeight = 170;
@@ -78,8 +75,6 @@ namespace RacerScreenDetail
 	constexpr int RacerScreenDetailSecondRowTop = 414;
 	constexpr int RacerScreenDetailRecordTop = 449;
 	constexpr int RacerScreenDetailRaceHistoryTop = 466;
-	constexpr int RacerScreenDetailSecondColumnOffset = 155;
-	constexpr int RacerScreenDetailThirdColumnOffset = 310;
 	constexpr int RacerScreenDetailValueVerticalOffset = 17;
 	constexpr SDL_Color RacerScreenBackgroundColor{ 23, 22, 20, 255 };
 	constexpr SDL_Color RacerScreenPanelFillColor{ 34, 33, 30, 255 };
@@ -101,6 +96,27 @@ namespace RacerScreenDetail
 		RacerScreenTextColor, RacerScreenBackgroundColor, RacerScreenPanelBorderColor, RacerScreenBarBackgroundColor,
 		RacerScreenPhysicalStatColor, RacerScreenMentalStatColor
 	};
+
+	struct RacerScreenLayout
+	{
+		Game::GUI::RelativeLayout Coordinates;
+		int Margin;
+		int ColumnGap;
+		int PanelWidth;
+		int LeftColumnX;
+		int RightColumnX;
+	};
+
+	RacerScreenLayout GetRacerScreenLayout(int Width, int Height)
+	{
+		const Game::GUI::RelativeLayout Coordinates(static_cast<float>(Width), static_cast<float>(Height));
+		const int Margin = std::max(24, Coordinates.MapX(RacerScreenMargin));
+		const int ColumnGap = std::max(18, Coordinates.MapX(RacerScreenColumnGap));
+		const int PanelWidth = (Width - Margin * 2 - ColumnGap) / 2;
+		const int LeftColumnX = Margin;
+		return { Coordinates, Margin, ColumnGap, PanelWidth, LeftColumnX,
+			LeftColumnX + PanelWidth + ColumnGap };
+	}
 
 	void DrawRacerScreenPanel(SDL_Renderer* Renderer, const SDL_FRect& Bounds, SDL_Color AccentColor)
 	{
@@ -179,12 +195,13 @@ namespace RacerScreenDetail
 	}
 
 	void DrawRacerScreenButton(Game::Render::BaseRenderer& Renderer, Game::Render::AppRenderContext* Context,
-		Game::GUI::Button& Button)
+		Game::GUI::Button& Button, bool Enabled = true)
 	{
 		SDL_FRect ButtonBounds;
 		SDL_RectToFRect(&Button.Rect, &ButtonBounds);
-		const bool IsHovered = Button.IsMouseOver();
-		const SDL_Color FillColor = IsHovered ? RacerScreenButtonHoverFillColor : RacerScreenButtonFillColor;
+		const bool IsHovered = Enabled && Button.IsMouseOver();
+		const SDL_Color FillColor = !Enabled ? SDL_Color{ 63, 61, 55, 255 } :
+			IsHovered ? RacerScreenButtonHoverFillColor : RacerScreenButtonFillColor;
 
 		SDL_SetRenderDrawColor(Context->MainRenderer, FillColor.r, FillColor.g, FillColor.b, FillColor.a);
 		SDL_RenderFillRect(Context->MainRenderer, &ButtonBounds);
@@ -194,7 +211,8 @@ namespace RacerScreenDetail
 
 		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont), Button.Text,
 			Button.x + RacerScreenButtonTextLeftPadding,
-			Button.y + (Button.h - RacerScreenButtonTextHeight) / 2, RacerScreenButtonTextColor);
+			Button.y + (Button.h - RacerScreenButtonTextHeight) / 2,
+			Enabled ? RacerScreenButtonTextColor : RacerScreenMutedTextColor);
 	}
 }
 using namespace RacerScreenDetail;
@@ -207,10 +225,13 @@ Game::Screens::RacerScreen::RacerScreen(AppScreenStateMachine& _Machine, App::Ap
 		RacerScreenActionButtonWidth, RacerScreenActionButtonHeight),
 	ExitButton(_IO, "Back", RacerScreenActionButtonX, RacerScreenActionButtonY,
 		RacerScreenActionButtonWidth, RacerScreenActionButtonHeight),
+	LocationButton(_IO, "Locate", RacerScreenRegenButtonX, RacerScreenActionButtonY,
+		RacerScreenActionButtonWidth, RacerScreenActionButtonHeight),
 	InitType(_InitType),
 	RacerToDisplay(_RacerToDisplay)
 {
 	Type = AppScreenType::RacerScreen;
+	UpdateLayout();
 	if (InitType == RacerScreenStateInitType::RacerCreation)
 		Data.Profile->MainFella.Name = Race::RacerNameMaker().Make();
 }
@@ -219,32 +240,186 @@ Game::Screens::RacerScreen::~RacerScreen()
 {
 }
 
+const Game::Career::CareerRacerState* Game::Screens::RacerScreen::GetCareerRacerState() const
+{
+	if (Data.Career == nullptr || RacerToDisplay == nullptr)
+		return nullptr;
+	const auto State = std::find_if(Data.Career->RacerStates.begin(), Data.Career->RacerStates.end(),
+		[this](const Game::Career::CareerRacerState& Candidate)
+		{
+			return Candidate.Runner == RacerToDisplay;
+		});
+	return State == Data.Career->RacerStates.end() ? nullptr : &*State;
+}
+
+std::uint64_t Game::Screens::RacerScreen::GetBasedInCityId() const
+{
+	if (Data.Career == nullptr)
+		return 0;
+	if (const Game::Career::CareerRacerState* State = GetCareerRacerState())
+		return State->BasedInCityId;
+	if (IsPlayerOwnedRacer(RacerToDisplay))
+		return Data.Career->PlayerStableCityId != 0 ? Data.Career->PlayerStableCityId : Data.Career->HomeCityId;
+	return 0;
+}
+
+std::string Game::Screens::RacerScreen::GetBasedInCityName() const
+{
+	if (Data.Career == nullptr)
+		return "Not in a career";
+	const std::uint64_t CityId = GetBasedInCityId();
+	const auto City = std::find_if(Data.Career->Cities.begin(), Data.Career->Cities.end(), [CityId](
+		const Game::Career::CareerWorldCity& Candidate)
+		{
+			return Candidate.Id == CityId;
+		});
+	if (City == Data.Career->Cities.end())
+		return "Unknown city";
+	const auto Region = std::find_if(Data.Career->Regions.begin(), Data.Career->Regions.end(), [City](
+		const Game::Career::CareerWorldRegion& Candidate)
+		{
+			return Candidate.Id == City->RegionId;
+		});
+	return Region == Data.Career->Regions.end() ? City->Name : City->Name + " / " + Region->Name;
+}
+
+std::string Game::Screens::RacerScreen::GetCareerStatusLabel() const
+{
+	if (Data.Career == nullptr)
+		return "Not in a career";
+	const Game::Career::CareerRacerState* State = GetCareerRacerState();
+	std::uint64_t LeagueId = State == nullptr ? 0 : State->LeagueId;
+	if (LeagueId == 0 && Data.Career->PlayerLeagueRacer == RacerToDisplay)
+		LeagueId = Data.Career->PlayerLeagueId;
+	const auto League = std::find_if(Data.Career->Leagues.begin(), Data.Career->Leagues.end(), [LeagueId](
+		const Game::Career::CareerLeague& Candidate)
+		{
+			return LeagueId != 0 && Candidate.Id == LeagueId;
+		});
+	if (League != Data.Career->Leagues.end() && !League->IsCup && !League->IsAmateurCup &&
+		League->Division != Game::Career::CareerLeagueDivision::Amateur)
+		return "PRO - " + Game::Career::CareerCompetitionLevelToString(League->Level) + " " +
+			Game::Career::CareerLeagueDivisionToString(League->Division);
+	if (State != nullptr && State->Activity == Game::Career::CareerRacerActivity::Retired)
+		return "Retired";
+	return State != nullptr && State->HasRacingLicense ? "Licensed amateur" : "Amateur";
+}
+
 Game::Screens::AppScreen* Game::Screens::RacerScreen::Update()
 {
 	using namespace Game::Race;
 	using namespace Game::Audio;
 
-	RegenButton.Update();
-	if (RegenButton.HasMouseClicked())
-	{
-		IO.Player.Play(BuiltInSounds::Click);
-
-		Racer Generated(RacerNameMaker().Make());
-		// Preserve the racer's identity while replacing the generated profile and curves.
-		Generated.GUID = Data.Profile->MainFella.GUID;
-		Data.Profile->MainFella = Generated;
-	}
-
+	UpdateLayout();
+	const int Width = Data.RenderContext == nullptr ? RacerScreenWidth :
+		static_cast<int>(Data.RenderContext->ScreenWidth);
+	const int Height = Data.RenderContext == nullptr ? RacerScreenHeight :
+		static_cast<int>(Data.RenderContext->ScreenHeight);
+	const RacerScreenLayout Layout = GetRacerScreenLayout(Width, Height);
 	if (InitType == RacerScreenStateInitType::RacerCreation)
+	{
+		RegenButton.Update();
+		if (RegenButton.HasMouseClicked())
+		{
+			IO.Player.Play(BuiltInSounds::Click);
+
+			Racer Generated(RacerNameMaker().Make());
+			Generated.GUID = Data.Profile->MainFella.GUID;
+			Data.Profile->MainFella = Generated;
+		}
 		ApplyButton.Update();
-	if (InitType == RacerScreenStateInitType::ViewOnly)
+	}
+	else
+	{
+		if (GetBasedInCityId() != 0)
+			LocationButton.Update();
 		ExitButton.Update();
+		if (LocationButton.HasMouseClicked() && Data.Career != nullptr && RacerToDisplay != nullptr)
+		{
+			const Career::CareerRacerState* State = GetCareerRacerState();
+			std::uint64_t TargetCityId = GetBasedInCityId();
+			int TargetPlotIndex = -1;
+			const auto GetPlotsForCity = [this](std::uint64_t CityId) ->
+				const std::vector<Career::CityPlot>*
+			{
+				if (Data.Career == nullptr)
+					return nullptr;
+				if (CityId == Data.Career->HomeCityId)
+					return &Data.Career->CityPlots;
+				const auto City = std::find_if(Data.Career->Cities.begin(), Data.Career->Cities.end(),
+					[CityId](const Career::CareerWorldCity& Candidate) { return Candidate.Id == CityId; });
+				return City == Data.Career->Cities.end() ? nullptr : &City->Plots;
+			};
+			const auto FindEquivalentPlot = [this, &GetPlotsForCity](std::uint64_t CityId,
+				std::size_t SourcePlotIndex, const Career::CityPlot& SourcePlot)
+			{
+				if (Data.Career != nullptr && CityId == Data.Career->HomeCityId &&
+					SourcePlotIndex < Data.Career->CityPlots.size())
+					return static_cast<int>(SourcePlotIndex);
+				const std::vector<Career::CityPlot>* Plots = GetPlotsForCity(CityId);
+				if (Plots == nullptr)
+					return -1;
+			const auto IsMatchingPlot = [&SourcePlot](const Career::CityPlot& Candidate)
+			{
+				return Candidate.Type == SourcePlot.Type &&
+					(Candidate.Type != Career::CityPlotType::RaceTrack ||
+					Candidate.TrackLength == SourcePlot.TrackLength);
+			};
+			std::size_t MatchingOrdinal = static_cast<std::size_t>(std::count_if(
+				Data.Career->CityPlots.begin(), Data.Career->CityPlots.begin() + SourcePlotIndex, IsMatchingPlot));
+			for (std::size_t Index = 0; Index < Plots->size(); ++Index)
+				if (IsMatchingPlot((*Plots)[Index]))
+				{
+					if (MatchingOrdinal == 0)
+						return static_cast<int>(Index);
+					--MatchingOrdinal;
+				}
+			return -1;
+			};
+
+			if (State != nullptr && (State->Activity == Career::CareerRacerActivity::InBuilding ||
+				State->Activity == Career::CareerRacerActivity::Training ||
+				State->Activity == Career::CareerRacerActivity::Travelling ||
+				State->Activity == Career::CareerRacerActivity::InRace))
+			{
+				const std::size_t SourcePlotIndex = State->Activity == Career::CareerRacerActivity::Travelling
+					? State->DestinationPlotIndex : State->LocationPlotIndex;
+				if (SourcePlotIndex < Data.Career->CityPlots.size())
+				{
+					const Career::CityPlot& SourcePlot = Data.Career->CityPlots[SourcePlotIndex];
+					if (SourcePlot.Type != Career::CityPlotType::Scenery &&
+						SourcePlot.Type != Career::CityPlotType::VacantLot)
+					{
+						if (State->Activity == Career::CareerRacerActivity::InRace)
+							TargetCityId = Data.Career->HomeCityId;
+						TargetPlotIndex = FindEquivalentPlot(TargetCityId, SourcePlotIndex, SourcePlot);
+					}
+				}
+			}
+			else if (State == nullptr && Data.Career->PlayerLeagueRacer == RacerToDisplay &&
+				(Data.Career->PendingPlayerLeagueRace.Active || Data.Career->PendingPlayerLeagueRace.Preparing))
+			{
+				TargetCityId = Data.Career->HomeCityId;
+				if (Data.Career->PendingPlayerLeagueRace.TrackPlotIndex < Data.Career->CityPlots.size())
+					TargetPlotIndex = static_cast<int>(Data.Career->PendingPlayerLeagueRace.TrackPlotIndex);
+			}
+
+			if (TargetCityId != 0)
+			{
+				auto* MapScreen = new WorldMapScreen(ScreenStack, IO, Data);
+				ScreenStack.Push(MapScreen);
+				MapScreen->FocusOnLocation(TargetCityId, TargetPlotIndex);
+				return ScreenStack.Top();
+			}
+		}
+	}
 	if (InitType == RacerScreenStateInitType::ViewOnly && RacerToDisplay != nullptr &&
 		(IO.MouseButtonsPressed & SDL_BUTTON_MASK(SDL_BUTTON_LEFT)) != 0 &&
-		IO.MousePosition.x >= RacerScreenRightColumnX + RacerScreenPanelPadding &&
-		IO.MousePosition.x < RacerScreenRightColumnX + RacerScreenPanelWidth - RacerScreenPanelPadding &&
-		IO.MousePosition.y >= RacerScreenDetailRaceHistoryTop &&
-		IO.MousePosition.y < RacerScreenDetailsPanelTop + RacerScreenDetailsPanelHeight)
+		IO.MousePosition.x >= Layout.RightColumnX + RacerScreenPanelPadding &&
+		IO.MousePosition.x < Layout.RightColumnX + Layout.PanelWidth - RacerScreenPanelPadding &&
+		IO.MousePosition.y >= Layout.Coordinates.MapY(RacerScreenDetailRaceHistoryTop) &&
+		IO.MousePosition.y < Layout.Coordinates.MapY(RacerScreenDetailsPanelTop +
+			RacerScreenDetailsPanelHeight))
 	{
 		const Game::Race::RacerCareerHistoryEntry* LastRace = RacerToDisplay->CareerRecord.History.empty()
 			? nullptr : &RacerToDisplay->CareerRecord.History.back();
@@ -253,7 +428,8 @@ Game::Screens::AppScreen* Game::Screens::RacerScreen::Update()
 				Data.NodeViewerEnabled && IO.ShiftClickPressed))
 			return ScreenStack.Top();
 	}
-	if ((ApplyButton.HasMouseClicked() || IO.Esc) || (ExitButton.HasMouseClicked() || IO.Esc))
+	if ((InitType == RacerScreenStateInitType::RacerCreation && ApplyButton.HasMouseClicked()) ||
+		(InitType == RacerScreenStateInitType::ViewOnly && ExitButton.HasMouseClicked()) || IO.Esc)
 	{
 		IO.Player.Play(BuiltInSounds::Click);
 
@@ -263,6 +439,24 @@ Game::Screens::AppScreen* Game::Screens::RacerScreen::Update()
 	}
 
 	return this;
+}
+
+void Game::Screens::RacerScreen::UpdateLayout()
+{
+	const int Width = Data.RenderContext == nullptr ? RacerScreenWidth :
+		static_cast<int>(Data.RenderContext->ScreenWidth);
+	const int Height = Data.RenderContext == nullptr ? RacerScreenHeight :
+		static_cast<int>(Data.RenderContext->ScreenHeight);
+	const RacerScreenLayout Layout = GetRacerScreenLayout(Width, Height);
+	const int ButtonY = Height - std::max(24, Layout.Coordinates.MapY(RacerScreenActionButtonBottomMargin)) -
+		RacerScreenActionButtonHeight;
+	const int ApplyButtonX = Width - Layout.Margin - RacerScreenActionButtonWidth;
+	RegenButton.SetBounds(ApplyButtonX - RacerScreenActionButtonGap - RacerScreenActionButtonWidth,
+		ButtonY, RacerScreenActionButtonWidth, RacerScreenActionButtonHeight);
+	LocationButton.SetBounds(ApplyButtonX - RacerScreenActionButtonGap - RacerScreenActionButtonWidth,
+		ButtonY, RacerScreenActionButtonWidth, RacerScreenActionButtonHeight);
+	ApplyButton.SetBounds(ApplyButtonX, ButtonY, RacerScreenActionButtonWidth, RacerScreenActionButtonHeight);
+	ExitButton.SetBounds(ApplyButtonX, ButtonY, RacerScreenActionButtonWidth, RacerScreenActionButtonHeight);
 }
 
 
@@ -279,6 +473,9 @@ unsigned int Game::Render::RacerScreenRenderer::Render()
 	// Keep hidden ratings out of this player-facing profile while showing visible skills and conditions.
 	using namespace Game::Assets;
 	const auto StartTime = SDL_GetTicks();
+	const int ScreenWidth = static_cast<int>(Context->ScreenWidth);
+	const int ScreenHeight = static_cast<int>(Context->ScreenHeight);
+	const RacerScreenLayout Layout = GetRacerScreenLayout(ScreenWidth, ScreenHeight);
 	const Game::Race::Racer* DisplayedRunner = Screen == nullptr ? nullptr : Screen->GetRacerToDisplay();
 	const Game::Race::Racer& Runner = DisplayedRunner == nullptr ? RacerProfile->MainFella : *DisplayedRunner;
 	const bool IsPlayerRacer = &Runner == &RacerProfile->MainFella;
@@ -288,94 +485,123 @@ unsigned int Game::Render::RacerScreenRenderer::Render()
 	SDL_RenderClear(Context->MainRenderer);
 
 	RenderText(Context->Store.GetFont(FontAssetMainFont), "RACER PROFILE",
-		RacerScreenMargin, RacerScreenHeaderTop, RacerScreenAccentColor);
+		Layout.Margin, Layout.Coordinates.MapY(RacerScreenHeaderTop), RacerScreenAccentColor);
 
-	const SDL_FRect AttributesPanel{ static_cast<float>(RacerScreenLeftColumnX),
-		static_cast<float>(RacerScreenPanelTop), static_cast<float>(RacerScreenPanelWidth),
-		static_cast<float>(RacerScreenAttributesPanelHeight) };
+	const int PanelTop = Layout.Coordinates.MapY(RacerScreenPanelTop);
+	const SDL_FRect AttributesPanel{ static_cast<float>(Layout.LeftColumnX), static_cast<float>(PanelTop),
+		static_cast<float>(Layout.PanelWidth),
+		static_cast<float>(Layout.Coordinates.MapY(RacerScreenPanelTop + RacerScreenAttributesPanelHeight) - PanelTop) };
 	DrawRacerScreenPanel(Context->MainRenderer, AttributesPanel, RacerScreenMentalStatColor);
 	RenderText(Context->Store.GetFont(FontAssetInfoFont), "SKILLS (0-100)",
-		RacerScreenLeftColumnX + RacerScreenPanelPadding, RacerScreenSkillTitleTop, RacerScreenAccentColor);
+		Layout.LeftColumnX + RacerScreenPanelPadding, Layout.Coordinates.MapY(RacerScreenSkillTitleTop),
+		RacerScreenAccentColor);
 	RenderText(Context->Store.GetFont(FontAssetDebugFont), "MENTAL",
-		RacerScreenLeftColumnX + RacerScreenPanelPadding, RacerScreenMentalHeadingTop, RacerScreenMutedTextColor);
+		Layout.LeftColumnX + RacerScreenPanelPadding, Layout.Coordinates.MapY(RacerScreenMentalHeadingTop),
+		RacerScreenMutedTextColor);
 
-	const int SkillLeft = RacerScreenLeftColumnX + RacerScreenPanelPadding;
-	const int SkillWidth = RacerScreenPanelWidth - RacerScreenPanelPadding * 2;
+	const int SkillLeft = Layout.LeftColumnX + RacerScreenPanelPadding;
+	const int SkillWidth = Layout.PanelWidth - RacerScreenPanelPadding * 2;
 	DrawRacerScreenBar(*this, Context, "Reflex", FormatRating(Runner.Skills.Reflex),
-		Runner.Skills.Reflex / RacerScreenMaximumSkillRating, SkillLeft, RacerScreenReflexTop,
+		Runner.Skills.Reflex / RacerScreenMaximumSkillRating, SkillLeft,
+		Layout.Coordinates.MapY(RacerScreenReflexTop),
 		SkillWidth, RacerScreenMentalStatColor);
 	DrawRacerScreenBar(*this, Context, "Composure", FormatRating(Runner.Skills.Composure),
-		Runner.Skills.Composure / RacerScreenMaximumSkillRating, SkillLeft, RacerScreenComposureTop,
+		Runner.Skills.Composure / RacerScreenMaximumSkillRating, SkillLeft,
+		Layout.Coordinates.MapY(RacerScreenComposureTop),
 		SkillWidth, RacerScreenMentalStatColor);
 	RenderText(Context->Store.GetFont(FontAssetDebugFont), "PHYSICAL",
-		RacerScreenLeftColumnX + RacerScreenPanelPadding, RacerScreenPhysicalHeadingTop, RacerScreenMutedTextColor);
+		Layout.LeftColumnX + RacerScreenPanelPadding, Layout.Coordinates.MapY(RacerScreenPhysicalHeadingTop),
+		RacerScreenMutedTextColor);
 	DrawRacerScreenBar(*this, Context, "Acceleration", FormatRating(Runner.Skills.Acceleration),
-		Runner.Skills.Acceleration / RacerScreenMaximumSkillRating, SkillLeft, RacerScreenAccelerationTop,
+		Runner.Skills.Acceleration / RacerScreenMaximumSkillRating, SkillLeft,
+		Layout.Coordinates.MapY(RacerScreenAccelerationTop),
 		SkillWidth, RacerScreenPhysicalStatColor);
 	DrawRacerScreenBar(*this, Context, "Endurance", FormatRating(Runner.Skills.Endurance),
-		Runner.Skills.Endurance / RacerScreenMaximumSkillRating, SkillLeft, RacerScreenEnduranceTop,
+		Runner.Skills.Endurance / RacerScreenMaximumSkillRating, SkillLeft,
+		Layout.Coordinates.MapY(RacerScreenEnduranceTop),
 		SkillWidth, RacerScreenPhysicalStatColor);
 	DrawRacerScreenBar(*this, Context, "Speed", FormatRating(Runner.Skills.Speed),
-		Runner.Skills.Speed / RacerScreenMaximumSkillRating, SkillLeft, RacerScreenSpeedTop,
+		Runner.Skills.Speed / RacerScreenMaximumSkillRating, SkillLeft,
+		Layout.Coordinates.MapY(RacerScreenSpeedTop),
 		SkillWidth, RacerScreenPhysicalStatColor);
 
-	const SDL_FRect ConditionsPanel{ static_cast<float>(RacerScreenLeftColumnX),
-		static_cast<float>(RacerScreenConditionsPanelTop), static_cast<float>(RacerScreenPanelWidth),
-		static_cast<float>(RacerScreenConditionsPanelHeight) };
+	const int ConditionsTop = Layout.Coordinates.MapY(RacerScreenConditionsPanelTop);
+	const SDL_FRect ConditionsPanel{ static_cast<float>(Layout.LeftColumnX), static_cast<float>(ConditionsTop),
+		static_cast<float>(Layout.PanelWidth), static_cast<float>(Layout.Coordinates.MapY(
+			RacerScreenConditionsPanelTop + RacerScreenConditionsPanelHeight) - ConditionsTop) };
 	DrawRacerScreenPanel(Context->MainRenderer, ConditionsPanel, RacerScreenConfidenceColor);
 	RenderText(Context->Store.GetFont(FontAssetInfoFont), "CONDITIONS",
-		RacerScreenLeftColumnX + RacerScreenPanelPadding, RacerScreenConditionTitleTop, RacerScreenAccentColor);
-	const int ConditionLeft = RacerScreenLeftColumnX + RacerScreenPanelPadding;
-	const int ConditionWidth = RacerScreenPanelWidth - RacerScreenPanelPadding * 2;
+		Layout.LeftColumnX + RacerScreenPanelPadding, Layout.Coordinates.MapY(RacerScreenConditionTitleTop),
+		RacerScreenAccentColor);
+	const int ConditionLeft = Layout.LeftColumnX + RacerScreenPanelPadding;
+	const int ConditionWidth = Layout.PanelWidth - RacerScreenPanelPadding * 2;
 	DrawRacerScreenBar(*this, Context, "Fatigue", FormatPercentage(Runner.Conditions.Fatigue),
-		Runner.Conditions.Fatigue, ConditionLeft, RacerScreenFatigueTop, ConditionWidth, RacerScreenFatigueColor);
+		Runner.Conditions.Fatigue, ConditionLeft, Layout.Coordinates.MapY(RacerScreenFatigueTop),
+		ConditionWidth, RacerScreenFatigueColor);
 	DrawRacerScreenBar(*this, Context, "Confidence", FormatPercentage(Runner.Conditions.Confidence),
-		Runner.Conditions.Confidence, ConditionLeft, RacerScreenConfidenceTop, ConditionWidth, RacerScreenConfidenceColor);
+		Runner.Conditions.Confidence, ConditionLeft, Layout.Coordinates.MapY(RacerScreenConfidenceTop),
+		ConditionWidth, RacerScreenConfidenceColor);
 	DrawRacerScreenBar(*this, Context, "Injury", FormatPercentage(Runner.Conditions.Injury),
-		Runner.Conditions.Injury, ConditionLeft, RacerScreenInjuryTop, ConditionWidth, RacerScreenInjuryColor);
+		Runner.Conditions.Injury, ConditionLeft, Layout.Coordinates.MapY(RacerScreenInjuryTop),
+		ConditionWidth, RacerScreenInjuryColor);
 
-	const SDL_FRect ProfilePanel{ static_cast<float>(RacerScreenRightColumnX),
-		static_cast<float>(RacerScreenPanelTop), static_cast<float>(RacerScreenPanelWidth),
-		static_cast<float>(RacerScreenProfilePanelHeight) };
+	const SDL_FRect ProfilePanel{ static_cast<float>(Layout.RightColumnX), static_cast<float>(PanelTop),
+		static_cast<float>(Layout.PanelWidth), static_cast<float>(Layout.Coordinates.MapY(
+			RacerScreenPanelTop + RacerScreenProfilePanelHeight) - PanelTop) };
 	DrawRacerScreenPanel(Context->MainRenderer, ProfilePanel, RacerScreenAccentColor);
 	RenderText(Context->Store.GetFont(FontAssetInfoFont), "PROFILE",
-		RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenPortraitTextTop, RacerScreenAccentColor);
+		Layout.RightColumnX + RacerScreenPanelPadding, Layout.Coordinates.MapY(RacerScreenPortraitTextTop),
+		RacerScreenAccentColor);
 	RenderText(Context->Store.GetFont(FontAssetWinningFont), Runner.Name,
-		RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenProfileNameTop,
+		Layout.RightColumnX + RacerScreenPanelPadding, Layout.Coordinates.MapY(RacerScreenProfileNameTop),
 		Game::Render::PlayerOwnedRacerHighlightColor);
+	RenderText(Context->Store.GetFont(FontAssetDebugFont), "BASED IN",
+		Layout.RightColumnX + RacerScreenPanelPadding, Layout.Coordinates.MapY(184),
+		RacerScreenMutedTextColor);
+	RenderText(Context->Store.GetFont(FontAssetInfoFont), Screen->GetBasedInCityName(),
+		Layout.RightColumnX + RacerScreenPanelPadding, Layout.Coordinates.MapY(201),
+		RacerScreenTextColor);
+	RenderText(Context->Store.GetFont(FontAssetDebugFont), Screen->GetCareerStatusLabel(),
+		Layout.RightColumnX + RacerScreenPanelPadding, Layout.Coordinates.MapY(224),
+		RacerScreenMutedTextColor);
 
 	const unsigned int AnimationFrame = static_cast<unsigned int>((SDL_GetTicks() / RacerScreenSpriteFrameDurationMs) %
 		RacerScreenSpriteFrameCount);
 	SDL_Rect SpriteSource{ static_cast<int>(AnimationFrame) * RacerScreenSpriteWidth, 0,
 		RacerScreenSpriteWidth, RacerScreenSpriteHeight };
-	SDL_Rect SpriteBounds{ RacerScreenRightColumnX + RacerScreenPanelWidth - RacerScreenPanelPadding -
-		RacerScreenSpriteWidth, RacerScreenSpriteTop, RacerScreenSpriteWidth, RacerScreenSpriteHeight };
+	SDL_Rect SpriteBounds{ Layout.RightColumnX + Layout.PanelWidth - RacerScreenPanelPadding -
+		RacerScreenSpriteWidth, Layout.Coordinates.MapY(RacerScreenSpriteTop),
+		RacerScreenSpriteWidth, RacerScreenSpriteHeight };
 	RenderImage(Context->Store.GetImage(ImageAssetFellaRun)->Texture, &SpriteSource, &SpriteBounds);
 
-	const SDL_FRect DetailsPanel{ static_cast<float>(RacerScreenRightColumnX),
-		static_cast<float>(RacerScreenDetailsPanelTop), static_cast<float>(RacerScreenPanelWidth),
-		static_cast<float>(RacerScreenDetailsPanelHeight) };
+	const int DetailsTop = Layout.Coordinates.MapY(RacerScreenDetailsPanelTop);
+	const SDL_FRect DetailsPanel{ static_cast<float>(Layout.RightColumnX), static_cast<float>(DetailsTop),
+		static_cast<float>(Layout.PanelWidth), static_cast<float>(Layout.Coordinates.MapY(
+			RacerScreenDetailsPanelTop + RacerScreenDetailsPanelHeight) - DetailsTop) };
 	DrawRacerScreenPanel(Context->MainRenderer, DetailsPanel, RacerScreenPhysicalStatColor);
 	RenderText(Context->Store.GetFont(FontAssetInfoFont), "PERSONAL DETAILS",
-		RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenDetailTitleTop, RacerScreenAccentColor);
+		Layout.RightColumnX + RacerScreenPanelPadding, Layout.Coordinates.MapY(RacerScreenDetailTitleTop),
+		RacerScreenAccentColor);
 	DrawRacerScreenDetail(*this, Context, "AGE", std::to_string(Runner.Details.Age),
-		RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenDetailFirstRowTop);
+		Layout.RightColumnX + RacerScreenPanelPadding, Layout.Coordinates.MapY(RacerScreenDetailFirstRowTop));
 	DrawRacerScreenDetail(*this, Context, "HEIGHT", std::to_string(static_cast<int>(std::lround(Runner.Details.HeightCm))) + " cm",
-		RacerScreenRightColumnX + RacerScreenDetailSecondColumnOffset, RacerScreenDetailFirstRowTop);
+		Layout.RightColumnX + Layout.PanelWidth / 3, Layout.Coordinates.MapY(RacerScreenDetailFirstRowTop));
 	DrawRacerScreenDetail(*this, Context, "WEIGHT", std::to_string(static_cast<int>(std::lround(Runner.Details.WeightKg))) + " kg",
-		RacerScreenRightColumnX + RacerScreenDetailThirdColumnOffset, RacerScreenDetailFirstRowTop);
+		Layout.RightColumnX + Layout.PanelWidth * 2 / 3, Layout.Coordinates.MapY(RacerScreenDetailFirstRowTop));
 	const std::string CareerCash = IsPlayerRacer
 		? "$" + std::to_string(RacerProfile->Financials.Cash) : "N/A";
 	DrawRacerScreenDetail(*this, Context, "CAREER CASH", CareerCash,
-		RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenDetailSecondRowTop);
+		Layout.RightColumnX + RacerScreenPanelPadding, Layout.Coordinates.MapY(RacerScreenDetailSecondRowTop));
 	RenderText(Context->Store.GetFont(FontAssetDebugFont),
 		"Career " + std::to_string(Runner.CareerRecord.Wins) + "W / " +
 		std::to_string(Runner.CareerRecord.Losses) + "L   Best " +
 		FormatBestTime(Runner.CareerRecord.BestTimeMs),
-		RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenDetailRecordTop, RacerScreenMutedTextColor);
+		Layout.RightColumnX + RacerScreenPanelPadding, Layout.Coordinates.MapY(RacerScreenDetailRecordTop),
+		RacerScreenMutedTextColor);
 	if (Runner.CareerRecord.History.empty())
 		RenderText(Context->Store.GetFont(FontAssetDebugFont), "No race history yet",
-			RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenDetailRaceHistoryTop,
+			Layout.RightColumnX + RacerScreenPanelPadding,
+			Layout.Coordinates.MapY(RacerScreenDetailRaceHistoryTop),
 			RacerScreenMutedTextColor);
 	else
 	{
@@ -389,29 +615,39 @@ unsigned int Game::Render::RacerScreenRenderer::Render()
 		RenderText(Context->Store.GetFont(FontAssetDebugFont),
 			"Last: Day " + std::to_string(LastRace.WorldTimeMs / MillisecondsPerWorldDay + 1) + " " +
 			Place + " " + Distance + "  (click for results)",
-			RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenDetailRaceHistoryTop,
+			Layout.RightColumnX + RacerScreenPanelPadding,
+			Layout.Coordinates.MapY(RacerScreenDetailRaceHistoryTop),
 			RacerScreenMutedTextColor);
 	}
 
-	const SDL_FRect CurvesPanel{ static_cast<float>(RacerScreenRightColumnX),
-		static_cast<float>(RacerScreenCurvesPanelTop), static_cast<float>(RacerScreenPanelWidth),
-		static_cast<float>(RacerScreenCurvesPanelHeight) };
+	const int CurvesTop = Layout.Coordinates.MapY(RacerScreenCurvesPanelTop);
+	const SDL_FRect CurvesPanel{ static_cast<float>(Layout.RightColumnX), static_cast<float>(CurvesTop),
+		static_cast<float>(Layout.PanelWidth), static_cast<float>(Layout.Coordinates.MapY(
+			RacerScreenCurvesPanelTop + RacerScreenCurvesPanelHeight) - CurvesTop) };
 	DrawRacerScreenPanel(Context->MainRenderer, CurvesPanel, RacerScreenPhysicalStatColor);
-	const SDL_FRect CurvePlotBounds{ static_cast<float>(RacerScreenRightColumnX + RacerScreenPanelPadding),
-		static_cast<float>(RacerScreenCurvePlotTop),
-		static_cast<float>(RacerScreenPanelWidth - RacerScreenPanelPadding * 2),
-		static_cast<float>(RacerScreenCurvePlotHeight) };
+	const int CurvePlotTop = Layout.Coordinates.MapY(RacerScreenCurvePlotTop);
+	const SDL_FRect CurvePlotBounds{ static_cast<float>(Layout.RightColumnX + RacerScreenPanelPadding),
+		static_cast<float>(CurvePlotTop),
+		static_cast<float>(Layout.PanelWidth - RacerScreenPanelPadding * 2),
+		static_cast<float>(Layout.Coordinates.MapY(RacerScreenCurvePlotTop + RacerScreenCurvePlotHeight) -
+			CurvePlotTop) };
 	// Show the generated, normalized acceleration and endurance curves alongside the raw skill ratings.
 	DrawRacerCurveVisualization(*this, Context, Runner, CurvePlotBounds,
-		RacerScreenRightColumnX + RacerScreenPanelPadding, RacerScreenCurveTitleTop, RacerScreenCurveLegendTop,
+		Layout.RightColumnX + RacerScreenPanelPadding, Layout.Coordinates.MapY(RacerScreenCurveTitleTop),
+		Layout.Coordinates.MapY(RacerScreenCurveLegendTop),
 		RacerScreenCurveStyle);
 
-	DrawRacerScreenButton(*this, Context, Screen->RegenButton);
 	if (Screen->InitType == Screens::RacerScreenStateInitType::RacerCreation)
+	{
+		DrawRacerScreenButton(*this, Context, Screen->RegenButton);
 		DrawRacerScreenButton(*this, Context, Screen->ApplyButton);
-
-	if (Screen->InitType == Screens::RacerScreenStateInitType::ViewOnly)
+	}
+	else
+	{
+		DrawRacerScreenButton(*this, Context, Screen->LocationButton,
+			Screen->GetBasedInCityId() != 0);
 		DrawRacerScreenButton(*this, Context, Screen->ExitButton);
+	}
 
 	Display();
 	const auto EndTime = SDL_GetTicks();

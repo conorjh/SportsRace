@@ -13,6 +13,7 @@ namespace Game
 		{
 		protected:
 			Race::Racer* RacerToDisplay;
+			void UpdateLayout();
 
 		public:
 			GUI::Button ExitButton;

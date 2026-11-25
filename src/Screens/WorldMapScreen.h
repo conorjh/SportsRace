@@ -60,6 +60,7 @@ namespace Game
 			float CityCameraY = 0.0f;
 			std::uint64_t LastCityInputUpdateMs = 0;
 			int HoveredPlotIndex = -1;
+			int FocusedPlotIndex = -1;
 			bool CityCameraInitialized = false;
 			bool CityRoadNetworkInitialized = false;
 			std::uint64_t CityRoadNetworkCityId = 0;
@@ -67,6 +68,7 @@ namespace Game
 			unsigned int CityRoadMaximumGridY = 0;
 
 			const std::vector<Career::CityPlot>& GetCurrentCityPlots() const;
+			SDL_FRect GetCityMapBounds() const;
 			int GetPlotAt(float X, float Y) const;
 			std::uint64_t GetCityMarkerAt(float X, float Y) const;
 			std::uint64_t GetRegionMarkerAt(float X, float Y) const;
@@ -74,6 +76,7 @@ namespace Game
 			void ZoomIn();
 			void InitializeTraffic();
 			void UpdateCityCamera();
+			void UpdateLayout();
 			void ClampCityCamera();
 			void UpdateCityTraffic();
 
@@ -82,6 +85,7 @@ namespace Game
 
 			void Entry() override;
 			AppScreen* Update() override;
+			void FocusOnLocation(std::uint64_t CityId, int PlotIndex = -1);
 			const Career::CityPlot* GetInfoPlot() const;
 			bool IsPlotInfoVisible() const;
 			int GetHoveredPlotIndex() const;
@@ -90,6 +94,9 @@ namespace Game
 
 	namespace Render
 	{
+		void DrawCareerHubMapPreview(AppRenderContext* Context, const Career::CareerData& Data,
+			std::uint64_t CityId, const SDL_FRect& Bounds);
+
 		class WorldMapRenderer : public BaseRenderer
 		{
 		public:

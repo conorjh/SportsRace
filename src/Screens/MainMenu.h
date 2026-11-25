@@ -14,6 +14,7 @@ namespace Game
 		{
 			Race::Race RaceBuffer;
 			Race::RacerDB Racers;
+			void UpdateLayout();
 
 		public:
 			GUI::Button RaceButton, CareerButton, LoadCareerButton, OptionsButton, ExitButton;

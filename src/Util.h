@@ -13,6 +13,18 @@ namespace Game
 
 	namespace GUI
 	{
+		struct RelativeLayout
+		{
+			float Width;
+			float Height;
+
+			RelativeLayout(float _Width, float _Height);
+			int X(float Fraction) const;
+			int Y(float Fraction) const;
+			int MapX(float ReferenceX, float ReferenceWidth = 1024.0f) const;
+			int MapY(float ReferenceY, float ReferenceHeight = 768.0f) const;
+		};
+
 		class Button
 		{
 			bool IsButtonHoveredOver = false;
@@ -27,6 +39,7 @@ namespace Game
 			Button(App::AppIO& _IO, std::string _Text, int x, int  y, int w, int h);
 
 			void Update();
+			void SetBounds(int _x, int _y, int _w, int _h);
 
 			bool IsMouseOver() const;
 			bool HasMouseClicked();
@@ -50,6 +63,7 @@ namespace Game
 			IconButton(App::AppIO& _IO, IconButtonType _Type, int x, int  y, int w, int h);
 
 			void Update();
+			void SetBounds(int _x, int _y, int _w, int _h);
 
 			bool IsMouseOver(), HasMouseClicked();
 		};

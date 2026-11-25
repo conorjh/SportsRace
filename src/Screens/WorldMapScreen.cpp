@@ -22,12 +22,14 @@
 
 namespace WorldMapScreenDetail
 {
-	constexpr float CityMapLeft = 36.0f;
-	constexpr float CityMapTop = 112.0f;
-	constexpr float CityMapWidth = 952.0f;
-	constexpr float CityMapHeight = 492.0f;
+	float CityMapLeft = 36.0f;
+	float CityMapTop = 112.0f;
+	float CityMapWidth = 952.0f;
+	float CityMapHeight = 492.0f;
 	constexpr float IsometricTileWidth = 128.0f;
 	constexpr float IsometricTileHeight = 64.0f;
+	constexpr std::size_t IsometricCityTileColumns = 4;
+	constexpr std::size_t IsometricCityTileRows = 3;
 	constexpr float MinimumCityZoom = 0.55f;
 	constexpr float MaximumCityZoom = 1.65f;
 	const std::vector<Game::Career::CityPlot> EmptyCityPlots;
@@ -83,10 +85,129 @@ namespace WorldMapScreenDetail
 		std::size_t Index;
 	};
 
+	struct CityRoadNetwork
+	{
+		unsigned int MaximumGridX = 0;
+		unsigned int MaximumGridY = 0;
+		std::vector<std::pair<SDL_FPoint, SDL_FPoint>> Segments;
+		std::vector<std::vector<SDL_FPoint>> Routes;
+	};
+
 	SDL_FPoint ProjectCityGrid(float GridX, float GridY)
 	{
 		return { (GridX - GridY) * (IsometricTileWidth * 0.5f),
 			(GridX + GridY) * (IsometricTileHeight * 0.5f) };
+	}
+
+	std::uint32_t GetCitySeed(const std::vector<Game::Career::CityPlot>& CityPlots)
+	{
+		std::uint32_t Seed = 2166136261u;
+		for (const Game::Career::CityPlot& Plot : CityPlots)
+		{
+			Seed = (Seed ^ Plot.GridX) * 16777619u;
+			Seed = (Seed ^ Plot.GridY) * 16777619u;
+			Seed = (Seed ^ Plot.SpriteIndex) * 16777619u;
+		}
+		return Seed;
+	}
+
+	CityRoadNetwork BuildCityRoadNetwork(const std::vector<Game::Career::CityPlot>& CityPlots)
+	{
+		CityRoadNetwork Network;
+		for (const Game::Career::CityPlot& Plot : CityPlots)
+		{
+			Network.MaximumGridX = std::max(Network.MaximumGridX, Plot.GridX);
+			Network.MaximumGridY = std::max(Network.MaximumGridY, Plot.GridY);
+		}
+		const std::size_t NodeColumns = static_cast<std::size_t>(Network.MaximumGridX) + 2;
+		const std::size_t NodeRows = static_cast<std::size_t>(Network.MaximumGridY) + 2;
+		struct RoadEdge
+		{
+			std::size_t StartNode;
+			std::size_t EndNode;
+		};
+		const auto GetNodeIndex = [NodeColumns](std::size_t GridX, std::size_t GridY)
+		{
+			return GridY * NodeColumns + GridX;
+		};
+		std::vector<RoadEdge> PotentialRoadEdges;
+		for (std::size_t GridY = 0; GridY < NodeRows; ++GridY)
+			for (std::size_t GridX = 0; GridX < NodeColumns; ++GridX)
+			{
+				const std::size_t Node = GetNodeIndex(GridX, GridY);
+				if (GridX + 1 < NodeColumns)
+					PotentialRoadEdges.push_back({ Node, GetNodeIndex(GridX + 1, GridY) });
+				if (GridY + 1 < NodeRows)
+					PotentialRoadEdges.push_back({ Node, GetNodeIndex(GridX, GridY + 1) });
+			}
+
+		const auto CreateStreetLines = [](std::size_t NodeLineCount, std::size_t BlockSize)
+		{
+			std::vector<std::size_t> Lines{ 0 };
+			while (Lines.back() + BlockSize < NodeLineCount - 1)
+				Lines.push_back(Lines.back() + BlockSize);
+			if (Lines.back() != NodeLineCount - 1)
+				Lines.push_back(NodeLineCount - 1);
+			return Lines;
+		};
+		const std::vector<std::size_t> StreetColumns = CreateStreetLines(NodeColumns, IsometricCityTileColumns);
+		const std::vector<std::size_t> StreetRows = CreateStreetLines(NodeRows, IsometricCityTileRows);
+		std::vector<bool> RoadEdges(PotentialRoadEdges.size(), false);
+		for (std::size_t EdgeIndex = 0; EdgeIndex < PotentialRoadEdges.size(); ++EdgeIndex)
+		{
+			const RoadEdge& Edge = PotentialRoadEdges[EdgeIndex];
+			const std::size_t StartGridX = Edge.StartNode % NodeColumns;
+			const std::size_t StartGridY = Edge.StartNode / NodeColumns;
+			const std::size_t EndGridY = Edge.EndNode / NodeColumns;
+			const bool IsHorizontal = StartGridY == EndGridY;
+			const std::vector<std::size_t>& StreetLines = IsHorizontal ? StreetRows : StreetColumns;
+			const std::size_t StreetLine = IsHorizontal ? StartGridY : StartGridX;
+			RoadEdges[EdgeIndex] = std::binary_search(StreetLines.begin(), StreetLines.end(), StreetLine);
+		}
+
+		const auto GetNodePosition = [](std::size_t GridX, std::size_t GridY)
+		{
+			return ProjectCityGrid(static_cast<float>(GridX) - 0.5f,
+				static_cast<float>(GridY) - 0.5f);
+		};
+		for (std::size_t EdgeIndex = 0; EdgeIndex < PotentialRoadEdges.size(); ++EdgeIndex)
+			if (RoadEdges[EdgeIndex])
+			{
+				const RoadEdge& Edge = PotentialRoadEdges[EdgeIndex];
+				Network.Segments.push_back({
+					GetNodePosition(Edge.StartNode % NodeColumns, Edge.StartNode / NodeColumns),
+					GetNodePosition(Edge.EndNode % NodeColumns, Edge.EndNode / NodeColumns)
+				});
+			}
+
+		for (std::size_t RowIndex = 0; RowIndex + 1 < StreetRows.size(); ++RowIndex)
+			for (std::size_t ColumnIndex = 0; ColumnIndex + 1 < StreetColumns.size(); ++ColumnIndex)
+			{
+				const std::size_t TopRow = StreetRows[RowIndex];
+				const std::size_t BottomRow = StreetRows[RowIndex + 1];
+				const std::size_t LeftColumn = StreetColumns[ColumnIndex];
+				const std::size_t RightColumn = StreetColumns[ColumnIndex + 1];
+				std::vector<SDL_FPoint> Route;
+				for (std::size_t GridX = LeftColumn; GridX <= RightColumn; ++GridX)
+					Route.push_back(GetNodePosition(GridX, TopRow));
+				for (std::size_t GridY = TopRow + 1; GridY <= BottomRow; ++GridY)
+					Route.push_back(GetNodePosition(RightColumn, GridY));
+				for (std::size_t GridX = RightColumn; GridX > LeftColumn; --GridX)
+					Route.push_back(GetNodePosition(GridX - 1, BottomRow));
+				for (std::size_t GridY = BottomRow; GridY > TopRow + 1; --GridY)
+					Route.push_back(GetNodePosition(LeftColumn, GridY - 1));
+				Route.push_back(Route.front());
+				Network.Routes.push_back(std::move(Route));
+			}
+		return Network;
+	}
+
+	void SetCityMapViewport(float ScreenWidth, float ScreenHeight)
+	{
+		CityMapLeft = std::max(24.0f, ScreenWidth * 36.0f / 1024.0f);
+		CityMapTop = 112.0f;
+		CityMapWidth = std::max(320.0f, ScreenWidth - CityMapLeft * 2.0f);
+		CityMapHeight = std::max(280.0f, ScreenHeight - CityMapTop - 164.0f);
 	}
 
 	SDL_FPoint ProjectCityToScreen(const SDL_FPoint& Position, float CameraX, float CameraY, float Zoom)
@@ -94,6 +215,16 @@ namespace WorldMapScreenDetail
 		return { CityMapLeft + CityMapWidth * 0.5f + (Position.x - CameraX) * Zoom,
 			CityMapTop + CityMapHeight * 0.5f + (Position.y - CameraY) * Zoom };
 	}
+
+	SDL_FPoint ProjectCityToViewport(const SDL_FPoint& Position, float CameraX, float CameraY, float Zoom,
+		const SDL_FRect& Viewport)
+	{
+		return { Viewport.x + Viewport.w * 0.5f + (Position.x - CameraX) * Zoom,
+			Viewport.y + Viewport.h * 0.5f + (Position.y - CameraY) * Zoom };
+	}
+
+	Game::Assets::ImageAssetId GetPlotSpriteAsset(const Game::Career::CityPlot& Plot);
+	SDL_Color GetPlotAccent(Game::Career::CityPlotType Type);
 
 	SDL_FPoint UnprojectCityScreenToGrid(float ScreenX, float ScreenY, float CameraX, float CameraY,
 		float Zoom)
@@ -207,6 +338,55 @@ namespace WorldMapScreenDetail
 		}
 	}
 
+	const char* GetPlotIconGlyph(Game::Career::CityPlotType Type)
+	{
+		switch (Type)
+		{
+		case Game::Career::CityPlotType::Gym:
+			return "G";
+		case Game::Career::CityPlotType::RaceTrack:
+			return "R";
+		case Game::Career::CityPlotType::Bookies:
+			return "$";
+		case Game::Career::CityPlotType::LicenseOffice:
+			return "L";
+		case Game::Career::CityPlotType::BreedingFarm:
+			return "B";
+		case Game::Career::CityPlotType::Stable:
+			return "S";
+		default:
+			return "";
+		}
+	}
+
+	void DrawPlotTypeIcon(Game::Render::BaseRenderer& Renderer, Game::Render::AppRenderContext* Context,
+		const Game::Career::CityPlot& Plot, const SDL_FPoint& Center, float Zoom)
+	{
+		const char* Glyph = GetPlotIconGlyph(Plot.Type);
+		if (Glyph[0] == '\0')
+			return;
+
+		Game::Render::Image* Image = Context->Store.GetImage(GetPlotSpriteAsset(Plot));
+		if (Image == nullptr || Image->Texture == nullptr)
+			return;
+
+		float TextureHeight = 0.0f;
+		SDL_GetTextureSize(Image->Texture, nullptr, &TextureHeight);
+		const float SpriteScale = Plot.Type == Game::Career::CityPlotType::Scenery ? 0.78f : 0.96f;
+		const float SpriteTop = Center.y + IsometricTileHeight * 0.5f * Zoom - TextureHeight * Zoom * SpriteScale;
+		const float IconSize = std::clamp(22.0f * Zoom, 16.0f, 22.0f);
+		const SDL_FRect IconBounds{ Center.x - IconSize * 0.5f, SpriteTop - IconSize - 3.0f,
+			IconSize, IconSize };
+		const SDL_Color Accent = GetPlotAccent(Plot.Type);
+		SDL_SetRenderDrawColor(Context->MainRenderer, 27, 26, 23, 235);
+		SDL_RenderFillRect(Context->MainRenderer, &IconBounds);
+		SDL_SetRenderDrawColor(Context->MainRenderer, Accent.r, Accent.g, Accent.b, Accent.a);
+		SDL_RenderRect(Context->MainRenderer, &IconBounds);
+		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), Glyph,
+			static_cast<int>(IconBounds.x + (IconSize - 8.0f) * 0.5f),
+			static_cast<int>(IconBounds.y + (IconSize - 12.0f) * 0.5f), CityTextColor);
+	}
+
 	void DrawFilledDiamond(SDL_Renderer* Renderer, const SDL_FPoint& Center, float HalfWidth,
 		float HalfHeight, SDL_Color Color)
 	{
@@ -255,6 +435,15 @@ namespace WorldMapScreenDetail
 		};
 		constexpr int Indices[]{ 0, 1, 2, 0, 2, 3 };
 		SDL_RenderGeometry(Renderer, nullptr, Vertices, 4, Indices, 6);
+	}
+
+	void DrawCityRoadSegment(Game::Render::AppRenderContext* Context, const SDL_FPoint& WorldStart,
+		const SDL_FPoint& WorldEnd, float CameraX, float CameraY, float Zoom, const SDL_FRect& Viewport)
+	{
+		const SDL_FPoint Start = ProjectCityToViewport(WorldStart, CameraX, CameraY, Zoom, Viewport);
+		const SDL_FPoint End = ProjectCityToViewport(WorldEnd, CameraX, CameraY, Zoom, Viewport);
+		DrawThickLine(Context->MainRenderer, Start, End, 18.0f * Zoom, SDL_Color{ 160, 146, 115, 255 });
+		DrawThickLine(Context->MainRenderer, Start, End, 12.0f * Zoom, SDL_Color{ 77, 81, 78, 255 });
 	}
 
 	void DrawFilledEllipse(SDL_Renderer* Renderer, const SDL_FPoint& Center, float RadiusX,
@@ -332,7 +521,11 @@ namespace WorldMapScreenDetail
 	Game::Assets::ImageAssetId GetPlotSpriteAsset(const Game::Career::CityPlot& Plot)
 	{
 		if (Plot.Type == Game::Career::CityPlotType::Scenery)
-			return IsometricCityAssets[Plot.SpriteIndex % IsometricCityAssets.size()];
+		{
+			const std::size_t TileIndex = static_cast<std::size_t>(Plot.GridY % IsometricCityTileRows) *
+				IsometricCityTileColumns + Plot.GridX % IsometricCityTileColumns;
+			return IsometricCityAssets[TileIndex];
+		}
 
 		std::size_t TypeOffset = 0;
 		switch (Plot.Type)
@@ -474,7 +667,7 @@ namespace WorldMapScreenDetail
 			Details = "Manage breeding";
 			break;
 		case Game::Career::CityPlotType::Stable:
-			Details = "View and manage your racer";
+			Details = "Rent space or manage your stable roster";
 			break;
 		case Game::Career::CityPlotType::VacantLot:
 			return "Available for future development";
@@ -516,7 +709,8 @@ Game::Screens::WorldMapScreen::WorldMapScreen(AppScreenStateMachine& _Machine, A
 	Orchestrator.Init();
 	if (Data.Career != nullptr)
 	{
-		SelectedCityId = Data.Career->HomeCityId;
+		SelectedCityId = Data.Career->PlayerStableCityId != 0
+			? Data.Career->PlayerStableCityId : Data.Career->HomeCityId;
 		if (const Career::CareerWorldCity* City = FindCity(*Data.Career, SelectedCityId))
 		{
 			SelectedRegionId = City->RegionId;
@@ -524,6 +718,7 @@ Game::Screens::WorldMapScreen::WorldMapScreen(AppScreenStateMachine& _Machine, A
 				SelectedCountryId = Region->CountryId;
 		}
 	}
+	UpdateLayout();
 	InitializeTraffic();
 }
 
@@ -540,9 +735,51 @@ void Game::Screens::WorldMapScreen::Entry()
 	ClampCityCamera();
 }
 
+void Game::Screens::WorldMapScreen::FocusOnLocation(std::uint64_t CityId, int PlotIndex)
+{
+	if (Data.Career == nullptr || CityId == 0)
+		return;
+	const Career::CareerWorldCity* City = FindCity(*Data.Career, CityId);
+	if (City == nullptr)
+		return;
+
+	SelectedCityId = CityId;
+	SelectedRegionId = City->RegionId;
+	if (const Career::CareerWorldRegion* Region = FindRegion(*Data.Career, SelectedRegionId))
+		SelectedCountryId = Region->CountryId;
+	MapView = WorldMapViewLevel::City;
+	UpdateLayout();
+	CityRoadNetworkInitialized = false;
+	FocusedPlotIndex = -1;
+	CityZoom = 0.82f;
+
+	const std::vector<Career::CityPlot>& CityPlots = GetCurrentCityPlots();
+	if (PlotIndex >= 0 && static_cast<std::size_t>(PlotIndex) < CityPlots.size())
+	{
+		const Career::CityPlot& Plot = CityPlots[static_cast<std::size_t>(PlotIndex)];
+		const SDL_FPoint Position = ProjectCityGrid(static_cast<float>(Plot.GridX),
+			static_cast<float>(Plot.GridY));
+		CityCameraX = Position.x;
+		CityCameraY = Position.y;
+		CityZoom = 1.15f;
+		FocusedPlotIndex = PlotIndex;
+	}
+	else
+	{
+		const CityWorldBounds Bounds = GetCityWorldBounds(CityPlots);
+		CityCameraX = (Bounds.MinX + Bounds.MaxX) * 0.5f;
+		CityCameraY = (Bounds.MinY + Bounds.MaxY) * 0.5f;
+	}
+	CityCameraInitialized = true;
+	LastCityInputUpdateMs = SDL_GetTicks();
+	ClampCityCamera();
+	InitializeTraffic();
+}
+
 Game::Screens::AppScreen* Game::Screens::WorldMapScreen::Update()
 {
 	using namespace Game::Audio;
+	UpdateLayout();
 	PopulationButton.Update();
 	CareerHubButton.Update();
 	LeagueBrowserButton.Update();
@@ -625,6 +862,7 @@ Game::Screens::AppScreen* Game::Screens::WorldMapScreen::Update()
 		HoveredCityId != 0)
 	{
 		SelectedCityId = HoveredCityId;
+		FocusedPlotIndex = -1;
 		MapView = WorldMapViewLevel::City;
 		CityCameraInitialized = false;
 		CityRoadNetworkInitialized = false;
@@ -664,7 +902,8 @@ Game::Screens::AppScreen* Game::Screens::WorldMapScreen::Update()
 				Building = new RaceTrackScreen(ScreenStack, IO, Data, Plot);
 				break;
 			case Career::CityPlotType::Stable:
-				Building = new StableScreen(ScreenStack, IO, Data, Plot);
+				Building = new StableScreen(ScreenStack, IO, Data, Plot, SelectedCityId,
+					static_cast<std::size_t>(HoveredPlotIndex));
 				break;
 			default:
 				break;
@@ -691,6 +930,37 @@ const std::vector<Game::Career::CityPlot>& Game::Screens::WorldMapScreen::GetCur
 	return City == nullptr ? Data.Career->CityPlots : City->Plots;
 }
 
+SDL_FRect Game::Screens::WorldMapScreen::GetCityMapBounds() const
+{
+	return { CityMapLeft, CityMapTop, CityMapWidth, CityMapHeight };
+}
+
+void Game::Screens::WorldMapScreen::UpdateLayout()
+{
+	const unsigned int ScreenWidth = Data.RenderContext == nullptr ? 1024 : Data.RenderContext->ScreenWidth;
+	const unsigned int ScreenHeight = Data.RenderContext == nullptr ? 768 : Data.RenderContext->ScreenHeight;
+	const GUI::RelativeLayout Layout(static_cast<float>(ScreenWidth), static_cast<float>(ScreenHeight));
+	SetCityMapViewport(static_cast<float>(ScreenWidth), static_cast<float>(ScreenHeight));
+
+	const int PopulationWidth = 220;
+	const int LeagueWidth = 220;
+	const int ZoomButtonWidth = 130;
+	const int HubWidth = 160;
+	const int Gap = Layout.X(0.015f);
+	const int ButtonRowWidth = PopulationWidth + LeagueWidth + ZoomButtonWidth * 2 + HubWidth + Gap * 4;
+	const int ButtonLeft = std::max(Layout.X(0.02f),
+		(static_cast<int>(ScreenWidth) - ButtonRowWidth) / 2);
+	const int ButtonY = static_cast<int>(ScreenHeight) - 78;
+	PopulationButton.SetBounds(ButtonLeft, ButtonY, PopulationWidth, 48);
+	LeagueBrowserButton.SetBounds(ButtonLeft + PopulationWidth + Gap, ButtonY, LeagueWidth, 48);
+	ZoomOutButton.SetBounds(ButtonLeft + PopulationWidth + LeagueWidth + Gap * 2, ButtonY,
+		ZoomButtonWidth, 48);
+	ZoomInButton.SetBounds(ButtonLeft + PopulationWidth + LeagueWidth + ZoomButtonWidth + Gap * 3,
+		ButtonY, ZoomButtonWidth, 48);
+	CareerHubButton.SetBounds(ButtonLeft + PopulationWidth + LeagueWidth + ZoomButtonWidth * 2 + Gap * 4,
+		ButtonY, HubWidth, 48);
+}
+
 void Game::Screens::WorldMapScreen::ZoomOut()
 {
 	if (Data.Career == nullptr)
@@ -705,10 +975,14 @@ void Game::Screens::WorldMapScreen::ZoomOut()
 		}
 		MapView = WorldMapViewLevel::Region;
 		HoveredPlotIndex = -1;
+		FocusedPlotIndex = -1;
 		return;
 	}
 	if (MapView == WorldMapViewLevel::Region)
+	{
 		MapView = WorldMapViewLevel::Country;
+		FocusedPlotIndex = -1;
+	}
 }
 
 void Game::Screens::WorldMapScreen::ZoomIn()
@@ -729,6 +1003,7 @@ void Game::Screens::WorldMapScreen::ZoomIn()
 		SelectedRegionId = Region->Id;
 		SelectedCityId = Region->CapitalCityId;
 		MapView = WorldMapViewLevel::Region;
+		FocusedPlotIndex = -1;
 		return;
 	}
 	if (MapView == WorldMapViewLevel::Region)
@@ -740,6 +1015,7 @@ void Game::Screens::WorldMapScreen::ZoomIn()
 		if (City == nullptr || City->RegionId != Region->Id)
 			SelectedCityId = Region->CapitalCityId;
 		MapView = WorldMapViewLevel::City;
+		FocusedPlotIndex = -1;
 		CityCameraInitialized = false;
 		CityRoadNetworkInitialized = false;
 		Entry();
@@ -790,128 +1066,31 @@ void Game::Screens::WorldMapScreen::InitializeTraffic()
 		return;
 
 	const std::vector<Career::CityPlot>& CityPlots = GetCurrentCityPlots();
-	unsigned int MaximumGridX = 0;
-	unsigned int MaximumGridY = 0;
-	std::uint32_t CitySeed = 2166136261u;
-	for (const Career::CityPlot& Plot : CityPlots)
-	{
-		MaximumGridX = std::max(MaximumGridX, Plot.GridX);
-		MaximumGridY = std::max(MaximumGridY, Plot.GridY);
-		CitySeed = (CitySeed ^ Plot.GridX) * 16777619u;
-		CitySeed = (CitySeed ^ Plot.GridY) * 16777619u;
-		CitySeed = (CitySeed ^ Plot.SpriteIndex) * 16777619u;
-	}
-	std::mt19937 Random(CitySeed);
-	const std::size_t NodeColumns = static_cast<std::size_t>(MaximumGridX) + 2;
-	const std::size_t NodeRows = static_cast<std::size_t>(MaximumGridY) + 2;
-	struct RoadEdge
-	{
-		std::size_t StartNode;
-		std::size_t EndNode;
-	};
-	std::vector<RoadEdge> PotentialRoadEdges;
-	const auto GetNodeIndex = [NodeColumns](std::size_t GridX, std::size_t GridY)
-	{
-		return GridY * NodeColumns + GridX;
-	};
-	for (std::size_t GridY = 0; GridY < NodeRows; ++GridY)
-		for (std::size_t GridX = 0; GridX < NodeColumns; ++GridX)
-		{
-			const std::size_t Node = GetNodeIndex(GridX, GridY);
-			if (GridX + 1 < NodeColumns)
-			{
-				const std::size_t Neighbor = GetNodeIndex(GridX + 1, GridY);
-				PotentialRoadEdges.push_back({ Node, Neighbor });
-			}
-			if (GridY + 1 < NodeRows)
-			{
-				const std::size_t Neighbor = GetNodeIndex(GridX, GridY + 1);
-				PotentialRoadEdges.push_back({ Node, Neighbor });
-			}
-		}
-
-	std::uniform_int_distribution<std::size_t> BlockSizeDistribution(2, 3);
-	const auto CreateStreetLines = [](std::size_t NodeLineCount, std::size_t BlockSize)
-	{
-		std::vector<std::size_t> Lines{ 0 };
-		while (Lines.back() + BlockSize < NodeLineCount - 1)
-			Lines.push_back(Lines.back() + BlockSize);
-		if (Lines.back() != NodeLineCount - 1)
-			Lines.push_back(NodeLineCount - 1);
-		return Lines;
-	};
-	const std::vector<std::size_t> StreetColumns = CreateStreetLines(NodeColumns,
-		BlockSizeDistribution(Random));
-	const std::vector<std::size_t> StreetRows = CreateStreetLines(NodeRows,
-		BlockSizeDistribution(Random));
-	std::vector<bool> RoadEdges(PotentialRoadEdges.size(), false);
-	for (std::size_t EdgeIndex = 0; EdgeIndex < PotentialRoadEdges.size(); ++EdgeIndex)
-	{
-		const RoadEdge& Edge = PotentialRoadEdges[EdgeIndex];
-		const std::size_t StartGridX = Edge.StartNode % NodeColumns;
-		const std::size_t StartGridY = Edge.StartNode / NodeColumns;
-		const std::size_t EndGridY = Edge.EndNode / NodeColumns;
-		const bool IsHorizontal = StartGridY == EndGridY;
-		const std::vector<std::size_t>& StreetLines = IsHorizontal ? StreetRows : StreetColumns;
-		const std::size_t StreetLine = IsHorizontal ? StartGridY : StartGridX;
-		RoadEdges[EdgeIndex] = std::binary_search(StreetLines.begin(), StreetLines.end(), StreetLine);
-	}
-
-	const auto GetNodePosition = [](std::size_t GridX, std::size_t GridY)
-	{
-		return ProjectCityGrid(static_cast<float>(GridX) - 0.5f,
-			static_cast<float>(GridY) - 0.5f);
-	};
+	std::mt19937 Random(GetCitySeed(CityPlots));
+	const CityRoadNetwork RoadNetwork = BuildCityRoadNetwork(CityPlots);
 	CityRoadSegments.clear();
-	for (std::size_t EdgeIndex = 0; EdgeIndex < PotentialRoadEdges.size(); ++EdgeIndex)
-		if (RoadEdges[EdgeIndex])
-		{
-			const RoadEdge& Edge = PotentialRoadEdges[EdgeIndex];
-			CityRoadSegments.push_back({
-				GetNodePosition(Edge.StartNode % NodeColumns, Edge.StartNode / NodeColumns),
-				GetNodePosition(Edge.EndNode % NodeColumns, Edge.EndNode / NodeColumns)
-			});
-		}
-
-	std::vector<std::vector<SDL_FPoint>> CityRoadRoutes;
-	for (std::size_t RowIndex = 0; RowIndex + 1 < StreetRows.size(); ++RowIndex)
-		for (std::size_t ColumnIndex = 0; ColumnIndex + 1 < StreetColumns.size(); ++ColumnIndex)
-		{
-			const std::size_t TopRow = StreetRows[RowIndex];
-			const std::size_t BottomRow = StreetRows[RowIndex + 1];
-			const std::size_t LeftColumn = StreetColumns[ColumnIndex];
-			const std::size_t RightColumn = StreetColumns[ColumnIndex + 1];
-			std::vector<SDL_FPoint> Route;
-			for (std::size_t GridX = LeftColumn; GridX <= RightColumn; ++GridX)
-				Route.push_back(GetNodePosition(GridX, TopRow));
-			for (std::size_t GridY = TopRow + 1; GridY <= BottomRow; ++GridY)
-				Route.push_back(GetNodePosition(RightColumn, GridY));
-			for (std::size_t GridX = RightColumn; GridX > LeftColumn; --GridX)
-				Route.push_back(GetNodePosition(GridX - 1, BottomRow));
-			for (std::size_t GridY = BottomRow; GridY > TopRow + 1; --GridY)
-				Route.push_back(GetNodePosition(LeftColumn, GridY - 1));
-			Route.push_back(Route.front());
-			CityRoadRoutes.push_back(std::move(Route));
-		}
+	CityRoadSegments.reserve(RoadNetwork.Segments.size());
+	for (const std::pair<SDL_FPoint, SDL_FPoint>& Segment : RoadNetwork.Segments)
+		CityRoadSegments.push_back({ Segment.first, Segment.second });
 
 	std::uniform_int_distribution<unsigned int> SpriteIndex(0,
 		static_cast<unsigned int>(IsometricVehicleAssets.size() - 1));
 	std::uniform_int_distribution<unsigned int> HonkInterval(45000, 105000);
 	std::uniform_real_distribution<float> RouteProgress(0.0f, 1.0f);
 	std::uniform_real_distribution<float> Speed(20.0f, 34.0f);
-	std::uniform_int_distribution<std::size_t> RouteIndex(0, CityRoadRoutes.size() - 1);
+	std::uniform_int_distribution<std::size_t> RouteIndex(0, RoadNetwork.Routes.size() - 1);
 	const std::uint64_t NowMs = SDL_GetTicks();
 	for (CityTrafficCar& Car : CityTraffic)
 	{
-		Car.Route = CityRoadRoutes[RouteIndex(Random)];
+		Car.Route = RoadNetwork.Routes[RouteIndex(Random)];
 		Car.SpriteIndex = SpriteIndex(Random);
 		Car.RouteProgress = RouteProgress(Random);
 		Car.Speed = Speed(Random);
 		Car.HonkIntervalMs = HonkInterval(Random);
 		Car.NextHonkAtMs = NowMs + Car.HonkIntervalMs;
 	}
-	CityRoadMaximumGridX = MaximumGridX;
-	CityRoadMaximumGridY = MaximumGridY;
+	CityRoadMaximumGridX = RoadNetwork.MaximumGridX;
+	CityRoadMaximumGridY = RoadNetwork.MaximumGridY;
 	CityRoadNetworkCityId = SelectedCityId;
 	CityRoadNetworkInitialized = true;
 }
@@ -1064,10 +1243,11 @@ int Game::Screens::WorldMapScreen::GetPlotAt(float X, float Y) const
 const Game::Career::CityPlot* Game::Screens::WorldMapScreen::GetInfoPlot() const
 {
 	const std::vector<Career::CityPlot>& CityPlots = GetCurrentCityPlots();
-	if (Data.Career == nullptr || HoveredPlotIndex < 0 ||
-		static_cast<std::size_t>(HoveredPlotIndex) >= CityPlots.size())
+	const int InfoPlotIndex = HoveredPlotIndex >= 0 ? HoveredPlotIndex : FocusedPlotIndex;
+	if (Data.Career == nullptr || InfoPlotIndex < 0 ||
+		static_cast<std::size_t>(InfoPlotIndex) >= CityPlots.size())
 		return nullptr;
-	return &CityPlots[static_cast<std::size_t>(HoveredPlotIndex)];
+	return &CityPlots[static_cast<std::size_t>(InfoPlotIndex)];
 }
 
 bool Game::Screens::WorldMapScreen::IsPlotInfoVisible() const
@@ -1088,6 +1268,7 @@ Game::Render::WorldMapRenderer::WorldMapRenderer(AppRenderContext* Context)
 unsigned int Game::Render::WorldMapRenderer::Render()
 {
 	const unsigned int StartTime = SDL_GetTicks();
+	SetCityMapViewport(static_cast<float>(Context->ScreenWidth), static_cast<float>(Context->ScreenHeight));
 	SDL_SetRenderDrawColor(Context->MainRenderer, CityBackgroundColor.r, CityBackgroundColor.g,
 		CityBackgroundColor.b, CityBackgroundColor.a);
 	SDL_RenderClear(Context->MainRenderer);
@@ -1111,7 +1292,8 @@ unsigned int Game::Render::WorldMapRenderer::Render()
 		WorldMapTitle = SelectedRegion->Name + " / REGION";
 	else if (Screen->MapView == Screens::WorldMapScreen::WorldMapViewLevel::Country && SelectedCountry != nullptr)
 		WorldMapTitle = SelectedCountry->Name + " / COUNTRY";
-	RenderText(Context->Store.GetFont(Assets::FontAssetMainFont), WorldMapTitle, 36, 22, CityTextColor);
+	RenderText(Context->Store.GetFont(Assets::FontAssetMainFont), WorldMapTitle,
+		static_cast<int>(CityMapLeft), 22, CityTextColor);
 	std::size_t InBuildingCount = 0;
 	std::size_t TravellingCount = 0;
 	std::size_t TrainingCount = 0;
@@ -1146,21 +1328,42 @@ unsigned int Game::Render::WorldMapRenderer::Render()
 		std::to_string(Screen->Orchestrator.GetActiveRacerCount()) + "   |   RACES " +
 		std::to_string(ActiveRaceCount) + "   |   CASH $" +
 		std::to_string(Screen->Data.Profile == nullptr ? 0 : Screen->Data.Profile->Financials.Cash);
-	RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), CityStatus, 36, 52, CityTextColor);
+	RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), CityStatus,
+		static_cast<int>(CityMapLeft), 52, CityTextColor);
 	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
 		"In building " + std::to_string(InBuildingCount) + "   Travelling " + std::to_string(TravellingCount) +
 		"   Training " + std::to_string(TrainingCount) + "   In race " + std::to_string(InRaceCount) +
-		"   Waiting for league " + std::to_string(WaitingCount), 36, 78, CityMutedTextColor);
+		"   Waiting for league " + std::to_string(WaitingCount), static_cast<int>(CityMapLeft), 78,
+		CityMutedTextColor);
 	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
 		Screen->MapView == Screens::WorldMapScreen::WorldMapViewLevel::City
 			? "MOUSE WHEEL: ZOOM   |   MOVE TO A MAP EDGE: PAN   |   HOVER TO INSPECT, CLICK TO ENTER"
 			: Screen->MapView == Screens::WorldMapScreen::WorldMapViewLevel::Region
 				? "SELECT A CITY TO OPEN ITS MAP   |   ZOOM OUT FOR THE COUNTRY"
 				: "SELECT A REGION TO OPEN IT   |   ZOOM IN FOR THE REGION",
-		36, 96, CityMutedTextColor);
+		static_cast<int>(CityMapLeft), 96, CityMutedTextColor);
 	const SDL_FRect MapBounds{ CityMapLeft, CityMapTop, CityMapWidth, CityMapHeight };
-	SDL_SetRenderDrawColor(Context->MainRenderer, 35, 44, 39, 255);
-	SDL_RenderFillRect(Context->MainRenderer, &MapBounds);
+	const float MapInfoTop = MapBounds.y + MapBounds.h + 20.0f;
+	bool HasWorldMapBackground = false;
+	if (Screen->MapView != Screens::WorldMapScreen::WorldMapViewLevel::City)
+	{
+		Game::Render::Image* WorldMap = Context->Store.GetImage(Assets::ImageAssetWorldMap);
+		if (WorldMap != nullptr && WorldMap->Texture != nullptr)
+		{
+			SDL_RenderTexture(Context->MainRenderer, WorldMap->Texture, nullptr, &MapBounds);
+			HasWorldMapBackground = true;
+		}
+		else
+		{
+			SDL_SetRenderDrawColor(Context->MainRenderer, 35, 44, 39, 255);
+			SDL_RenderFillRect(Context->MainRenderer, &MapBounds);
+		}
+	}
+	else
+	{
+		SDL_SetRenderDrawColor(Context->MainRenderer, 35, 44, 39, 255);
+		SDL_RenderFillRect(Context->MainRenderer, &MapBounds);
+	}
 	const SDL_Rect MapClip = GetCityMapViewportBounds();
 	SDL_SetRenderClipRect(Context->MainRenderer, &MapClip);
 
@@ -1169,9 +1372,10 @@ unsigned int Game::Render::WorldMapRenderer::Render()
 		const SDL_Color LandColor{ 58, 76, 62, 255 };
 		const SDL_Color RoadColor{ 113, 118, 100, 255 };
 		const SDL_Color CapitalColor{ 237, 191, 102, 255 };
-		DrawFilledEllipse(Context->MainRenderer,
-			{ CityMapLeft + CityMapWidth * 0.5f, CityMapTop + CityMapHeight * 0.5f },
-			CityMapWidth * 0.39f, CityMapHeight * 0.37f, LandColor);
+		if (!HasWorldMapBackground)
+			DrawFilledEllipse(Context->MainRenderer,
+				{ CityMapLeft + CityMapWidth * 0.5f, CityMapTop + CityMapHeight * 0.5f },
+				CityMapWidth * 0.39f, CityMapHeight * 0.37f, LandColor);
 
 		if (Screen->MapView == Screens::WorldMapScreen::WorldMapViewLevel::Country &&
 			SelectedCountry != nullptr)
@@ -1250,7 +1454,7 @@ unsigned int Game::Render::WorldMapRenderer::Render()
 		SDL_SetRenderClipRect(Context->MainRenderer, nullptr);
 		SDL_SetRenderDrawColor(Context->MainRenderer, 173, 165, 137, 255);
 		SDL_RenderRect(Context->MainRenderer, &MapBounds);
-		const SDL_FRect InfoBounds{ CityMapLeft, 624.0f, CityMapWidth, 52.0f };
+		const SDL_FRect InfoBounds{ MapBounds.x, MapInfoTop, MapBounds.w, 52.0f };
 		SDL_SetRenderDrawColor(Context->MainRenderer, 34, 33, 30, 255);
 		SDL_RenderFillRect(Context->MainRenderer, &InfoBounds);
 		SDL_SetRenderDrawColor(Context->MainRenderer, 125, 111, 88, 255);
@@ -1262,10 +1466,10 @@ unsigned int Game::Render::WorldMapRenderer::Render()
 				SelectedCountry->CapitalRegionId);
 			RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont),
 				SelectedCountry->Name + "  |  Population " + FormatPopulation(SelectedCountry->Population),
-				50, 630, CityTextColor);
+			static_cast<int>(MapBounds.x + 14.0f), static_cast<int>(MapInfoTop + 6.0f), CityTextColor);
 			RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
 				"Capital region: " + (CapitalRegion == nullptr ? std::string("Unknown") : CapitalRegion->Name),
-				50, 651, CityMutedTextColor);
+				static_cast<int>(MapBounds.x + 14.0f), static_cast<int>(MapInfoTop + 27.0f), CityMutedTextColor);
 		}
 		else if (Screen->MapView == Screens::WorldMapScreen::WorldMapViewLevel::Region &&
 			SelectedRegion != nullptr)
@@ -1274,10 +1478,10 @@ unsigned int Game::Render::WorldMapRenderer::Render()
 				SelectedRegion->CapitalCityId);
 			RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont),
 				SelectedRegion->Name + "  |  Population " + FormatPopulation(SelectedRegion->Population),
-				50, 630, CityTextColor);
+				static_cast<int>(MapBounds.x + 14.0f), static_cast<int>(MapInfoTop + 6.0f), CityTextColor);
 			RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
 				"Capital city: " + (CapitalCity == nullptr ? std::string("Unknown") : CapitalCity->Name),
-				50, 651, CityMutedTextColor);
+				static_cast<int>(MapBounds.x + 14.0f), static_cast<int>(MapInfoTop + 27.0f), CityMutedTextColor);
 		}
 		DrawCityButton(*this, Context, Screen->PopulationButton, true);
 		DrawCityButton(*this, Context, Screen->LeagueBrowserButton, true);
@@ -1301,18 +1505,6 @@ unsigned int Game::Render::WorldMapRenderer::Render()
 			static_cast<float>(Plot.GridY)), Screen->CityCameraX, Screen->CityCameraY, Screen->CityZoom);
 		DrawFilledDiamond(Context->MainRenderer, Center, IsometricTileWidth * 0.5f * Screen->CityZoom,
 			IsometricTileHeight * 0.5f * Screen->CityZoom, GetPlotGroundColor(Plot.Type));
-	}
-
-	const SDL_Color RoadShoulder{ 160, 146, 115, 255 };
-	const SDL_Color RoadColor{ 77, 81, 78, 255 };
-	for (const Screens::WorldMapScreen::CityRoadSegment& Road : Screen->CityRoadSegments)
-	{
-		const SDL_FPoint Start = ProjectCityToScreen(Road.Start,
-			Screen->CityCameraX, Screen->CityCameraY, Screen->CityZoom);
-		const SDL_FPoint End = ProjectCityToScreen(Road.End,
-			Screen->CityCameraX, Screen->CityCameraY, Screen->CityZoom);
-		DrawThickLine(Context->MainRenderer, Start, End, 18.0f * Screen->CityZoom, RoadShoulder);
-		DrawThickLine(Context->MainRenderer, Start, End, 12.0f * Screen->CityZoom, RoadColor);
 	}
 
 	const float ElapsedSeconds = static_cast<float>(SDL_GetTicks()) / 1000.0f;
@@ -1383,11 +1575,27 @@ unsigned int Game::Render::WorldMapRenderer::Render()
 		TrafficSprites.push_back({ Vehicle, Position, DrawAngle, Flip, CarScale, VehicleWidth,
 			VehicleHeight, Position.y + RotatedHalfHeight });
 	}
+	for (const std::size_t Index : PlotOrder)
+	{
+		const Career::CityPlot& Plot = CityPlots[Index];
+		if (Plot.Type != Career::CityPlotType::Scenery)
+			continue;
+		const SDL_FPoint Center = ProjectCityToScreen(ProjectCityGrid(static_cast<float>(Plot.GridX),
+			static_cast<float>(Plot.GridY)), Screen->CityCameraX, Screen->CityCameraY, Screen->CityZoom);
+		DrawMapSprite(Context, Context->Store.GetImage(GetPlotSpriteAsset(Plot)), Center, Screen->CityZoom, 0.78f);
+	}
+	const SDL_FRect CityViewport{ CityMapLeft, CityMapTop, CityMapWidth, CityMapHeight };
+	for (const Screens::WorldMapScreen::CityRoadSegment& Road : Screen->CityRoadSegments)
+		DrawCityRoadSegment(Context, Road.Start, Road.End, Screen->CityCameraX, Screen->CityCameraY,
+			Screen->CityZoom, CityViewport);
+
 	std::vector<CitySceneItem> SceneItems;
 	SceneItems.reserve(PlotOrder.size() + TrafficSprites.size());
 	for (const std::size_t Index : PlotOrder)
 	{
 		const Career::CityPlot& Plot = CityPlots[Index];
+		if (Plot.Type == Career::CityPlotType::Scenery)
+			continue;
 		const SDL_FPoint Position = ProjectCityGrid(static_cast<float>(Plot.GridX), static_cast<float>(Plot.GridY));
 		SceneItems.push_back({ Position.y + IsometricTileHeight * 0.5f, false, Index });
 	}
@@ -1457,12 +1665,22 @@ unsigned int Game::Render::WorldMapRenderer::Render()
 			SDL_RenderFillRect(Context->MainRenderer, &Marker);
 		}
 	}
-	const int HoveredPlotIndex = Screen->GetHoveredPlotIndex();
-	if (HoveredPlotIndex >= 0 && static_cast<std::size_t>(HoveredPlotIndex) < CityPlots.size())
+	for (const std::size_t Index : PlotOrder)
 	{
-		const Career::CityPlot& HoveredPlot = CityPlots[static_cast<std::size_t>(HoveredPlotIndex)];
-		const SDL_FPoint Center = ProjectCityToScreen(ProjectCityGrid(static_cast<float>(HoveredPlot.GridX),
-			static_cast<float>(HoveredPlot.GridY)), Screen->CityCameraX, Screen->CityCameraY, Screen->CityZoom);
+		const Career::CityPlot& Plot = CityPlots[Index];
+		if (Plot.Type == Career::CityPlotType::Scenery || Plot.Type == Career::CityPlotType::VacantLot)
+			continue;
+		const SDL_FPoint Center = ProjectCityToScreen(ProjectCityGrid(static_cast<float>(Plot.GridX),
+			static_cast<float>(Plot.GridY)), Screen->CityCameraX, Screen->CityCameraY, Screen->CityZoom);
+		DrawPlotTypeIcon(*this, Context, Plot, Center, Screen->CityZoom);
+	}
+	const int HoveredPlotIndex = Screen->GetHoveredPlotIndex();
+	const int HighlightedPlotIndex = HoveredPlotIndex >= 0 ? HoveredPlotIndex : Screen->FocusedPlotIndex;
+	if (HighlightedPlotIndex >= 0 && static_cast<std::size_t>(HighlightedPlotIndex) < CityPlots.size())
+	{
+		const Career::CityPlot& HighlightedPlot = CityPlots[static_cast<std::size_t>(HighlightedPlotIndex)];
+		const SDL_FPoint Center = ProjectCityToScreen(ProjectCityGrid(static_cast<float>(HighlightedPlot.GridX),
+			static_cast<float>(HighlightedPlot.GridY)), Screen->CityCameraX, Screen->CityCameraY, Screen->CityZoom);
 		DrawDiamondOutline(Context->MainRenderer, Center, IsometricTileWidth * 0.49f * Screen->CityZoom,
 			IsometricTileHeight * 0.49f * Screen->CityZoom, SDL_Color{ 246, 220, 126, 255 });
 	}
@@ -1473,19 +1691,22 @@ unsigned int Game::Render::WorldMapRenderer::Render()
 
 	if (const Career::CityPlot* InfoPlot = Screen->GetInfoPlot())
 	{
-		const std::size_t PlotIndex = static_cast<std::size_t>(Screen->GetHoveredPlotIndex());
-		const SDL_FRect InfoBounds{ CityMapLeft, 624.0f, CityMapWidth, 52.0f };
+		const int InfoPlotIndex = Screen->GetHoveredPlotIndex() >= 0
+			? Screen->GetHoveredPlotIndex() : Screen->FocusedPlotIndex;
+		const std::size_t PlotIndex = static_cast<std::size_t>(InfoPlotIndex);
+		const SDL_FRect InfoBounds{ MapBounds.x, MapInfoTop, MapBounds.w, 52.0f };
 		SDL_SetRenderDrawColor(Context->MainRenderer, 34, 33, 30, 255);
 		SDL_RenderFillRect(Context->MainRenderer, &InfoBounds);
 		SDL_SetRenderDrawColor(Context->MainRenderer, 125, 111, 88, 255);
 		SDL_RenderRect(Context->MainRenderer, &InfoBounds);
 		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont),
-			InfoPlot->Name + "  |  " + GetPlotTypeLabel(InfoPlot->Type), 50, 630, CityTextColor);
+			InfoPlot->Name + "  |  " + GetPlotTypeLabel(InfoPlot->Type),
+			static_cast<int>(MapBounds.x + 14.0f), static_cast<int>(MapInfoTop + 6.0f), CityTextColor);
 		RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
 			Screen->SelectedCityId == CareerData.HomeCityId
 				? GetPlotTooltipDetails(CareerData, *InfoPlot, PlotIndex)
 				: "Remote city view | Select your home city to manage buildings",
-			50, 651, CityMutedTextColor);
+			static_cast<int>(MapBounds.x + 14.0f), static_cast<int>(MapInfoTop + 27.0f), CityMutedTextColor);
 	}
 	else if (SelectedCity != nullptr)
 	{
@@ -1497,15 +1718,15 @@ unsigned int Game::Render::WorldMapRenderer::Render()
 		std::string WorldHierarchy = Region == nullptr ? std::string("Region unknown") : Region->Name;
 		if (Region != nullptr && Country != nullptr)
 			WorldHierarchy += "  |  " + Country->Name;
-		const SDL_FRect InfoBounds{ CityMapLeft, 624.0f, CityMapWidth, 52.0f };
+		const SDL_FRect InfoBounds{ MapBounds.x, MapInfoTop, MapBounds.w, 52.0f };
 		SDL_SetRenderDrawColor(Context->MainRenderer, 34, 33, 30, 255);
 		SDL_RenderFillRect(Context->MainRenderer, &InfoBounds);
 		SDL_SetRenderDrawColor(Context->MainRenderer, 125, 111, 88, 255);
 		SDL_RenderRect(Context->MainRenderer, &InfoBounds);
 		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), SelectedCity->Name + "  |  " + CityStatus,
-			50, 630, CityTextColor);
+			static_cast<int>(MapBounds.x + 14.0f), static_cast<int>(MapInfoTop + 6.0f), CityTextColor);
 		RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), WorldHierarchy,
-			50, 651, CityMutedTextColor);
+			static_cast<int>(MapBounds.x + 14.0f), static_cast<int>(MapInfoTop + 27.0f), CityMutedTextColor);
 	}
 
 	DrawCityButton(*this, Context, Screen->PopulationButton, true);
@@ -1515,4 +1736,85 @@ unsigned int Game::Render::WorldMapRenderer::Render()
 	DrawCityButton(*this, Context, Screen->CareerHubButton, true);
 	Display();
 	return SDL_GetTicks() - StartTime;
+}
+
+void Game::Render::DrawCareerHubMapPreview(Game::Render::AppRenderContext* Context,
+	const Game::Career::CareerData& Data, std::uint64_t CityId, const SDL_FRect& Bounds)
+{
+	if (Context == nullptr || Context->MainRenderer == nullptr)
+		return;
+	Game::Render::BaseRenderer PreviewRenderer(Context);
+
+	SDL_SetRenderDrawColor(Context->MainRenderer, CityBackgroundColor.r, CityBackgroundColor.g,
+		CityBackgroundColor.b, CityBackgroundColor.a);
+	SDL_RenderFillRect(Context->MainRenderer, &Bounds);
+
+	const std::vector<Career::CityPlot>* CityPlots = nullptr;
+	if (CityId == Data.HomeCityId && CityId != 0)
+		CityPlots = &Data.CityPlots;
+	else if (const Career::CareerWorldCity* City = FindCity(Data, CityId))
+		CityPlots = &City->Plots;
+
+	if (CityPlots == nullptr || CityPlots->empty())
+	{
+		Game::Render::Image* WorldMap = Context->Store.GetImage(Assets::ImageAssetWorldMap);
+		if (WorldMap != nullptr && WorldMap->Texture != nullptr)
+			SDL_RenderTexture(Context->MainRenderer, WorldMap->Texture, nullptr, &Bounds);
+		SDL_SetRenderDrawColor(Context->MainRenderer, 173, 165, 137, 255);
+		SDL_RenderRect(Context->MainRenderer, &Bounds);
+		return;
+	}
+
+	const SDL_Rect Clip{ static_cast<int>(Bounds.x), static_cast<int>(Bounds.y),
+		static_cast<int>(Bounds.w), static_cast<int>(Bounds.h) };
+	SDL_SetRenderClipRect(Context->MainRenderer, &Clip);
+	const CityWorldBounds WorldBounds = GetCityWorldBounds(*CityPlots);
+	const float WorldWidth = std::max(1.0f, WorldBounds.MaxX - WorldBounds.MinX + 160.0f);
+	const float WorldHeight = std::max(1.0f, WorldBounds.MaxY - WorldBounds.MinY + 180.0f);
+	const float Zoom = std::min((Bounds.w - 24.0f) / WorldWidth, (Bounds.h - 40.0f) / WorldHeight);
+	const float CameraX = (WorldBounds.MinX + WorldBounds.MaxX) * 0.5f;
+	const float CameraY = (WorldBounds.MinY + WorldBounds.MaxY) * 0.5f;
+	const CityRoadNetwork RoadNetwork = BuildCityRoadNetwork(*CityPlots);
+	const std::vector<std::size_t> PlotOrder = GetCityPlotDrawOrder(*CityPlots);
+	for (const std::size_t Index : PlotOrder)
+	{
+		const Career::CityPlot& Plot = (*CityPlots)[Index];
+		const SDL_FPoint Center = ProjectCityToViewport(ProjectCityGrid(static_cast<float>(Plot.GridX),
+			static_cast<float>(Plot.GridY)), CameraX, CameraY, Zoom, Bounds);
+		DrawFilledDiamond(Context->MainRenderer, Center, IsometricTileWidth * 0.5f * Zoom,
+			IsometricTileHeight * 0.5f * Zoom, GetPlotGroundColor(Plot.Type));
+	}
+	for (const std::size_t Index : PlotOrder)
+	{
+		const Career::CityPlot& Plot = (*CityPlots)[Index];
+		if (Plot.Type != Career::CityPlotType::Scenery)
+			continue;
+		const SDL_FPoint Center = ProjectCityToViewport(ProjectCityGrid(static_cast<float>(Plot.GridX),
+			static_cast<float>(Plot.GridY)), CameraX, CameraY, Zoom, Bounds);
+		DrawMapSprite(Context, Context->Store.GetImage(GetPlotSpriteAsset(Plot)), Center, Zoom, 0.78f);
+	}
+	for (const std::pair<SDL_FPoint, SDL_FPoint>& Segment : RoadNetwork.Segments)
+		DrawCityRoadSegment(Context, Segment.first, Segment.second, CameraX, CameraY, Zoom, Bounds);
+	for (const std::size_t Index : PlotOrder)
+	{
+		const Career::CityPlot& Plot = (*CityPlots)[Index];
+		if (Plot.Type == Career::CityPlotType::Scenery || Plot.Type == Career::CityPlotType::VacantLot)
+			continue;
+		const SDL_FPoint Center = ProjectCityToViewport(ProjectCityGrid(static_cast<float>(Plot.GridX),
+			static_cast<float>(Plot.GridY)), CameraX, CameraY, Zoom, Bounds);
+		const float SpriteScale = Plot.Type == Career::CityPlotType::Scenery ? 0.78f : 0.96f;
+		DrawMapSprite(Context, Context->Store.GetImage(GetPlotSpriteAsset(Plot)), Center, Zoom, SpriteScale);
+	}
+	for (const std::size_t Index : PlotOrder)
+	{
+		const Career::CityPlot& Plot = (*CityPlots)[Index];
+		if (Plot.Type == Career::CityPlotType::Scenery || Plot.Type == Career::CityPlotType::VacantLot)
+			continue;
+		const SDL_FPoint Center = ProjectCityToViewport(ProjectCityGrid(static_cast<float>(Plot.GridX),
+			static_cast<float>(Plot.GridY)), CameraX, CameraY, Zoom, Bounds);
+		DrawPlotTypeIcon(PreviewRenderer, Context, Plot, Center, Zoom);
+	}
+	SDL_SetRenderClipRect(Context->MainRenderer, nullptr);
+	SDL_SetRenderDrawColor(Context->MainRenderer, 173, 165, 137, 255);
+	SDL_RenderRect(Context->MainRenderer, &Bounds);
 }

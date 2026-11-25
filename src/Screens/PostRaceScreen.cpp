@@ -9,7 +9,6 @@
 namespace PostRaceScreenDetail
 {
 	constexpr int ResultsPanelLeft = 28;
-	constexpr int ResultsPanelWidth = 968;
 	constexpr int SummaryPanelTop = 90;
 	constexpr int ResultsPanelTop = 218;
 	constexpr int ProgressPanelTop = 492;
@@ -20,6 +19,24 @@ namespace PostRaceScreenDetail
 	constexpr SDL_Color ResultsMuted{ 164, 155, 138, 255 };
 	constexpr SDL_Color ResultsAccent{ 178, 61, 49, 255 };
 	constexpr SDL_Color ResultsSelected{ 74, 43, 35, 255 };
+
+	struct PostRaceLayout
+	{
+		Game::GUI::RelativeLayout Coordinates;
+		int Margin;
+		int PanelWidth;
+		int SummaryTop;
+		int ResultsTop;
+		int ProgressTop;
+	};
+
+	PostRaceLayout GetPostRaceLayout(int Width, int Height)
+	{
+		const Game::GUI::RelativeLayout Coordinates(static_cast<float>(Width), static_cast<float>(Height));
+		const int Margin = Coordinates.MapX(ResultsPanelLeft);
+		return { Coordinates, Margin, Width - Margin * 2, Coordinates.MapY(SummaryPanelTop),
+			Coordinates.MapY(ResultsPanelTop), Coordinates.MapY(ProgressPanelTop) };
+	}
 
 	void DrawPanel(SDL_Renderer* Renderer, const SDL_FRect& Bounds, SDL_Color Accent)
 	{
@@ -133,6 +150,7 @@ Game::Screens::PostRaceScreen::PostRaceScreen(AppScreenStateMachine& _Machine, A
 	ContinueButton(_IO, "Continue", 844, 704, 152, 42)
 {
 	Type = AppScreenType::PostRaceScreen;
+	UpdateLayout();
 	for (const Race::RacerRaceResult& Result : CompletedRace->Result.RacerResults)
 		OrderedResults.push_back(&Result);
 	std::stable_sort(OrderedResults.begin(), OrderedResults.end(),
@@ -158,6 +176,7 @@ Game::Screens::PostRaceScreen::PostRaceScreen(AppScreenStateMachine& _Machine, A
 Game::Screens::AppScreen* Game::Screens::PostRaceScreen::Update()
 {
 	using namespace Game::Audio;
+	UpdateLayout();
 	PreviousRacerButton.Update();
 	NextRacerButton.Update();
 	ContinueButton.Update();
@@ -174,6 +193,17 @@ Game::Screens::AppScreen* Game::Screens::PostRaceScreen::Update()
 		return ScreenStack.Top();
 	}
 	return this;
+}
+
+void Game::Screens::PostRaceScreen::UpdateLayout()
+{
+	const int Width = Data.RenderContext == nullptr ? 1024 : static_cast<int>(Data.RenderContext->ScreenWidth);
+	const int Height = Data.RenderContext == nullptr ? 768 : static_cast<int>(Data.RenderContext->ScreenHeight);
+	const PostRaceLayout Layout = GetPostRaceLayout(Width, Height);
+	const int ButtonY = Height - Layout.Coordinates.MapY(22.0f) - 42;
+	PreviousRacerButton.SetBounds(Layout.Margin, ButtonY, 110, 42);
+	NextRacerButton.SetBounds(Layout.Coordinates.MapX(148.0f), ButtonY, 110, 42);
+	ContinueButton.SetBounds(Width - Layout.Margin - 152, ButtonY, 152, 42);
 }
 
 const Game::Race::Race& Game::Screens::PostRaceScreen::GetCompletedRace() const
@@ -239,14 +269,31 @@ Game::Render::PostRaceRenderer::PostRaceRenderer(AppRenderContext* Context)
 unsigned int Game::Render::PostRaceRenderer::Render()
 {
 	const auto StartTime = SDL_GetTicks();
+	const int ScreenWidth = static_cast<int>(Context->ScreenWidth);
+	const int ScreenHeight = static_cast<int>(Context->ScreenHeight);
+	const PostRaceLayout Layout = GetPostRaceLayout(ScreenWidth, ScreenHeight);
+	const int ResultsPanelLeft = Layout.Margin;
+	const int ResultsPanelWidth = Layout.PanelWidth;
+	const int SummaryPanelTop = Layout.SummaryTop;
+	const int ResultsPanelTop = Layout.ResultsTop;
+	const int ProgressPanelTop = Layout.ProgressTop;
+	const int SummaryPanelHeight = Layout.Coordinates.MapY(202.0f) - SummaryPanelTop;
+	const int ResultsPanelHeight = Layout.Coordinates.MapY(476.0f) - ResultsPanelTop;
+	const int ProgressPanelHeight = Layout.Coordinates.MapY(670.0f) - ProgressPanelTop;
+	const auto ResultColumnX = [&Layout](int ReferenceOffset)
+	{
+		return Layout.Coordinates.MapX(PostRaceScreenDetail::ResultsPanelLeft + ReferenceOffset);
+	};
 	SDL_SetRenderDrawColor(Context->MainRenderer, ResultsBackground.r, ResultsBackground.g,
 		ResultsBackground.b, ResultsBackground.a);
 	SDL_RenderClear(Context->MainRenderer);
-	RenderText(Context->Store.GetFont(Assets::FontAssetMainFont), "POST-RACE REPORT", 28, 20, ResultsAccent);
+	RenderText(Context->Store.GetFont(Assets::FontAssetMainFont), "POST-RACE REPORT",
+		ResultsPanelLeft, Layout.Coordinates.MapY(20.0f), ResultsAccent);
 
 	if (Screen == nullptr)
 	{
-		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "Race results are unavailable.", 40, 100,
+		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "Race results are unavailable.",
+			ResultsPanelLeft, Layout.Coordinates.MapY(100.0f),
 			ResultsText);
 		Display();
 		return static_cast<unsigned int>(SDL_GetTicks() - StartTime);
@@ -254,11 +301,11 @@ unsigned int Game::Render::PostRaceRenderer::Render()
 
 	const Race::Race& CompletedRace = Screen->GetCompletedRace();
 	const SDL_FRect SummaryBounds{ static_cast<float>(ResultsPanelLeft), static_cast<float>(SummaryPanelTop),
-		static_cast<float>(ResultsPanelWidth), 112.0f };
+		static_cast<float>(ResultsPanelWidth), static_cast<float>(SummaryPanelHeight) };
 	const SDL_FRect ResultsBounds{ static_cast<float>(ResultsPanelLeft), static_cast<float>(ResultsPanelTop),
-		static_cast<float>(ResultsPanelWidth), 258.0f };
+		static_cast<float>(ResultsPanelWidth), static_cast<float>(ResultsPanelHeight) };
 	const SDL_FRect ProgressBounds{ static_cast<float>(ResultsPanelLeft), static_cast<float>(ProgressPanelTop),
-		static_cast<float>(ResultsPanelWidth), 178.0f };
+		static_cast<float>(ResultsPanelWidth), static_cast<float>(ProgressPanelHeight) };
 	DrawPanel(Context->MainRenderer, SummaryBounds, ResultsAccent);
 	DrawPanel(Context->MainRenderer, ResultsBounds, ResultsMuted);
 	DrawPanel(Context->MainRenderer, ProgressBounds, ResultsAccent);
@@ -308,9 +355,20 @@ unsigned int Game::Render::PostRaceRenderer::Render()
 				ResultsPanelLeft + 18, SummaryPanelTop + 68, ResultsMuted);
 	}
 
-	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
-		"PLACE  RACER                         FINISH       XP       CAREER PTS       NET CASH       PB",
-		ResultsPanelLeft + 18, ResultsPanelTop + 18, ResultsMuted);
+	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "PLACE",
+		ResultColumnX(18), ResultsPanelTop + 18, ResultsMuted);
+	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "RACER",
+		ResultColumnX(88), ResultsPanelTop + 18, ResultsMuted);
+	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "FINISH",
+		ResultColumnX(370), ResultsPanelTop + 18, ResultsMuted);
+	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "XP",
+		ResultColumnX(482), ResultsPanelTop + 18, ResultsMuted);
+	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "CAREER PTS",
+		ResultColumnX(572), ResultsPanelTop + 18, ResultsMuted);
+	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "NET CASH",
+		ResultColumnX(712), ResultsPanelTop + 18, ResultsMuted);
+	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "PB",
+		ResultColumnX(858), ResultsPanelTop + 18, ResultsMuted);
 	for (std::size_t Index = 0; Index < Screen->GetResultCount(); ++Index)
 	{
 		const Race::RacerRaceResult* Result = Screen->GetResultAt(Index);
@@ -320,7 +378,8 @@ unsigned int Game::Render::PostRaceRenderer::Render()
 		const std::uint64_t XpBefore = Before == nullptr ? Result->Racer->Skills.Xp : Before->Xp;
 		const std::uint64_t PointsBefore = Before == nullptr
 			? Result->Racer->CareerRecord.PositionPoints : Before->PositionPoints;
-		const int RowY = ResultsPanelTop + 48 + static_cast<int>(Index) * 32;
+		const int RowY = ResultsPanelTop + Layout.Coordinates.MapY(48.0f) +
+			static_cast<int>(Index) * std::max(32, Layout.Coordinates.MapY(32.0f));
 		if (Index == Screen->GetSelectedResultIndex())
 		{
 			const SDL_FRect SelectedRow{ static_cast<float>(ResultsPanelLeft + 10), static_cast<float>(RowY - 4),
@@ -334,25 +393,25 @@ unsigned int Game::Render::PostRaceRenderer::Render()
 		const SDL_Color RowColor = Screen->Data.IsPlayerOwnedRacer(Result->Racer)
 			? Render::PlayerOwnedRacerHighlightColor : IsPlayer ? ResultsAccent : ResultsText;
 		RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), FormatPosition(Result->Position),
-			ResultsPanelLeft + 18, RowY, RowColor);
+			ResultColumnX(18), RowY, RowColor);
 		RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), Result->Racer->Name,
-			ResultsPanelLeft + 88, RowY, RowColor);
+			ResultColumnX(88), RowY, RowColor);
 		RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
 			Result->Position == Race::PulledUpPosition ? "Pulled up" : FormatTime(Result->Ms),
-			ResultsPanelLeft + 370, RowY, RowColor);
+			ResultColumnX(370), RowY, RowColor);
 		RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
-			FormatDelta(Result->Racer->Skills.Xp, XpBefore, ""), ResultsPanelLeft + 482, RowY, RowColor);
+			FormatDelta(Result->Racer->Skills.Xp, XpBefore, ""), ResultColumnX(482), RowY, RowColor);
 		RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
 			FormatDelta(Result->Racer->CareerRecord.PositionPoints, PointsBefore, ""),
-			ResultsPanelLeft + 572, RowY, RowColor);
+			ResultColumnX(572), RowY, RowColor);
 		RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
-			FormatCash(GetNetCash(CompletedRace, *Result)), ResultsPanelLeft + 712, RowY, RowColor);
+			FormatCash(GetNetCash(CompletedRace, *Result)), ResultColumnX(712), RowY, RowColor);
 		const bool NewPersonalBest = Before != nullptr && Result->Position != Race::PulledUpPosition &&
 			Result->Racer->CareerRecord.BestTimeMs != 0 &&
 			(Before->BestTimeMs == 0 || Result->Racer->CareerRecord.BestTimeMs < Before->BestTimeMs);
 		if (NewPersonalBest)
 			RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "NEW",
-				ResultsPanelLeft + 858, RowY, ResultsAccent);
+				ResultColumnX(858), RowY, ResultsAccent);
 	}
 	if (Screen->GetResultCount() == 0)
 		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "No racer results are available.",

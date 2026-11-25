@@ -920,8 +920,9 @@ namespace CareerSaveDetail
 	bool WriteRacerState(CareerSaveWriter& Writer, const CareerRacerState& State,
 		const CareerData& Data, const CareerProfile& Profile)
 	{
+		const std::uint64_t BasedInCityId = State.BasedInCityId;
 		return WriteRacerReference(Writer, Data, Profile, State.Runner) &&
-			Writer.WriteU64(State.CityId) && Writer.WriteI32(State.Cash) &&
+			Writer.WriteU64(BasedInCityId) && Writer.WriteI32(State.Cash) &&
 			Writer.WriteI32(State.StartingCash) && Writer.WriteU64(State.LeagueId) &&
 			Writer.WriteSize(State.LocationPlotIndex) && Writer.WriteSize(State.DestinationPlotIndex) &&
 			Writer.WriteU64(State.ActionEndsAtRealMs) &&
@@ -934,10 +935,11 @@ namespace CareerSaveDetail
 	bool ReadRacerState(CareerSaveReader& Reader, CareerRacerState& State,
 		CareerData& Data, CareerProfile& Profile)
 	{
+		std::uint64_t BasedInCityId = 0;
 		std::int32_t Cash = 0;
 		std::int32_t StartingCash = 0;
 		if (!ReadRacerReference(Reader, Data, Profile, State.Runner) ||
-			!Reader.ReadU64(State.CityId) || !Reader.ReadI32(Cash) || !Reader.ReadI32(StartingCash) ||
+			!Reader.ReadU64(BasedInCityId) || !Reader.ReadI32(Cash) || !Reader.ReadI32(StartingCash) ||
 			!Reader.ReadU64(State.LeagueId) || !Reader.ReadSize(State.LocationPlotIndex) ||
 			!Reader.ReadSize(State.DestinationPlotIndex) || !Reader.ReadU64(State.ActionEndsAtRealMs) ||
 			!Reader.ReadU64(State.RaceCooldownEndsAtRealMs) || !Reader.ReadU64(State.ActiveRaceId) ||
@@ -945,6 +947,7 @@ namespace CareerSaveDetail
 			!ReadEnum(Reader, State.Activity, static_cast<std::uint32_t>(CareerRacerActivity::Retired)) ||
 			!Reader.ReadBool(State.HasRacingLicense) || !Reader.ReadBool(State.LicenseApplicationInProgress))
 			return false;
+		State.BasedInCityId = BasedInCityId;
 		State.Cash = Cash;
 		State.StartingCash = StartingCash;
 		return true;
@@ -981,7 +984,8 @@ namespace CareerSaveDetail
 			!WriteVector(Writer, Data.Cities, WriteWorldCity) ||
 			!WriteVector(Writer, Data.Regions, WriteWorldRegion) ||
 			!WriteVector(Writer, Data.Countries, WriteWorldCountry) ||
-			!Writer.WriteU64(Data.HomeCityId) ||
+			!Writer.WriteU64(Data.HomeCityId) || !Writer.WriteU64(Data.PlayerStableCityId) ||
+			!Writer.WriteSize(Data.PlayerStablePlotIndex) ||
 			!WriteVector(Writer, Data.RaceTrackLengths, [](CareerSaveWriter& ItemWriter, unsigned int Length)
 			{
 				return ItemWriter.WriteU32(Length);
@@ -1038,7 +1042,8 @@ namespace CareerSaveDetail
 		return WritePendingBet(Writer, Data.PendingBet, Data, PlayerProfile);
 	}
 
-	bool ReadCareerData(CareerSaveReader& Reader, CareerData& Data, CareerProfile& PlayerProfile)
+	bool ReadCareerData(CareerSaveReader& Reader, CareerData& Data, CareerProfile& PlayerProfile,
+		std::uint32_t Version)
 	{
 		std::uint32_t RacerCount = 0;
 		if (!Reader.ReadCount(RacerCount))
@@ -1063,8 +1068,12 @@ namespace CareerSaveDetail
 			!ReadVector(Reader, Data.Cities, ReadWorldCity) ||
 			!ReadVector(Reader, Data.Regions, ReadWorldRegion) ||
 			!ReadVector(Reader, Data.Countries, ReadWorldCountry) ||
-			!Reader.ReadU64(Data.HomeCityId) ||
-			!ReadVector(Reader, Data.RaceTrackLengths, [](CareerSaveReader& ItemReader, unsigned int& Length)
+			!Reader.ReadU64(Data.HomeCityId))
+			return false;
+		if (Version >= 4 && (!Reader.ReadU64(Data.PlayerStableCityId) ||
+			!Reader.ReadSize(Data.PlayerStablePlotIndex)))
+			return false;
+		if (!ReadVector(Reader, Data.RaceTrackLengths, [](CareerSaveReader& ItemReader, unsigned int& Length)
 			{
 				return ItemReader.ReadU32(Length);
 			}) ||
@@ -1136,6 +1145,8 @@ namespace CareerSaveDetail
 			return Reader.Fail("Career save does not contain a completed, initialized career world.");
 		if (Data.NextCareerRaceHistoryId == 0 || Data.HistoricalRaces.size() > Game::Career::MaximumCareerHistoricalRaces)
 			return Reader.Fail("Career save contains invalid archived race history metadata.");
+		if (!Data.OwnedRacers.empty() && Data.PlayerStableCityId == 0)
+			return Reader.Fail("Career save contains owned racers without a leased stable.");
 		std::unordered_set<std::uint64_t> HistoryIds;
 		HistoryIds.reserve(Data.HistoricalRaces.size());
 		for (const CareerHistoricalRace& HistoricalRace : Data.HistoricalRaces)
@@ -1143,6 +1154,24 @@ namespace CareerSaveDetail
 				!HistoryIds.insert(HistoricalRace.Id).second ||
 				!Game::Race::IsValidRaceHistorySnapshot(HistoricalRace.Snapshot))
 				return Reader.Fail("Career save contains a zero, duplicate, or invalid archived race entry.");
+		if (Data.PlayerStableCityId != 0)
+		{
+			if (Data.PlayerStableCityId != Data.HomeCityId)
+				return Reader.Fail("Career save contains a stable lease outside the supported home city.");
+			const std::vector<CityPlot>* StablePlots = nullptr;
+			if (Data.PlayerStableCityId == Data.HomeCityId)
+				StablePlots = &Data.CityPlots;
+			else
+			{
+				const auto City = std::find_if(Data.Cities.begin(), Data.Cities.end(), [&Data](
+					const CareerWorldCity& Candidate) { return Candidate.Id == Data.PlayerStableCityId; });
+				if (City != Data.Cities.end())
+					StablePlots = &City->Plots;
+			}
+			if (StablePlots == nullptr || Data.PlayerStablePlotIndex >= StablePlots->size() ||
+				(*StablePlots)[Data.PlayerStablePlotIndex].Type != CityPlotType::Stable)
+				return Reader.Fail("Career save contains an invalid player stable lease.");
+		}
 		return true;
 	}
 
@@ -1312,10 +1341,10 @@ bool Game::Career::LoadCareer(const std::string& FilePath,
 		return false;
 	}
 	const std::uint32_t Version = static_cast<std::uint32_t>(DecodeUnsigned(EncodedHeader.data(), 4));
-	if (Version != CurrentCareerSaveFormatVersion)
+	if (Version != 3 && Version != CurrentCareerSaveFormatVersion)
 	{
 		Error = "Unsupported career save version " + std::to_string(Version) +
-			"; this game requires exactly version " +
+			"; this game supports versions 3 through " +
 			std::to_string(CurrentCareerSaveFormatVersion) + ".";
 		return false;
 	}
@@ -1357,10 +1386,21 @@ bool Game::Career::LoadCareer(const std::string& FilePath,
 	CareerSaveReader Reader(Payload);
 	auto NewProfile = std::make_unique<CareerProfile>();
 	auto NewData = std::make_unique<CareerData>();
-	if (!ReadCareerProfile(Reader, *NewProfile) || !ReadCareerData(Reader, *NewData, *NewProfile))
+	if (!ReadCareerProfile(Reader, *NewProfile) ||
+		!ReadCareerData(Reader, *NewData, *NewProfile, Version))
 	{
 		Error = Reader.Error.empty() ? "Could not decode career save data." : Reader.Error;
 		return false;
+	}
+	if (Version == 3 && !NewData->OwnedRacers.empty() && NewData->HomeCityId != 0)
+	{
+		const auto StablePlot = std::find_if(NewData->CityPlots.begin(), NewData->CityPlots.end(),
+			[](const CityPlot& Plot) { return Plot.Type == CityPlotType::Stable; });
+		if (StablePlot != NewData->CityPlots.end())
+		{
+			NewData->PlayerStableCityId = NewData->HomeCityId;
+			NewData->PlayerStablePlotIndex = static_cast<std::size_t>(StablePlot - NewData->CityPlots.begin());
+		}
 	}
 	if (!Reader.AtEnd())
 	{

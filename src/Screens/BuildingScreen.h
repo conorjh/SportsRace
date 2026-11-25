@@ -31,6 +31,8 @@ namespace Game
 			std::string StatusMessage;
 
 			bool Clicked(float X, float Y, float Width, float Height) const;
+			int MapX(float X) const;
+			int MapY(float Y) const;
 			virtual void UpdateActivity() = 0;
 			static std::string FormatOdds(double Odds);
 			static std::string FormatTrackLength(unsigned int TrackLength);

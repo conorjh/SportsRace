@@ -47,6 +47,7 @@ namespace Game
 			bool ScrollbarDragging = false;
 			bool WasLeftMouseDown = false;
 
+			void UpdateLayout();
 			void RefreshRacers();
 			void RefreshVisibleRows();
 			void SortRacers();

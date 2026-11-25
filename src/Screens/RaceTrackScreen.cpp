@@ -52,8 +52,8 @@ void Game::Screens::RaceTrackScreen::UpdateActivity()
 	const std::size_t MaximumScrollOffset = ActiveRaces.size() > VisibleRaceCount
 		? ActiveRaces.size() - VisibleRaceCount : 0;
 	RaceScrollOffset = std::min(RaceScrollOffset, MaximumScrollOffset);
-	if (IO.MouseWheelY != 0.0f && IO.MousePosition.x >= 62.0f && IO.MousePosition.x <= 962.0f &&
-		IO.MousePosition.y >= 166.0f && IO.MousePosition.y < 566.0f)
+	if (IO.MouseWheelY != 0.0f && IO.MousePosition.x >= MapX(62.0f) && IO.MousePosition.x <= MapX(962.0f) &&
+		IO.MousePosition.y >= MapY(166.0f) && IO.MousePosition.y < MapY(566.0f))
 	{
 		RaceScrollRemainder -= IO.MouseWheelY * 3.0f;
 		const int RowDelta = static_cast<int>(RaceScrollRemainder);
@@ -103,8 +103,9 @@ void Game::Screens::RaceTrackScreen::UpdateActivity()
 			else
 			{
 				RaceToRun.Financials = Race::RaceFinancials(500, 0);
+				const Race::RacerGUID PlayerRacer = RaceToRun.Racers.front()->GUID;
 				IO.Player.Play(Audio::BuiltInSounds::Click);
-				ScreenStack.Push(new RaceScreen(ScreenStack, IO, Data, RaceToRun, Data.Profile->MainFella.GUID));
+				ScreenStack.Push(new RaceScreen(ScreenStack, IO, Data, RaceToRun, PlayerRacer));
 				return;
 			}
 		}

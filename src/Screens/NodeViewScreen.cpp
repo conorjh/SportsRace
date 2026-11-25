@@ -38,6 +38,43 @@ namespace NodeViewScreenDetail
 	constexpr SDL_Color NodeViewButtonFillColor{ 255, 0, 0, 255 };
 	constexpr SDL_Color NodeViewButtonBorderColor{ 255, 255, 255, 255 };
 
+	struct NodeViewLayout
+	{
+		Game::GUI::RelativeLayout Coordinates;
+		int Width;
+		int Height;
+		int Margin;
+		int PlotLeft;
+		int PlotTop;
+		int PlotWidth;
+		int PlotHeight;
+		int StatsLeft;
+		int StatsTop;
+		int StatsColumnSpacing;
+		int CurvePlotLeft;
+		int CurvePlotTop;
+		int CurvePlotWidth;
+		int CurvePlotHeight;
+		int CurveTitleTop;
+		int CurveLegendTop;
+		int NodeListTop;
+		int NodeRowHeight;
+	};
+
+	NodeViewLayout GetNodeViewLayout(int Width, int Height)
+	{
+		const Game::GUI::RelativeLayout Coordinates(static_cast<float>(Width), static_cast<float>(Height));
+		return { Coordinates, Width, Height, Coordinates.MapX(NodeViewStatsLeft),
+			Coordinates.MapX(NodeViewPlotLeft), Coordinates.MapY(NodeViewPlotTop),
+			Coordinates.MapX(NodeViewPlotWidth), Coordinates.MapY(NodeViewPlotHeight),
+			Coordinates.MapX(NodeViewStatsLeft), Coordinates.MapY(NodeViewStatsTop),
+			Coordinates.MapX(NodeViewStatsColumnSpacing), Coordinates.MapX(NodeViewCurvePlotLeft),
+			Coordinates.MapY(NodeViewCurvePlotTop), Coordinates.MapX(NodeViewCurvePlotWidth),
+			Coordinates.MapY(NodeViewCurvePlotHeight), Coordinates.MapY(NodeViewCurveTitleTop),
+			Coordinates.MapY(NodeViewCurveLegendTop), Coordinates.MapY(NodeViewNodeListTop),
+			std::max(NodeViewNodeRowHeight, Coordinates.MapY(NodeViewNodeRowHeight)) };
+	}
+
 	SDL_Color GetEventColor(Game::Race::RaceEventType Type)
 	{
 		using namespace Game::Race;
@@ -149,12 +186,14 @@ namespace NodeViewScreenDetail
 			Button.x + 5, Button.y + 7, Button.Color);
 	}
 
-	void DrawEventLegend(Game::Render::NodeViewRenderer& Renderer, Game::Render::AppRenderContext* Context)
+	void DrawEventLegend(Game::Render::NodeViewRenderer& Renderer, Game::Render::AppRenderContext* Context,
+		const NodeViewLayout& Layout)
 	{
 		using namespace Game::Race;
 
 		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), "Events:",
-			NodeViewPlotLeft, 438, NodeViewTextColor);
+			Layout.PlotLeft, Layout.PlotTop + Layout.PlotHeight + Layout.Coordinates.MapY(23.0f),
+			NodeViewTextColor);
 		const RaceEventType EventTypes[] =
 		{
 			RaceEventType::Gassing,
@@ -165,22 +204,23 @@ namespace NodeViewScreenDetail
 			RaceEventType::Injury,
 			RaceEventType::PullingUp
 		};
-		const int LegendStartX = NodeViewPlotLeft + 60;
-		const int LegendItemWidth = 128;
+		const int LegendStartX = Layout.PlotLeft + Layout.Coordinates.MapX(60.0f);
+		const int LegendItemWidth = Layout.Coordinates.MapX(128.0f);
 		for (std::size_t Index = 0; Index < std::size(EventTypes); ++Index)
 		{
 			const int X = LegendStartX + static_cast<int>(Index) * LegendItemWidth;
 			const SDL_Color Color = GetEventColor(EventTypes[Index]);
-			SDL_FRect Swatch{ static_cast<float>(X), 441.0f, 10.0f, 10.0f };
+			SDL_FRect Swatch{ static_cast<float>(X), static_cast<float>(Layout.PlotTop + Layout.PlotHeight +
+				Layout.Coordinates.MapY(26.0f)), 10.0f, 10.0f };
 			SDL_SetRenderDrawColor(Context->MainRenderer, Color.r, Color.g, Color.b, Color.a);
 			SDL_RenderFillRect(Context->MainRenderer, &Swatch);
 			Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), GetEventName(EventTypes[Index]),
-				X + 15, 438, NodeViewTextColor);
+				X + 15, Layout.PlotTop + Layout.PlotHeight + Layout.Coordinates.MapY(23.0f), NodeViewTextColor);
 		}
 	}
 
 	void DrawRacerStats(Game::Render::NodeViewRenderer& Renderer, Game::Render::AppRenderContext* Context,
-		const Game::Race::Racer& Runner)
+		const Game::Race::Racer& Runner, const NodeViewLayout& Layout)
 	{
 		auto Rating = [](double Value)
 		{
@@ -198,19 +238,19 @@ namespace NodeViewScreenDetail
 
 		for (std::size_t Index = 0; Index < std::size(Stats); ++Index)
 			Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), Stats[Index],
-				NodeViewStatsLeft + static_cast<int>(Index) * NodeViewStatsColumnSpacing,
-				NodeViewStatsTop, NodeViewTextColor);
+				Layout.StatsLeft + static_cast<int>(Index) * Layout.StatsColumnSpacing,
+				Layout.StatsTop, NodeViewTextColor);
 	}
 
 	void DrawTimelineGraph(Game::Render::NodeViewRenderer& Renderer, Game::Render::AppRenderContext* Context,
 		const Game::Race::Race& CompletedRace, const Game::Race::Racer& Runner,
-		const Game::Race::RacerRaceTimeline& Timeline)
+		const Game::Race::RacerRaceTimeline& Timeline, const NodeViewLayout& Layout)
 	{
 		// Sample pace and endurance from the completed timeline, then place each event at its playback time.
 		using namespace Game::Race;
 
-		const SDL_FRect PlotBounds{ static_cast<float>(NodeViewPlotLeft), static_cast<float>(NodeViewPlotTop),
-			static_cast<float>(NodeViewPlotWidth), static_cast<float>(NodeViewPlotHeight) };
+		const SDL_FRect PlotBounds{ static_cast<float>(Layout.PlotLeft), static_cast<float>(Layout.PlotTop),
+			static_cast<float>(Layout.PlotWidth), static_cast<float>(Layout.PlotHeight) };
 		const double DurationMs = std::max(1.0, Timeline.Finished ? Timeline.FinishTimeMs :
 			Timeline.PulledUp ? Timeline.PullUpTimeMs : CompletedRace.GetTimelineDurationMs());
 		double MaximumPace = 1.0;
@@ -219,14 +259,14 @@ namespace NodeViewScreenDetail
 		MaximumPace *= 1.1;
 
 		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont),
-			"0", NodeViewPlotLeft - 20, NodeViewPlotTop + NodeViewPlotHeight - 8, NodeViewTextColor);
+			"0", Layout.PlotLeft - 20, Layout.PlotTop + Layout.PlotHeight - 8, NodeViewTextColor);
 		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont),
-			std::to_string(static_cast<unsigned int>(std::lround(MaximumPace))), NodeViewPlotLeft - 35,
-			NodeViewPlotTop - 5, NodeViewTextColor);
+			std::to_string(static_cast<unsigned int>(std::lround(MaximumPace))), Layout.PlotLeft - 35,
+			Layout.PlotTop - 5, NodeViewTextColor);
 		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), "100%",
-			NodeViewPlotLeft + NodeViewPlotWidth + 5, NodeViewPlotTop - 5, NodeViewTextColor);
+			Layout.PlotLeft + Layout.PlotWidth + 5, Layout.PlotTop - 5, NodeViewTextColor);
 		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), "0%",
-			NodeViewPlotLeft + NodeViewPlotWidth + 5, NodeViewPlotTop + NodeViewPlotHeight - 8, NodeViewTextColor);
+			Layout.PlotLeft + Layout.PlotWidth + 5, Layout.PlotTop + Layout.PlotHeight - 8, NodeViewTextColor);
 
 		SDL_SetRenderDrawColor(Context->MainRenderer, NodeViewPlotBackgroundColor.r, NodeViewPlotBackgroundColor.g,
 			NodeViewPlotBackgroundColor.b, NodeViewPlotBackgroundColor.a);
@@ -297,15 +337,15 @@ namespace NodeViewScreenDetail
 		}
 
 		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), "Pace",
-			NodeViewPlotLeft + 10, NodeViewPlotTop + 8, NodeViewPaceColor);
+			Layout.PlotLeft + 10, Layout.PlotTop + 8, NodeViewPaceColor);
 		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), "Endurance",
-			NodeViewPlotLeft + 65, NodeViewPlotTop + 8, NodeViewEnduranceColor);
+			Layout.PlotLeft + 65, Layout.PlotTop + 8, NodeViewEnduranceColor);
 		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), "0s",
-			NodeViewPlotLeft, NodeViewPlotTop + NodeViewPlotHeight + 4, NodeViewTextColor);
+			Layout.PlotLeft, Layout.PlotTop + Layout.PlotHeight + 4, NodeViewTextColor);
 		std::ostringstream EndTimeLabel;
 		EndTimeLabel << std::fixed << std::setprecision(1) << DurationMs / 1000.0 << "s";
 		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), EndTimeLabel.str(),
-			NodeViewPlotLeft + NodeViewPlotWidth - 35, NodeViewPlotTop + NodeViewPlotHeight + 4, NodeViewTextColor);
+			Layout.PlotLeft + Layout.PlotWidth - 35, Layout.PlotTop + Layout.PlotHeight + 4, NodeViewTextColor);
 	}
 }
 using namespace NodeViewScreenDetail;
@@ -328,12 +368,14 @@ Game::Screens::NodeViewScreen::NodeViewScreen(AppScreenStateMachine& _Machine, A
 	MainMenuButton(_IO, "Main Menu", 844, 700, 150, 42)
 {
 	Type = AppScreenType::NodeViewScreen;
+	UpdateLayout();
 }
 
 Game::Screens::AppScreen* Game::Screens::NodeViewScreen::Update()
 {
 	using namespace Game::Audio;
 
+	UpdateLayout();
 	PreviousRacerButton.Update();
 	NextRacerButton.Update();
 	PreviousNodePageButton.Update();
@@ -377,6 +419,20 @@ Game::Screens::AppScreen* Game::Screens::NodeViewScreen::Update()
 	return this;
 }
 
+void Game::Screens::NodeViewScreen::UpdateLayout()
+{
+	const int Width = Data.RenderContext == nullptr ? 1024 : static_cast<int>(Data.RenderContext->ScreenWidth);
+	const int Height = Data.RenderContext == nullptr ? 768 : static_cast<int>(Data.RenderContext->ScreenHeight);
+	const NodeViewLayout Layout = GetNodeViewLayout(Width, Height);
+	const int TopY = Layout.Coordinates.MapY(62.0f);
+	const int BottomY = Height - Layout.Coordinates.MapY(26.0f) - 42;
+	PreviousRacerButton.SetBounds(Layout.Coordinates.MapX(70.0f), TopY, 90, 36);
+	NextRacerButton.SetBounds(Width - Layout.Coordinates.MapX(70.0f) - 90, TopY, 90, 36);
+	PreviousNodePageButton.SetBounds(Layout.Coordinates.MapX(70.0f), BottomY, 110, 42);
+	NextNodePageButton.SetBounds(Layout.Coordinates.MapX(190.0f), BottomY, 110, 42);
+	MainMenuButton.SetBounds(Width - Layout.Coordinates.MapX(30.0f) - 150, BottomY, 150, 42);
+}
+
 const Game::Race::Race& Game::Screens::NodeViewScreen::GetCompletedRace() const
 {
 	return *CompletedRace;
@@ -415,37 +471,41 @@ Game::Render::NodeViewRenderer::NodeViewRenderer(AppRenderContext* Context)
 unsigned int Game::Render::NodeViewRenderer::Render()
 {
 	const unsigned int StartTime = SDL_GetTicks();
+	const int ScreenWidth = static_cast<int>(Context->ScreenWidth);
+	const int ScreenHeight = static_cast<int>(Context->ScreenHeight);
+	const NodeViewLayout Layout = GetNodeViewLayout(ScreenWidth, ScreenHeight);
 	SDL_SetRenderDrawColor(Context->MainRenderer, NodeViewBackgroundColor.r, NodeViewBackgroundColor.g,
 		NodeViewBackgroundColor.b, NodeViewBackgroundColor.a);
 	SDL_RenderClear(Context->MainRenderer);
-	RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), "Race Node View", 70, 20, NodeViewTextColor);
+	RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), "Race Node View",
+		Layout.Margin, Layout.Coordinates.MapY(20.0f), NodeViewTextColor);
 
 	const Race::Racer* SelectedRacer = Screen->GetSelectedRacer();
 	if (SelectedRacer == nullptr)
 		RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), "No racer timelines are available.",
-			70, 120, NodeViewTextColor);
+			Layout.Margin, Layout.Coordinates.MapY(120.0f), NodeViewTextColor);
 	else
 	{
 		RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont),
 			"Racer " + std::to_string(Screen->GetSelectedRacerIndex() + 1) + " of " +
 			std::to_string(Screen->GetRacerCount()) + ": " + SelectedRacer->Name,
-			260, 70, Screen->IsPlayerOwnedRacer(SelectedRacer)
+			Layout.Coordinates.MapX(260.0f), Layout.Coordinates.MapY(70.0f), Screen->IsPlayerOwnedRacer(SelectedRacer)
 				? Game::Render::PlayerOwnedRacerHighlightColor : NodeViewTextColor);
 
 		const Race::RacerRaceTimeline* Timeline = Screen->GetCompletedRace().GetTimelineFor(SelectedRacer);
 		if (Timeline != nullptr)
 		{
-			DrawRacerStats(*this, Context, *SelectedRacer);
-			DrawTimelineGraph(*this, Context, Screen->GetCompletedRace(), *SelectedRacer, *Timeline);
-			const SDL_FRect CurvePlotBounds{ static_cast<float>(NodeViewCurvePlotLeft),
-				static_cast<float>(NodeViewCurvePlotTop), static_cast<float>(NodeViewCurvePlotWidth),
-				static_cast<float>(NodeViewCurvePlotHeight) };
+			DrawRacerStats(*this, Context, *SelectedRacer, Layout);
+			DrawTimelineGraph(*this, Context, Screen->GetCompletedRace(), *SelectedRacer, *Timeline, Layout);
+			const SDL_FRect CurvePlotBounds{ static_cast<float>(Layout.CurvePlotLeft),
+				static_cast<float>(Layout.CurvePlotTop), static_cast<float>(Layout.CurvePlotWidth),
+				static_cast<float>(Layout.CurvePlotHeight) };
 			DrawRacerCurveVisualization(*this, Context, *SelectedRacer, CurvePlotBounds,
-				NodeViewCurvePlotLeft, NodeViewCurveTitleTop, NodeViewCurveLegendTop);
-			DrawEventLegend(*this, Context);
+				Layout.CurvePlotLeft, Layout.CurveTitleTop, Layout.CurveLegendTop);
+			DrawEventLegend(*this, Context, Layout);
 
 			RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), "Node list",
-				70, 463, NodeViewTextColor);
+				Layout.Margin, Layout.Coordinates.MapY(463.0f), NodeViewTextColor);
 			const std::size_t FirstNodeIndex = Screen->GetFirstNodeIndex();
 			const std::size_t EndNodeIndex = std::min(FirstNodeIndex + NodeViewVisibleNodeCount, Timeline->Nodes.size());
 			const std::string NodeRange = Timeline->Nodes.empty()
@@ -453,17 +513,18 @@ unsigned int Game::Render::NodeViewRenderer::Render()
 				: "Nodes " + std::to_string(FirstNodeIndex + 1) + "-" + std::to_string(EndNodeIndex) +
 				" of " + std::to_string(Timeline->Nodes.size());
 			RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont),
-				NodeRange, 700, 463, NodeViewTextColor);
+				NodeRange, Layout.CurvePlotLeft, Layout.Coordinates.MapY(463.0f), NodeViewTextColor);
 
 			auto Node = Timeline->Nodes.begin();
 			std::advance(Node, static_cast<std::ptrdiff_t>(FirstNodeIndex));
 			for (std::size_t Row = 0; Row < NodeViewVisibleNodeCount && Node != Timeline->Nodes.end(); ++Row, ++Node)
 				RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), FormatNodeDetails(*Node),
-					70, NodeViewNodeListTop + static_cast<int>(Row) * NodeViewNodeRowHeight, NodeViewTextColor);
+					Layout.Margin, Layout.NodeListTop + static_cast<int>(Row) * Layout.NodeRowHeight,
+					NodeViewTextColor);
 		}
 		else
 			RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), "No timeline is available for this racer.",
-				70, 120, NodeViewTextColor);
+				Layout.Margin, Layout.Coordinates.MapY(120.0f), NodeViewTextColor);
 	}
 
 	DrawNodeViewButton(*this, Context, Screen->PreviousRacerButton);

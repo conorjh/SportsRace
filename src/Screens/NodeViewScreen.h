@@ -19,6 +19,7 @@ namespace Game
 		// Read-only inspection of a completed race's racer timelines, events, and curve data.
 		class NodeViewScreen : public AppScreen
 		{
+			void UpdateLayout();
 			std::shared_ptr<Career::CareerRaceHistoryReplay> HistoricalReplayOwner;
 			const Race::Race* CompletedRace;
 			std::vector<Race::Racer*> Entrants;

@@ -10,6 +10,57 @@ using namespace Game::Render;
 using namespace Game::Screens;
 using namespace Game::Render;
 
+namespace AppRendererDetail
+{
+	bool UsesResponsiveLayout(Game::Screens::AppScreenType Type)
+	{
+		switch (Type)
+		{
+		case Game::Screens::AppScreenType::MainMenu:
+		case Game::Screens::AppScreenType::RaceScreen:
+		case Game::Screens::AppScreenType::CareerHub:
+		case Game::Screens::AppScreenType::WorldMapScreen:
+		case Game::Screens::AppScreenType::RacerDBScreen:
+		case Game::Screens::AppScreenType::OptionsScreen:
+		case Game::Screens::AppScreenType::LeagueBrowserScreen:
+		case Game::Screens::AppScreenType::RacerScreen:
+		case Game::Screens::AppScreenType::RankingScreen:
+		case Game::Screens::AppScreenType::NodeViewScreen:
+		case Game::Screens::AppScreenType::PostRaceScreen:
+		case Game::Screens::AppScreenType::BookiesScreen:
+		case Game::Screens::AppScreenType::GymScreen:
+		case Game::Screens::AppScreenType::LicenseOfficeScreen:
+		case Game::Screens::AppScreenType::BreedingFarmScreen:
+		case Game::Screens::AppScreenType::RaceTrackScreen:
+		case Game::Screens::AppScreenType::StableScreen:
+		case Game::Screens::AppScreenType::SlotMachineScreen:
+		case Game::Screens::AppScreenType::RouletteScreen:
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	void SetScreenViewport(Game::Render::AppRenderContext* Context, Game::Screens::AppScreenType Type)
+	{
+		if (Context == nullptr || Context->MainRenderer == nullptr)
+			return;
+		if (UsesResponsiveLayout(Type))
+		{
+			if (!SDL_SetRenderViewport(Context->MainRenderer, nullptr))
+				spdlog::error("Could not reset the responsive screen viewport: {}", SDL_GetError());
+			return;
+		}
+
+		const int ViewWidth = std::min(static_cast<int>(Context->ScreenWidth), 1024);
+		const int ViewHeight = std::min(static_cast<int>(Context->ScreenHeight), 768);
+		const SDL_Rect LegacyViewport{ (static_cast<int>(Context->ScreenWidth) - ViewWidth) / 2,
+			(static_cast<int>(Context->ScreenHeight) - ViewHeight) / 2, ViewWidth, ViewHeight };
+		if (!SDL_SetRenderViewport(Context->MainRenderer, &LegacyViewport))
+			spdlog::error("Could not center the legacy screen viewport: {}", SDL_GetError());
+	}
+}
+
 Game::App::Render::AppRenderer::AppRenderer(Game::App::AppData* Data, Screens::AppScreenStateMachine* _StateMachine) :
 	BaseRenderer(Data->RenderContext),
 	MainMenuRen(Data->RenderContext),
@@ -46,6 +97,7 @@ unsigned int Game::App::Render::AppRenderer::Render()
 		return 0;
 
 	const AppScreenType ActiveScreenType = StateMachine->Top()->Type;
+	AppRendererDetail::SetScreenViewport(Context, ActiveScreenType);
 	Context->RacerInfoLinksEnabled = Data != nullptr && !Data->DebugMenuOpen &&
 		ActiveScreenType != AppScreenType::RaceScreen && ActiveScreenType != AppScreenType::RacerScreen;
 	if (Context->RacerInfoLinksEnabled)

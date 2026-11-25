@@ -10,13 +10,19 @@ namespace Game
 		{
 			friend class Game::Render::BuildingScreenRenderer;
 
+			std::uint64_t CityId;
+			std::size_t PlotIndex;
 			std::size_t SelectedOwnedRacerIndex = 0;
+			GUI::Button RentStableButton;
 
 			void UpdateActivity() override;
 
 		public:
 			StableScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data,
-				const Career::CityPlot& _Plot);
+				const Career::CityPlot& _Plot, std::uint64_t _CityId, std::size_t _PlotIndex);
+			bool IsCurrentStable() const;
+			bool CanRentSpace() const;
+			const GUI::Button& GetRentStableButton() const;
 		};
 	}
 }

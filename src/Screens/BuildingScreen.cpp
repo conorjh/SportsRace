@@ -37,27 +37,57 @@ namespace BuildingScreenDetail
 			IO.MousePosition.y >= Y && IO.MousePosition.y <= Y + Height;
 	}
 
-	void DrawPanel(SDL_Renderer* Renderer, const SDL_FRect& Bounds, SDL_Color Fill, SDL_Color Border)
+	Game::GUI::RelativeLayout GetLayout(const Game::Render::AppRenderContext* Context)
 	{
+		return Game::GUI::RelativeLayout(static_cast<float>(Context->ScreenWidth),
+			static_cast<float>(Context->ScreenHeight));
+	}
+
+	SDL_FRect MapBounds(const Game::Render::AppRenderContext* Context, const SDL_FRect& Bounds)
+	{
+		const Game::GUI::RelativeLayout Layout = GetLayout(Context);
+		return { static_cast<float>(Layout.MapX(Bounds.x)), static_cast<float>(Layout.MapY(Bounds.y)),
+			Bounds.w, Bounds.h };
+	}
+
+	void DrawResponsiveText(Game::Render::BaseRenderer& Renderer,
+		Game::Render::AppRenderContext* Context, TTF_Font* Font, const std::string& Text,
+		int X, int Y, SDL_Color Color)
+	{
+		const Game::GUI::RelativeLayout Layout = GetLayout(Context);
+		Renderer.RenderText(Font, Text, Layout.MapX(static_cast<float>(X)), Layout.MapY(static_cast<float>(Y)), Color);
+	}
+
+	void DrawPanel(Game::Render::AppRenderContext* Context, const SDL_FRect& Bounds, SDL_Color Fill,
+		SDL_Color Border)
+	{
+		const SDL_FRect ResponsiveBounds = MapBounds(Context, Bounds);
+		SDL_Renderer* Renderer = Context->MainRenderer;
 		SDL_SetRenderDrawColor(Renderer, Fill.r, Fill.g, Fill.b, Fill.a);
-		SDL_RenderFillRect(Renderer, &Bounds);
+		SDL_RenderFillRect(Renderer, &ResponsiveBounds);
 		SDL_SetRenderDrawColor(Renderer, Border.r, Border.g, Border.b, Border.a);
-		SDL_RenderRect(Renderer, &Bounds);
+		SDL_RenderRect(Renderer, &ResponsiveBounds);
 	}
 
 	void DrawActionButton(Game::Render::BaseRenderer& Renderer, Game::Render::AppRenderContext* Context,
-		const std::string& Text, int X, int Y, int Width, int Height, bool Selected = false, bool Enabled = true)
+		const std::string& Text, int X, int Y, int Width, int Height, bool Selected = false, bool Enabled = true,
+		bool MapPosition = true)
 	{
 		const SDL_Color Fill = !Enabled ? SDL_Color{ 60, 58, 52, 255 } : Selected
 			? SDL_Color{ 134, 54, 45, 255 } : SDL_Color{ 84, 55, 43, 255 };
-		const SDL_FRect Bounds{ static_cast<float>(X), static_cast<float>(Y),
+		const Game::GUI::RelativeLayout Layout = GetLayout(Context);
+		const SDL_FRect ReferenceBounds{ static_cast<float>(X), static_cast<float>(Y),
 			static_cast<float>(Width), static_cast<float>(Height) };
+		const SDL_FRect Bounds = MapPosition ? MapBounds(Context, ReferenceBounds) : ReferenceBounds;
 		SDL_SetRenderDrawColor(Context->MainRenderer, Fill.r, Fill.g, Fill.b, Fill.a);
 		SDL_RenderFillRect(Context->MainRenderer, &Bounds);
 		SDL_SetRenderDrawColor(Context->MainRenderer, 162, 116, 79, 255);
 		SDL_RenderRect(Context->MainRenderer, &Bounds);
-		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont), Text,
-			X + 10, Y + (Height - 16) / 2, Enabled ? BuildingTextColor : BuildingMutedColor);
+		const int TextX = MapPosition ? Layout.MapX(static_cast<float>(X + 10)) : X + 10;
+		const int TextY = MapPosition ? Layout.MapY(static_cast<float>(Y + (Height - 16) / 2)) :
+			Y + (Height - 16) / 2;
+		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont), Text, TextX, TextY,
+			Enabled ? BuildingTextColor : BuildingMutedColor);
 	}
 
 	std::string GetDirectionName(unsigned int Direction)
@@ -81,7 +111,7 @@ namespace BuildingScreenDetail
 		case Game::Career::CityPlotType::BreedingFarm:
 			return "BREEDING DESK";
 		case Game::Career::CityPlotType::Stable:
-			return "YOUR STABLE";
+			return "STABLE SPACE";
 		default:
 			return "CITY BUILDING";
 		}
@@ -106,12 +136,12 @@ namespace BuildingScreenDetail
 		const Game::Race::Racer& Racer, int X, int Y, int Width, bool Selected, const std::string& Prefix = "")
 	{
 		const SDL_FRect Bounds{ static_cast<float>(X), static_cast<float>(Y), static_cast<float>(Width), 38.0f };
-		DrawPanel(Context->MainRenderer, Bounds, Selected ? SDL_Color{ 79, 48, 39, 255 } : BuildingPanelColor,
+		DrawPanel(Context, Bounds, Selected ? SDL_Color{ 79, 48, 39, 255 } : BuildingPanelColor,
 			Selected ? BuildingAccentColor : BuildingBorderColor);
 		const std::string Text = Prefix + Racer.Name + "   W " + std::to_string(Racer.CareerRecord.Wins) +
 			" / L " + std::to_string(Racer.CareerRecord.Losses);
-		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont), Text, X + 9, Y + 10,
-			Game::Render::PlayerOwnedRacerHighlightColor);
+		DrawResponsiveText(Renderer, Context, Context->Store.GetFont(Game::Assets::FontAssetInfoFont), Text,
+			X + 9, Y + 10, Game::Render::PlayerOwnedRacerHighlightColor);
 	}
 }
 using namespace BuildingScreenDetail;
@@ -163,11 +193,36 @@ Game::Screens::BuildingScreen::BuildingScreen(AppScreenStateMachine& _Machine, A
 bool Game::Screens::BuildingScreen::Clicked(float X, float Y, float Width, float Height) const
 {
 	return (IO.MouseButtonsPressed & SDL_BUTTON_MASK(SDL_BUTTON_LEFT)) != 0 &&
-		ContainsPoint(IO, X, Y, Width, Height);
+		ContainsPoint(IO, MapX(X), MapY(Y), Width, Height);
+}
+
+int Game::Screens::BuildingScreen::MapX(float X) const
+{
+	const float ScreenWidth = Data.RenderContext == nullptr ? 1024.0f :
+		static_cast<float>(Data.RenderContext->ScreenWidth);
+	const float ScreenHeight = Data.RenderContext == nullptr ? 768.0f :
+		static_cast<float>(Data.RenderContext->ScreenHeight);
+	return GUI::RelativeLayout(ScreenWidth, ScreenHeight).MapX(X);
+}
+
+int Game::Screens::BuildingScreen::MapY(float Y) const
+{
+	const float ScreenWidth = Data.RenderContext == nullptr ? 1024.0f :
+		static_cast<float>(Data.RenderContext->ScreenWidth);
+	const float ScreenHeight = Data.RenderContext == nullptr ? 768.0f :
+		static_cast<float>(Data.RenderContext->ScreenHeight);
+	return GUI::RelativeLayout(ScreenWidth, ScreenHeight).MapY(Y);
 }
 
 Game::Screens::AppScreen* Game::Screens::BuildingScreen::Update()
 {
+	const int ScreenWidth = Data.RenderContext == nullptr ? 1024 :
+		static_cast<int>(Data.RenderContext->ScreenWidth);
+	const int ScreenHeight = Data.RenderContext == nullptr ? 768 :
+		static_cast<int>(Data.RenderContext->ScreenHeight);
+	const GUI::RelativeLayout Layout(static_cast<float>(ScreenWidth), static_cast<float>(ScreenHeight));
+	BackButton.SetBounds(ScreenWidth - Layout.MapX(40.0f) - 160,
+		ScreenHeight - Layout.MapY(26.0f) - 48, 160, 48);
 	BackButton.Update();
 	if (BackButton.HasMouseClicked() || IO.Esc)
 	{
@@ -201,7 +256,19 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 		return SDL_GetTicks() - StartTime;
 	}
 
-	const SDL_FRect SceneBounds{ 24.0f, 78.0f, 976.0f, 566.0f };
+	const Game::GUI::RelativeLayout Layout = GetLayout(Context);
+	const auto RenderText = [this, &Layout](TTF_Font* Font, const std::string& Text, int X, int Y,
+		SDL_Color Color)
+	{
+		BaseRenderer::RenderText(Font, Text, Layout.MapX(static_cast<float>(X)),
+			Layout.MapY(static_cast<float>(Y)), Color);
+	};
+	const int SceneLeft = Layout.MapX(24.0f);
+	const int SceneTop = Layout.MapY(78.0f);
+	const int SceneRight = static_cast<int>(Context->ScreenWidth) - Layout.MapX(24.0f);
+	const int SceneBottom = static_cast<int>(Context->ScreenHeight) - Layout.MapY(124.0f);
+	const SDL_FRect SceneBounds{ static_cast<float>(SceneLeft), static_cast<float>(SceneTop),
+		static_cast<float>(SceneRight - SceneLeft), static_cast<float>(SceneBottom - SceneTop) };
 	if (Screen->Plot.SpriteIndex < 12)
 	{
 		const Assets::ImageAssetId TileAsset = static_cast<Assets::ImageAssetId>(Assets::ImageAssetCityTile000 +
@@ -209,7 +276,7 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 		Game::Render::Image* Tile = Context->Store.GetImage(TileAsset);
 		if (Tile != nullptr && Tile->Texture != nullptr)
 		{
-			SDL_Rect Target{ 24, 78, 976, 566 };
+			SDL_Rect Target{ SceneLeft, SceneTop, SceneRight - SceneLeft, SceneBottom - SceneTop };
 			RenderImage(Tile->Texture, nullptr, &Target);
 		}
 	}
@@ -220,10 +287,15 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 		BuildingBorderColor.b, BuildingBorderColor.a);
 	SDL_RenderRect(Context->MainRenderer, &SceneBounds);
 	RenderText(Context->Store.GetFont(Assets::FontAssetMainFont), Screen->Plot.Name, 38, 22, BuildingTextColor);
-	RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), GetPlotSceneLabel(Screen->Plot.Type),
-		40, 88, BuildingMutedColor);
+	const std::string SceneLabel = Screen->Plot.Type == Career::CityPlotType::Stable &&
+		static_cast<Screens::StableScreen*>(Screen)->IsCurrentStable()
+		? "YOUR STABLE" : GetPlotSceneLabel(Screen->Plot.Type);
+	RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), SceneLabel, 40, 88, BuildingMutedColor);
 
-	const SDL_FRect Counter{ 38.0f, 596.0f, 944.0f, 46.0f };
+	const int CounterLeft = Layout.MapX(38.0f);
+	const int CounterTop = Layout.MapY(596.0f);
+	const SDL_FRect Counter{ static_cast<float>(CounterLeft), static_cast<float>(CounterTop),
+		static_cast<float>(static_cast<int>(Context->ScreenWidth) - CounterLeft * 2), 46.0f };
 	SDL_SetRenderDrawColor(Context->MainRenderer, 66, 45, 34, 255);
 	SDL_RenderFillRect(Context->MainRenderer, &Counter);
 	SDL_SetRenderDrawColor(Context->MainRenderer, 148, 105, 72, 255);
@@ -233,7 +305,7 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 	RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "Cash: $" + std::to_string(Cash),
 		40, 666, BuildingMutedColor);
 	DrawActionButton(*this, Context, Screen->BackButton.Text, Screen->BackButton.x, Screen->BackButton.y,
-		Screen->BackButton.w, Screen->BackButton.h, Screen->BackButton.IsMouseOver());
+		Screen->BackButton.w, Screen->BackButton.h, Screen->BackButton.IsMouseOver(), true, false);
 
 	switch (Screen->Plot.Type)
 	{
@@ -252,7 +324,7 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 				continue;
 			const int Y = 150 + static_cast<int>(Index) * 48;
 			const SDL_FRect Row{ 38.0f, static_cast<float>(Y), 612.0f, 42.0f };
-			DrawPanel(Context->MainRenderer, Row,
+			DrawPanel(Context, Row,
 				Index == Screen->SelectedRaceEntrant ? SDL_Color{ 83, 49, 40, 255 } : BuildingPanelColor,
 				Index == Screen->SelectedRaceEntrant ? BuildingAccentColor : BuildingBorderColor);
 			const std::string Odds = Index < Screen->BookieOdds.size()
@@ -273,7 +345,7 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 			RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "Wager placed: $" +
 				std::to_string(Screen->Data.Career->PendingBet.Stake), 720, 374, BuildingTextColor);
 
-		DrawPanel(Context->MainRenderer, SDL_FRect{ 64.0f, 458.0f, 386.0f, 126.0f }, BuildingPanelColor,
+		DrawPanel(Context, SDL_FRect{ 64.0f, 458.0f, 386.0f, 126.0f }, BuildingPanelColor,
 			BuildingBorderColor);
 		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "SLOT MACHINE", 80, 468,
 			BuildingTextColor);
@@ -281,7 +353,7 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 			"Pairs pay 2x; three of a kind pays 10x.", 80, 492, BuildingMutedColor);
 		DrawActionButton(*this, Context, "Enter the slot room", 78, 526, 358, 48);
 
-		DrawPanel(Context->MainRenderer, SDL_FRect{ 482.0f, 458.0f, 482.0f, 126.0f }, BuildingPanelColor,
+		DrawPanel(Context, SDL_FRect{ 482.0f, 458.0f, 482.0f, 126.0f }, BuildingPanelColor,
 			BuildingBorderColor);
 		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "ROULETTE TABLE", 500, 468,
 			BuildingTextColor);
@@ -322,16 +394,18 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 				std::to_string(Screen->WorkoutHits) + " / " + std::to_string(Screens::GymScreen::WorkoutAttemptCount), 382, 310,
 				BuildingTextColor);
 			const SDL_FRect Meter{ 402.0f, 366.0f, 520.0f, 32.0f };
-			DrawPanel(Context->MainRenderer, Meter, SDL_Color{ 53, 51, 45, 255 }, BuildingBorderColor);
-			const SDL_FRect Zone{ Meter.x + Meter.w * (Screen->ActiveGymActivity == Screens::GymScreen::GymActivity::Treadmill
-				? 0.35f : 0.46f), Meter.y + 2.0f,
-				Meter.w * (Screen->ActiveGymActivity == Screens::GymScreen::GymActivity::Treadmill
-				? 0.30f : 0.10f), Meter.h - 4.0f };
+			const SDL_FRect ResponsiveMeter = MapBounds(Context, Meter);
+			DrawPanel(Context, Meter, SDL_Color{ 53, 51, 45, 255 }, BuildingBorderColor);
+			const SDL_FRect Zone{ ResponsiveMeter.x + ResponsiveMeter.w *
+				(Screen->ActiveGymActivity == Screens::GymScreen::GymActivity::Treadmill
+				? 0.35f : 0.46f), ResponsiveMeter.y + 2.0f,
+				ResponsiveMeter.w * (Screen->ActiveGymActivity == Screens::GymScreen::GymActivity::Treadmill
+				? 0.30f : 0.10f), ResponsiveMeter.h - 4.0f };
 			SDL_SetRenderDrawColor(Context->MainRenderer, 74, 151, 96, 255);
 			SDL_RenderFillRect(Context->MainRenderer, &Zone);
 			const double Phase = std::fmod(static_cast<double>(SDL_GetTicks() - Screen->WorkoutStartedAt), 1200.0) / 1200.0;
-			const SDL_FRect Marker{ Meter.x + Meter.w * static_cast<float>(Phase) - 3.0f, Meter.y - 5.0f, 6.0f,
-				Meter.h + 10.0f };
+			const SDL_FRect Marker{ ResponsiveMeter.x + ResponsiveMeter.w * static_cast<float>(Phase) - 3.0f,
+				ResponsiveMeter.y - 5.0f, 6.0f, ResponsiveMeter.h + 10.0f };
 			SDL_SetRenderDrawColor(Context->MainRenderer, 245, 220, 159, 255);
 			SDL_RenderFillRect(Context->MainRenderer, &Marker);
 			DrawActionButton(*this, Context,
@@ -360,7 +434,7 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 		{
 			const int Y = 168 + static_cast<int>(Index) * 92;
 			const SDL_FRect Card{ 100.0f, static_cast<float>(Y), 824.0f, 72.0f };
-			DrawPanel(Context->MainRenderer, Card, BuildingPanelColor,
+			DrawPanel(Context, Card, BuildingPanelColor,
 				Screen->Data.Career->Licenses[Index] ? SDL_Color{ 91, 151, 101, 255 } : BuildingBorderColor);
 			const std::string Status = Screen->Data.Career->Licenses[Index] ? "OWNED" : "$" +
 				std::to_string(Screens::BuildingScreen::LicensePrice(Index));
@@ -374,7 +448,9 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 	case Career::CityPlotType::BreedingFarm:
 	{
 		Screens::BreedingFarmScreen* Screen = static_cast<Screens::BreedingFarmScreen*>(this->Screen);
-		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "Breeding license required. Select two owned parents; the service costs $1,000.",
+		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont),
+			"Generate and buy a prospect for $" + std::to_string(Career::CareerBreederRacerPrice) +
+				"; breeding owned pairs requires a license.",
 			42, 118, BuildingTextColor);
 		const std::vector<Race::Racer*>& OwnedRacers = Screen->Data.Career->OwnedRacers;
 		for (std::size_t Index = 0; Index < OwnedRacers.size() && Index < 8; ++Index)
@@ -386,8 +462,15 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 				DrawCareerRacerRow(*this, Context, *OwnedRacers[Index], 522, Y, 430,
 					Index == Screen->SecondParentIndex, "B: ");
 			}
+		const bool CanGenerateRacer = Screen->Data.Career->PlayerStableCityId != 0 &&
+			OwnedRacers.size() < Career::CareerStableRacerCapacity && Screen->Data.Profile != nullptr &&
+			Screen->Data.Profile->Financials.Cash >= Career::CareerBreederRacerPrice;
+		DrawActionButton(*this, Context, Screen->GenerateRacerButton.Text, Screen->GenerateRacerButton.x,
+			Screen->GenerateRacerButton.y, Screen->GenerateRacerButton.w, Screen->GenerateRacerButton.h,
+			Screen->GenerateRacerButton.IsMouseOver(), CanGenerateRacer, false);
 		DrawActionButton(*this, Context, "Breed pair - $1,000", 680, 596, 230, 56,
-			false, OwnedRacers.size() >= 2);
+			false, Screen->Data.Career->Licenses[1] && OwnedRacers.size() >= 2 &&
+				OwnedRacers.size() < Career::CareerStableRacerCapacity);
 		break;
 	}
 	case Career::CityPlotType::RaceTrack:
@@ -413,10 +496,12 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 			if (WorldRace->StateMachine == nullptr || WorldRace->StateMachine->State == nullptr)
 				continue;
 			const int RowY = 166 + static_cast<int>(Index - FirstRace) * 50;
-			const bool IsHovered = Screen->IO.MousePosition.x >= 62.0f &&
-				Screen->IO.MousePosition.x <= 962.0f && Screen->IO.MousePosition.y >= RowY &&
-				Screen->IO.MousePosition.y <= RowY + 42;
-			const SDL_FRect RowBounds{ 62.0f, static_cast<float>(RowY), 900.0f, 42.0f };
+			const SDL_FRect RowBounds = MapBounds(Context,
+				SDL_FRect{ 62.0f, static_cast<float>(RowY), 900.0f, 42.0f });
+			const bool IsHovered = Screen->IO.MousePosition.x >= RowBounds.x &&
+				Screen->IO.MousePosition.x <= RowBounds.x + RowBounds.w &&
+				Screen->IO.MousePosition.y >= RowBounds.y &&
+				Screen->IO.MousePosition.y <= RowBounds.y + RowBounds.h;
 			const SDL_Color RowFill = IsHovered ? SDL_Color{ 74, 43, 35, 255 } : BuildingPanelColor;
 			SDL_SetRenderDrawColor(Context->MainRenderer, RowFill.r, RowFill.g, RowFill.b, RowFill.a);
 			SDL_RenderFillRect(Context->MainRenderer, &RowBounds);
@@ -458,9 +543,41 @@ unsigned int Game::Render::BuildingScreenRenderer::Render()
 	case Career::CityPlotType::Stable:
 	{
 		Screens::StableScreen* Screen = static_cast<Screens::StableScreen*>(this->Screen);
-		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "Your stable starts with two racers selected from the city population.",
+		if (!Screen->IsCurrentStable())
+		{
+			if (Screen->Data.Career->PlayerStableCityId == 0)
+			{
+				RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont),
+					"Rent space here for $" + std::to_string(Career::CareerStableLeasePrice) +
+					". Your stable holds up to six racers.", 42, 118, BuildingTextColor);
+				DrawActionButton(*this, Context, Screen->GetRentStableButton().Text,
+					Screen->GetRentStableButton().x, Screen->GetRentStableButton().y,
+					Screen->GetRentStableButton().w, Screen->GetRentStableButton().h,
+					Screen->GetRentStableButton().IsMouseOver(), Screen->CanRentSpace(), false);
+			}
+			else
+			{
+				const auto LeasedCity = std::find_if(Screen->Data.Career->Cities.begin(),
+					Screen->Data.Career->Cities.end(), [Screen](const Career::CareerWorldCity& City)
+					{
+						return City.Id == Screen->Data.Career->PlayerStableCityId;
+					});
+				RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont),
+					"Your stable lease is in " + (LeasedCity == Screen->Data.Career->Cities.end()
+						? std::string("another city") : LeasedCity->Name) + ".",
+					42, 118, BuildingTextColor);
+			}
+			break;
+		}
+
+		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "YOUR STABLE  |  " +
+			std::to_string(Screen->Data.Career->OwnedRacers.size()) + "/" +
+			std::to_string(Career::CareerStableRacerCapacity) + " spaces used",
 			42, 118, BuildingTextColor);
 		const std::vector<Race::Racer*>& OwnedRacers = Screen->Data.Career->OwnedRacers;
+		if (OwnedRacers.empty())
+			RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont),
+				"Your stable is empty. Visit the breeder to buy your first racer.", 42, 160, BuildingMutedColor);
 		for (std::size_t Index = 0; Index < OwnedRacers.size() && Index < 9; ++Index)
 			if (OwnedRacers[Index] != nullptr)
 				DrawCareerRacerRow(*this, Context, *OwnedRacers[Index], 42, 160 + static_cast<int>(Index) * 46,

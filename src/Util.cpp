@@ -2,6 +2,7 @@
 #include "Audio.h"
 #include "SDL3/SDL.h"
 #include "App\App.h"
+#include <cmath>
 #include <fstream>
 #include <iostream>
 
@@ -9,6 +10,31 @@ using namespace std;
 using namespace Game::App;
 using namespace Game::Audio;
 using namespace Game::GUI;
+
+Game::GUI::RelativeLayout::RelativeLayout(float _Width, float _Height)
+	: Width(_Width), Height(_Height)
+{
+}
+
+int Game::GUI::RelativeLayout::X(float Fraction) const
+{
+	return static_cast<int>(std::lround(Width * Fraction));
+}
+
+int Game::GUI::RelativeLayout::Y(float Fraction) const
+{
+	return static_cast<int>(std::lround(Height * Fraction));
+}
+
+int Game::GUI::RelativeLayout::MapX(float ReferenceX, float ReferenceWidth) const
+{
+	return static_cast<int>(std::lround(ReferenceX * Width / ReferenceWidth));
+}
+
+int Game::GUI::RelativeLayout::MapY(float ReferenceY, float ReferenceHeight) const
+{
+	return static_cast<int>(std::lround(ReferenceY * Height / ReferenceHeight));
+}
 
 bool Game::Util::FileExists(std::string Filepath)
 {
@@ -20,9 +46,25 @@ bool Game::Util::FileExists(std::string Filepath)
 		return false;
 }
 
+void Game::GUI::Button::SetBounds(int _x, int _y, int _w, int _h)
+{
+	x = Rect.x = _x;
+	y = Rect.y = _y;
+	w = Rect.w = _w;
+	h = Rect.h = _h;
+}
+
 std::string  Game::Util::itos(int i)
 {
 	return "";
+}
+
+void Game::GUI::IconButton::SetBounds(int _x, int _y, int _w, int _h)
+{
+	x = Rect.x = _x;
+	y = Rect.y = _y;
+	w = Rect.w = _w;
+	h = Rect.h = _h;
 }
 
 std::string  Game::Util::uitos(unsigned int i)

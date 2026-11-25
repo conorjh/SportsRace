@@ -5,6 +5,7 @@
 #include "..\Race.h"
 #include "..\Career.h"
 #include "..\Util.h"
+#include <string>
 
 namespace Game
 {
@@ -20,16 +21,21 @@ namespace Game
 		{
 		protected:
 			Race::Racer* RacerToDisplay;
+			void UpdateLayout();
 
 		public:
 			RacerScreenStateInitType InitType;
 
-			GUI::Button RegenButton, ApplyButton, ExitButton;
+			GUI::Button RegenButton, ApplyButton, ExitButton, LocationButton;
 			RacerScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data, Race::Racer* _RacerToDisplay, RacerScreenStateInitType _Type);
 
 			~RacerScreen();
 
 			AppScreen* Update();
+			const Career::CareerRacerState* GetCareerRacerState() const;
+			std::uint64_t GetBasedInCityId() const;
+			std::string GetBasedInCityName() const;
+			std::string GetCareerStatusLabel() const;
 			const Race::Racer* GetRacerToDisplay() const
 			{
 				return RacerToDisplay;

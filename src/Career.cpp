@@ -49,32 +49,60 @@ double Game::Career::EstimateRacerStrength(const Race::Racer& Runner, unsigned i
 
 bool Game::Career::IsLeagueAtStableLocation(const CareerData& Data, const CareerLeague& League)
 {
-	const auto HomeCity = std::find_if(Data.Cities.begin(), Data.Cities.end(), [&Data](const CareerWorldCity& City)
-		{
-			return City.Id == Data.HomeCityId;
-		});
-	if (Data.HomeCityId == 0 || HomeCity == Data.Cities.end())
+	if (Data.PlayerStableCityId == 0)
 		return false;
 
-	const auto HomeRegion = std::find_if(Data.Regions.begin(), Data.Regions.end(), [&HomeCity](const CareerWorldRegion& Region)
+	const auto StableCity = std::find_if(Data.Cities.begin(), Data.Cities.end(), [&Data](const CareerWorldCity& City)
 		{
-			return Region.Id == HomeCity->RegionId;
+			return City.Id == Data.PlayerStableCityId;
 		});
-	if (HomeRegion == Data.Regions.end())
+	if (StableCity == Data.Cities.end())
 		return false;
-	const auto HomeCountry = std::find_if(Data.Countries.begin(), Data.Countries.end(),
-		[&HomeRegion](const CareerWorldCountry& Country) { return Country.Id == HomeRegion->CountryId; });
-	if (HomeCountry == Data.Countries.end())
+
+	const auto StableRegion = std::find_if(Data.Regions.begin(), Data.Regions.end(), [&StableCity](
+		const CareerWorldRegion& Region)
+		{
+			return Region.Id == StableCity->RegionId;
+		});
+	if (StableRegion == Data.Regions.end())
+		return false;
+	const auto StableCountry = std::find_if(Data.Countries.begin(), Data.Countries.end(),
+		[&StableRegion](const CareerWorldCountry& Country) { return Country.Id == StableRegion->CountryId; });
+	if (StableCountry == Data.Countries.end())
 		return false;
 
 	switch (League.Level)
 	{
 	case CareerCompetitionLevel::City:
-		return League.CityId == HomeCity->Id;
+		return League.CityId == StableCity->Id;
 	case CareerCompetitionLevel::Regional:
-		return League.RegionId == HomeRegion->Id;
+		return League.RegionId == StableRegion->Id;
 	case CareerCompetitionLevel::National:
-		return League.CountryId == HomeCountry->Id;
+		return League.CountryId == StableCountry->Id;
+	default:
+		return false;
+	}
+}
+
+bool Game::Career::IsRacerEligibleForLeagueLocation(const CareerData& Data,
+	const CareerRacerState& State, const CareerLeague& League)
+{
+	if (League.Division != CareerLeagueDivision::Amateur)
+		return true;
+
+	const auto BasedInCity = std::find_if(Data.Cities.begin(), Data.Cities.end(), [&State](
+		const CareerWorldCity& City) { return City.Id == State.BasedInCityId; });
+	if (BasedInCity == Data.Cities.end())
+		return false;
+
+	switch (League.Level)
+	{
+	case CareerCompetitionLevel::City:
+		return League.CityId == BasedInCity->Id;
+	case CareerCompetitionLevel::Regional:
+		return League.RegionId == BasedInCity->RegionId;
+	case CareerCompetitionLevel::National:
+		return false;
 	default:
 		return false;
 	}
@@ -252,6 +280,46 @@ Game::Career::CareerOrchestrator::CareerOrchestrator(CareerData* _Data, CareerPr
 {
 }
 
+bool Game::Career::CareerOrchestrator::CanRentStableSpace(std::uint64_t CityId, std::size_t PlotIndex) const
+{
+	if (Data == nullptr || Profile == nullptr || !Data->WorldSimulationInitialized || CityId == 0 ||
+		CityId != Data->HomeCityId ||
+		Data->PlayerStableCityId != 0 || Profile->Financials.Cash < CareerStableLeasePrice)
+		return false;
+
+	return PlotIndex < Data->CityPlots.size() && Data->CityPlots[PlotIndex].Type == CityPlotType::Stable;
+}
+
+bool Game::Career::CareerOrchestrator::RentStableSpace(std::uint64_t CityId, std::size_t PlotIndex)
+{
+	if (!CanRentStableSpace(CityId, PlotIndex))
+		return false;
+
+	Profile->Financials.Cash -= CareerStableLeasePrice;
+	Data->PlayerStableCityId = CityId;
+	Data->PlayerStablePlotIndex = PlotIndex;
+	return true;
+}
+
+Game::Race::Racer* Game::Career::CareerOrchestrator::GenerateRacerFromBreeder()
+{
+	if (Data == nullptr || Profile == nullptr || Data->PlayerStableCityId == 0 ||
+		Data->OwnedRacers.size() >= CareerStableRacerCapacity ||
+		Profile->Financials.Cash < CareerBreederRacerPrice)
+		return nullptr;
+
+	Race::Racer* Runner = Data->Racers.Make(Race::RacerNameMaker().Make());
+	if (Runner == nullptr)
+		return nullptr;
+
+	Runner->CurveSeed = Data->WorldRandom();
+	Runner->AccelerationCurve = Race::RaceCurve::Generate(Runner->CurveSeed, false);
+	Runner->EnduranceCurve = Race::RaceCurve::Generate(Runner->CurveSeed, true);
+	Data->OwnedRacers.push_back(Runner);
+	Profile->Financials.Cash -= CareerBreederRacerPrice;
+	return Runner;
+}
+
 std::vector<Game::Race::Racer*> Game::Career::CareerOrchestrator::SelectMatchedOpponents(
 	std::size_t Count, unsigned int Seed) const
 {
@@ -270,8 +338,10 @@ std::vector<Game::Race::Racer*> Game::Career::CareerOrchestrator::SelectMatchedO
 				[Runner](const CareerRacerState& Candidate) { return Candidate.Runner == Runner; });
 			return State != Data->RacerStates.end() && State->Activity == CareerRacerActivity::Retired;
 		}), Opponents.end());
-	const std::uint64_t PlayerPositionPoints = Profile == nullptr ? 0 :
-		Profile->MainFella.CareerRecord.PositionPoints;
+	const auto PlayerRacer = std::find_if(Data->OwnedRacers.begin(), Data->OwnedRacers.end(),
+		[](const Race::Racer* Runner) { return Runner != nullptr; });
+	const std::uint64_t PlayerPositionPoints = PlayerRacer == Data->OwnedRacers.end()
+		? 0 : (*PlayerRacer)->CareerRecord.PositionPoints;
 	std::mt19937 Random(Seed);
 	std::shuffle(Opponents.begin(), Opponents.end(), Random);
 	std::stable_sort(Opponents.begin(), Opponents.end(), [PlayerPositionPoints](const Race::Racer* Left,
@@ -292,24 +362,21 @@ std::vector<Game::Race::Racer*> Game::Career::CareerOrchestrator::SelectMatchedO
 
 bool Game::Career::CareerOrchestrator::PrepareUpcomingRace(unsigned int Seed, unsigned int TrackLength)
 {
-	if (Data == nullptr || Profile == nullptr)
+	if (Data == nullptr || Profile == nullptr || Data->PlayerStableCityId == 0 || Data->OwnedRacers.empty() ||
+		std::none_of(Data->OwnedRacers.begin(), Data->OwnedRacers.end(),
+			[](const Race::Racer* Runner) { return Runner != nullptr; }))
 		return false;
 
 	if (Data->UpcomingRaceEntrants.empty())
 	{
-		Data->UpcomingRaceEntrants.push_back(&Profile->MainFella);
-		if (!Data->OwnedRacers.empty())
+		const std::size_t FirstOwnedRacerIndex = Seed % Data->OwnedRacers.size();
+		for (std::size_t Offset = 0; Offset < Data->OwnedRacers.size() &&
+			Data->UpcomingRaceEntrants.size() < CareerUpcomingRaceEntrantCount; ++Offset)
 		{
-			const std::size_t FirstOwnedRacerIndex = Seed % Data->OwnedRacers.size();
-			for (std::size_t Offset = 0; Offset < Data->OwnedRacers.size() &&
-				Data->UpcomingRaceEntrants.size() < CareerUpcomingRaceEntrantCount; ++Offset)
-			{
-				Race::Racer* OwnedRacer = Data->OwnedRacers[
-					(FirstOwnedRacerIndex + Offset) % Data->OwnedRacers.size()];
-				if (OwnedRacer != nullptr && std::find(Data->UpcomingRaceEntrants.begin(),
-					Data->UpcomingRaceEntrants.end(), OwnedRacer) == Data->UpcomingRaceEntrants.end())
-					Data->UpcomingRaceEntrants.push_back(OwnedRacer);
-			}
+			Race::Racer* OwnedRacer = Data->OwnedRacers[(FirstOwnedRacerIndex + Offset) % Data->OwnedRacers.size()];
+			if (OwnedRacer != nullptr && std::find(Data->UpcomingRaceEntrants.begin(),
+				Data->UpcomingRaceEntrants.end(), OwnedRacer) == Data->UpcomingRaceEntrants.end())
+				Data->UpcomingRaceEntrants.push_back(OwnedRacer);
 		}
 		const std::size_t OpponentCount = CareerUpcomingRaceEntrantCount - Data->UpcomingRaceEntrants.size();
 		std::vector<Race::Racer*> Opponents = SelectMatchedOpponents(OpponentCount, Seed);
@@ -350,7 +417,9 @@ Game::Race::Race Game::Career::CareerOrchestrator::CreateUpcomingRace() const
 Game::Race::Racer* Game::Career::CareerOrchestrator::BreedOwnedRacers(Race::Racer* FirstParent,
 	Race::Racer* SecondParent, unsigned int Seed)
 {
-	if (Data == nullptr || FirstParent == nullptr || SecondParent == nullptr || FirstParent == SecondParent ||
+	if (Data == nullptr || Data->PlayerStableCityId == 0 ||
+		Data->OwnedRacers.size() >= CareerStableRacerCapacity || FirstParent == nullptr ||
+		SecondParent == nullptr || FirstParent == SecondParent ||
 		std::find(Data->OwnedRacers.begin(), Data->OwnedRacers.end(), FirstParent) == Data->OwnedRacers.end() ||
 		std::find(Data->OwnedRacers.begin(), Data->OwnedRacers.end(), SecondParent) == Data->OwnedRacers.end())
 		return nullptr;

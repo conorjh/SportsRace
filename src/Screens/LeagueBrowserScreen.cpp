@@ -11,27 +11,41 @@
 
 namespace LeagueBrowserScreenDetail
 {
-	constexpr int LeaguePanelLeft = 24;
-	constexpr int LeaguePanelWidth = 292;
+	int LeaguePanelLeft = 24;
+	int LeaguePanelWidth = 292;
 	constexpr int LeaguePanelTop = 100;
-	constexpr int LeaguePanelHeight = 550;
-	constexpr int LeagueLocationFilterLeft = 28;
+	int LeaguePanelHeight = 550;
+	int LeagueLocationFilterLeft = 28;
 	constexpr int LeagueLocationFilterTop = 80;
-	constexpr int LeagueLocationFilterWidth = 64;
+	int LeagueLocationFilterWidth = 64;
 	constexpr int LeagueLocationFilterHeight = 18;
-	constexpr int LeagueLocationFilterStep = 68;
-	constexpr int LeagueListLeft = 36;
+	int LeagueLocationFilterStep = 68;
+	int LeagueListLeft = 36;
 	constexpr int LeagueListTop = 152;
 	constexpr int LeagueListRowStep = 40;
 	constexpr int LeagueListRowHeight = 36;
-	constexpr int LeagueListWidth = 268;
-	constexpr int LeagueDetailLeft = 332;
-	constexpr int LeagueDetailWidth = 668;
-	constexpr int LeagueContentLeft = 350;
+	int LeagueListWidth = 268;
+	int LeagueDetailLeft = 332;
+	int LeagueDetailWidth = 668;
+	int LeagueContentLeft = 350;
 	constexpr int LeagueContentTop = 218;
-	constexpr int LeagueContentBottom = 632;
+	int LeagueContentBottom = 632;
 	constexpr int LeagueFixtureRowStep = 22;
-	constexpr int LeagueButtonY = 690;
+	constexpr int LeaguePositionColumnOffset = 0;
+	constexpr int LeagueRacerColumnOffset = 40;
+	constexpr int LeagueStatusColumnOffset = 232;
+	constexpr int LeagueWinsColumnOffset = 390;
+	constexpr int LeagueDrawsColumnOffset = 426;
+	constexpr int LeagueLossesColumnOffset = 462;
+	constexpr int LeaguePointsColumnOffset = 500;
+	constexpr int LeagueCashColumnOffset = 552;
+	constexpr int LeagueFixtureColumnOffset = 0;
+	constexpr int LeagueHeatColumnOffset = 44;
+	constexpr int LeagueFieldColumnOffset = 70;
+	constexpr int LeagueResultColumnOffset = 370;
+	constexpr int LeagueTrackColumnOffset = 525;
+	int LeagueButtonY = 690;
+	double LeagueColumnScale = 1.0;
 	constexpr std::uint64_t LeagueWorldDayMs = 24ull * 60 * 60 * 1000;
 	constexpr SDL_Color LeagueBackground{ 23, 22, 20, 255 };
 	constexpr SDL_Color LeaguePanelFill{ 34, 33, 30, 255 };
@@ -43,6 +57,31 @@ namespace LeagueBrowserScreenDetail
 	constexpr SDL_Color LeagueButtonFill{ 104, 42, 36, 255 };
 	constexpr SDL_Color LeagueButtonHover{ 134, 54, 45, 255 };
 	constexpr SDL_Color LeagueButtonBorder{ 170, 96, 72, 255 };
+
+	void SetLeagueBrowserLayout(int ScreenWidth, int ScreenHeight)
+	{
+		const Game::GUI::RelativeLayout Layout(static_cast<float>(ScreenWidth),
+			static_cast<float>(ScreenHeight));
+		LeaguePanelLeft = Layout.X(0.024f);
+		LeaguePanelWidth = std::max(292, Layout.X(0.285f));
+		LeaguePanelHeight = std::max(400, ScreenHeight - 218);
+		LeagueLocationFilterLeft = LeaguePanelLeft + 4;
+		LeagueLocationFilterStep = std::max(64, (LeaguePanelWidth - 8) / 4);
+		LeagueLocationFilterWidth = LeagueLocationFilterStep - 4;
+		LeagueListLeft = LeaguePanelLeft + 12;
+		LeagueListWidth = LeaguePanelWidth - 24;
+		LeagueDetailLeft = LeaguePanelLeft + LeaguePanelWidth + 16;
+		LeagueDetailWidth = std::max(500, ScreenWidth - LeagueDetailLeft - 24);
+		LeagueContentLeft = LeagueDetailLeft + 18;
+		LeagueContentBottom = ScreenHeight - 136;
+		LeagueButtonY = ScreenHeight - 78;
+		LeagueColumnScale = std::max(1.0, static_cast<double>(LeagueDetailWidth - 36) / 632.0);
+	}
+
+	int ScaleLeagueColumn(int ReferenceOffset)
+	{
+		return static_cast<int>(std::lround(ReferenceOffset * LeagueColumnScale));
+	}
 
 	void DrawPanel(SDL_Renderer* Renderer, const SDL_FRect& Bounds, SDL_Color Accent)
 	{
@@ -57,8 +96,16 @@ namespace LeagueBrowserScreenDetail
 		SDL_RenderFillRect(Renderer, &AccentBar);
 	}
 
+	int GetButtonTextTop(const Game::GUI::Button& Button, TTF_Font* Font, bool HasSecondLine = false)
+	{
+		const int FontHeight = TTF_GetFontHeight(Font);
+		const int TextBlockHeight = FontHeight * (HasSecondLine ? 2 : 1) + (HasSecondLine ? 2 : 0);
+		return Button.Rect.y + (Button.Rect.h - TextBlockHeight) / 2;
+	}
+
 	void DrawButton(Game::Render::BaseRenderer& Renderer, Game::Render::AppRenderContext* Context,
-		const Game::GUI::Button& Button, bool Selected, bool Compact = false, bool Enabled = true)
+		const Game::GUI::Button& Button, bool Selected, bool Compact = false, bool Enabled = true,
+		bool HasSecondLine = false)
 	{
 		const SDL_FRect Bounds{ static_cast<float>(Button.Rect.x), static_cast<float>(Button.Rect.y),
 			static_cast<float>(Button.Rect.w), static_cast<float>(Button.Rect.h) };
@@ -71,8 +118,9 @@ namespace LeagueBrowserScreenDetail
 		SDL_RenderRect(Context->MainRenderer, &Bounds);
 		const Game::Assets::FontAssetId Font = Compact
 			? Game::Assets::FontAssetDebugFont : Game::Assets::FontAssetInfoFont;
-		Renderer.RenderText(Context->Store.GetFont(Font), Button.Text, Button.Rect.x + 8,
-			Button.Rect.y + (Button.Rect.h - 16) / 2, LeagueText);
+		TTF_Font* LabelFont = Context->Store.GetFont(Font);
+		Renderer.RenderText(LabelFont, Button.Text, Button.Rect.x + 8,
+			GetButtonTextTop(Button, LabelFont, HasSecondLine), LeagueText);
 	}
 
 	std::string ClipText(const std::string& Text, std::size_t MaximumCharacters)
@@ -260,11 +308,33 @@ Game::Screens::LeagueBrowserScreen::LeagueBrowserScreen(AppScreenStateMachine& _
 	for (std::size_t Index = 0; Index < VisibleLeagueCount; ++Index)
 		LeagueButtons.emplace_back(_IO, "", LeagueListLeft, LeagueListTop +
 			static_cast<int>(Index) * LeagueListRowStep, LeagueListWidth, LeagueListRowHeight);
+	UpdateLayout();
 	RefreshLeagueButtons();
+}
+
+void Game::Screens::LeagueBrowserScreen::UpdateLayout()
+{
+	const unsigned int ScreenWidth = Data.RenderContext == nullptr ? 1024 : Data.RenderContext->ScreenWidth;
+	const unsigned int ScreenHeight = Data.RenderContext == nullptr ? 768 : Data.RenderContext->ScreenHeight;
+	SetLeagueBrowserLayout(static_cast<int>(ScreenWidth), static_cast<int>(ScreenHeight));
+	for (std::size_t Index = 0; Index < LocationFilterButtons.size(); ++Index)
+		LocationFilterButtons[Index].SetBounds(LeagueLocationFilterLeft +
+			static_cast<int>(Index) * LeagueLocationFilterStep, LeagueLocationFilterTop,
+			LeagueLocationFilterWidth, LeagueLocationFilterHeight);
+	for (std::size_t Index = 0; Index < LeagueButtons.size(); ++Index)
+		LeagueButtons[Index].SetBounds(LeagueListLeft, LeagueListTop + static_cast<int>(Index) * LeagueListRowStep,
+			LeagueListWidth, LeagueListRowHeight);
+
+	StandingsButton.SetBounds(LeagueDetailLeft + 18, 112, 150, 42);
+	FixturesButton.SetBounds(LeagueDetailLeft + 180, 112, 150, 42);
+	PlayoffsButton.SetBounds(LeagueDetailLeft + 342, 112, 150, 42);
+	JoinLeagueButton.SetBounds(LeagueDetailLeft + LeagueDetailWidth - 165, 112, 150, 42);
+	BackButton.SetBounds(ScreenWidth - 184, LeagueButtonY, 160, 48);
 }
 
 Game::Screens::AppScreen* Game::Screens::LeagueBrowserScreen::Update()
 {
+	UpdateLayout();
 	BackButton.Update();
 	if (BackButton.HasMouseClicked() || IO.Esc)
 	{
@@ -503,7 +573,7 @@ std::size_t Game::Screens::LeagueBrowserScreen::GetMaximumBracketScrollOffset() 
 		League->Playoffs.Rounds.front().Matches.empty())
 		return 0;
 	const std::size_t FirstRoundMatches = League->Playoffs.Rounds.front().Matches.size();
-	constexpr double ViewportHeight = LeagueContentBottom - LeagueContentTop;
+	const double ViewportHeight = LeagueContentBottom - LeagueContentTop;
 	constexpr double MinimumMatchSpacing = 28.0;
 	const double MatchSpacing = std::max(MinimumMatchSpacing,
 		ViewportHeight / static_cast<double>(FirstRoundMatches));
@@ -623,11 +693,15 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 			continue;
 		const std::size_t LeagueIndex = VisibleLeagueIndices[VisibleIndex];
 		const Career::CareerLeague& League = CareerData->Leagues[LeagueIndex];
-		DrawButton(*this, Context, Screen->LeagueButtons[Row],
-			LeagueIndex == Screen->GetSelectedLeagueIndex(), true);
+		const GUI::Button& LeagueButton = Screen->LeagueButtons[Row];
+		DrawButton(*this, Context, LeagueButton,
+			LeagueIndex == Screen->GetSelectedLeagueIndex(), true, true, true);
+		const int LeagueLabelHeight = TTF_GetFontHeight(Context->Store.GetFont(Assets::FontAssetDebugFont));
+		const int SecondaryLabelTop = GetButtonTextTop(LeagueButton,
+			Context->Store.GetFont(Assets::FontAssetDebugFont), true) + LeagueLabelHeight + 2;
 		RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
-			GetDivisionAndState(*CareerData, League), LeagueListLeft + 8,
-			LeagueListTop + static_cast<int>(Row) * LeagueListRowStep + 25, LeagueMuted);
+			ClipText(GetDivisionAndState(*CareerData, League), 30), LeagueButton.Rect.x + 8,
+			SecondaryLabelTop, LeagueMuted);
 	}
 	if (Screen->GetVisibleLeagueIndices().empty())
 		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), CareerData->Leagues.empty()
@@ -678,8 +752,23 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 					return Left->Runner->Name < Right->Runner->Name;
 				});
 
-			RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "POS  RACER                         STATUS               W     D     L     PTS     CASH",
-				LeagueContentLeft, 190, LeagueMuted);
+			TTF_Font* TableFont = Context->Store.GetFont(Assets::FontAssetDebugFont);
+			RenderText(TableFont, "POS",
+				LeagueContentLeft + ScaleLeagueColumn(LeaguePositionColumnOffset), 190, LeagueMuted);
+			RenderText(TableFont, "RACER",
+				LeagueContentLeft + ScaleLeagueColumn(LeagueRacerColumnOffset), 190, LeagueMuted);
+			RenderText(TableFont, "STATUS",
+				LeagueContentLeft + ScaleLeagueColumn(LeagueStatusColumnOffset), 190, LeagueMuted);
+			RenderText(TableFont, "W",
+				LeagueContentLeft + ScaleLeagueColumn(LeagueWinsColumnOffset), 190, LeagueMuted);
+			RenderText(TableFont, "D",
+				LeagueContentLeft + ScaleLeagueColumn(LeagueDrawsColumnOffset), 190, LeagueMuted);
+			RenderText(TableFont, "L",
+				LeagueContentLeft + ScaleLeagueColumn(LeagueLossesColumnOffset), 190, LeagueMuted);
+			RenderText(TableFont, "PTS",
+				LeagueContentLeft + ScaleLeagueColumn(LeaguePointsColumnOffset), 190, LeagueMuted);
+			RenderText(TableFont, "CASH",
+				LeagueContentLeft + ScaleLeagueColumn(LeagueCashColumnOffset), 190, LeagueMuted);
 			const int RowTop = 216;
 			for (std::size_t Index = 0; Index < Standings.size(); ++Index)
 			{
@@ -695,26 +784,26 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 					State != nullptr && State->Activity == Career::CareerRacerActivity::Retired
 						? LeagueMuted : LeagueText;
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), std::to_string(Index + 1),
-					LeagueContentLeft, Y, RowColor);
+					LeagueContentLeft + ScaleLeagueColumn(LeaguePositionColumnOffset), Y, RowColor);
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), ClipText(Standing.Runner->Name, 25),
-					LeagueContentLeft + 40, Y, RowColor);
+					LeagueContentLeft + ScaleLeagueColumn(LeagueRacerColumnOffset), Y, RowColor);
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
 					IsPlayer ? "YOU" : State == nullptr ? "-" :
 					Career::CareerRacerActivityToString(State->Activity),
-					LeagueContentLeft + 232, Y, RowColor);
+					LeagueContentLeft + ScaleLeagueColumn(LeagueStatusColumnOffset), Y, RowColor);
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), std::to_string(Standing.Wins),
-					LeagueContentLeft + 390, Y, RowColor);
+					LeagueContentLeft + ScaleLeagueColumn(LeagueWinsColumnOffset), Y, RowColor);
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), std::to_string(Standing.Draws),
-					LeagueContentLeft + 426, Y, RowColor);
+					LeagueContentLeft + ScaleLeagueColumn(LeagueDrawsColumnOffset), Y, RowColor);
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), std::to_string(Standing.Losses),
-					LeagueContentLeft + 462, Y, RowColor);
+					LeagueContentLeft + ScaleLeagueColumn(LeagueLossesColumnOffset), Y, RowColor);
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), std::to_string(Standing.Points),
-					LeagueContentLeft + 500, Y, RowColor);
+					LeagueContentLeft + ScaleLeagueColumn(LeaguePointsColumnOffset), Y, RowColor);
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
 					IsPlayer ? (Screen->Data.Profile == nullptr ? "-" :
 						"$" + std::to_string(Screen->Data.Profile->Financials.Cash)) :
 					State == nullptr ? "-" : "$" + std::to_string(State->Cash),
-					LeagueContentLeft + 552, Y, RowColor);
+				LeagueContentLeft + ScaleLeagueColumn(LeagueCashColumnOffset), Y, RowColor);
 			}
 			if (Standings.empty())
 				RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "Standings will appear when the season starts.",
@@ -722,8 +811,17 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 		}
 		else if (Screen->GetSelectedTab() == Screens::LeagueBrowserTab::Fixtures)
 		{
-			RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "FIXTURE HEAT   SIX-RACER FIELD                  STATUS       RESULT / TRACK",
-				LeagueContentLeft, 190, LeagueMuted);
+			TTF_Font* TableFont = Context->Store.GetFont(Assets::FontAssetDebugFont);
+			RenderText(TableFont, "FIXTURE",
+				LeagueContentLeft + ScaleLeagueColumn(LeagueFixtureColumnOffset), 190, LeagueMuted);
+			RenderText(TableFont, "HEAT",
+				LeagueContentLeft + ScaleLeagueColumn(LeagueHeatColumnOffset), 190, LeagueMuted);
+			RenderText(TableFont, "FIELD",
+				LeagueContentLeft + ScaleLeagueColumn(LeagueFieldColumnOffset), 190, LeagueMuted);
+			RenderText(TableFont, "RESULT",
+				LeagueContentLeft + ScaleLeagueColumn(LeagueResultColumnOffset), 190, LeagueMuted);
+			RenderText(TableFont, "TRACK",
+				LeagueContentLeft + ScaleLeagueColumn(LeagueTrackColumnOffset), 190, LeagueMuted);
 			const std::size_t FirstFixture = Screen->GetFixtureScrollOffset();
 			const std::size_t EndFixture = std::min(League->Fixtures.size(),
 				FirstFixture + Screens::LeagueBrowserScreen::VisibleFixtureCount);
@@ -758,18 +856,19 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 				const char HeatLabel = static_cast<char>('A' + Fixture.Fixture.Round % HeatsPerFixture);
 				const int Y = 216 + static_cast<int>(Index - FirstFixture) * LeagueFixtureRowStep;
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
-					std::to_string(FixtureNumber + 1), LeagueContentLeft, Y, LeagueText);
+					std::to_string(FixtureNumber + 1),
+					LeagueContentLeft + ScaleLeagueColumn(LeagueFixtureColumnOffset), Y, LeagueText);
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), std::string(1, HeatLabel),
-					LeagueContentLeft + 44, Y, LeagueMuted);
+					LeagueContentLeft + ScaleLeagueColumn(LeagueHeatColumnOffset), Y, LeagueMuted);
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), ClipText(RaceEntrantNames, 35),
-					LeagueContentLeft + 70, Y, LeagueText);
+					LeagueContentLeft + ScaleLeagueColumn(LeagueFieldColumnOffset), Y, LeagueText);
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), Result,
-					LeagueContentLeft + 370, Y,
+					LeagueContentLeft + ScaleLeagueColumn(LeagueResultColumnOffset), Y,
 					Winner != nullptr && Screen->Data.IsPlayerOwnedRacer(Winner)
 						? Render::PlayerOwnedRacerHighlightColor :
 						Fixture.State == Career::CareerFixtureState::InProgress ? LeagueAccent : LeagueText);
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), ClipText(TrackName, 18),
-					LeagueContentLeft + 525, Y, LeagueMuted);
+					LeagueContentLeft + ScaleLeagueColumn(LeagueTrackColumnOffset), Y, LeagueMuted);
 			}
 			if (League->Fixtures.empty())
 				RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "Races are generated when all league places are filled.",
@@ -778,7 +877,7 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 				RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
 					"Showing " + std::to_string(FirstFixture + 1) + "-" + std::to_string(EndFixture) +
 					" of " + std::to_string(League->Fixtures.size()) + " heats  |  scroll to browse",
-					LeagueContentLeft, 624, LeagueMuted);
+					LeagueContentLeft, LeagueContentBottom - 8, LeagueMuted);
 		}
 		else
 		{
@@ -884,7 +983,8 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 				}
 				if (ContentHeight > ViewportHeight)
 					RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
-						"Scroll vertically to view all first-round matches.", LeagueContentLeft, 624, LeagueMuted);
+						"Scroll vertically to view all first-round matches.", LeagueContentLeft,
+						LeagueContentBottom - 8, LeagueMuted);
 				if (Bracket.IsComplete)
 				{
 					const Race::Racer* Champion = GetCompetitor(*CareerData, Bracket.WinnerId);
@@ -906,7 +1006,7 @@ unsigned int Game::Render::LeagueBrowserRenderer::Render()
 	DrawButton(*this, Context, Screen->JoinLeagueButton, false, false, CanJoinLeague || CanRaceMatch);
 	if (!Screen->StatusMessage.empty())
 		RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), Screen->StatusMessage,
-			LeagueDetailLeft + 18, 660, LeagueAccent);
+			LeagueDetailLeft + 18, LeagueButtonY - 30, LeagueAccent);
 
 	DrawButton(*this, Context, Screen->BackButton, false);
 	Display();

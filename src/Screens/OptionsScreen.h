@@ -13,6 +13,7 @@ namespace Game
 		{
 			std::string StatusMessage;
 
+			void UpdateLayout();
 			void CycleResolution(int Direction);
 			void ToggleFullscreen();
 		public:

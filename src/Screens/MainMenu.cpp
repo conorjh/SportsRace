@@ -8,6 +8,7 @@
 #include "SDL3_mixer/SDL_mixer.h"
 #include "..\App\App.h"
 #include "spdlog/spdlog.h"
+#include <algorithm>
 #include <utility>
 
 Game::Screens::MainMenuScreen::MainMenuScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data)
@@ -19,6 +20,7 @@ Game::Screens::MainMenuScreen::MainMenuScreen(AppScreenStateMachine& _Machine, A
 	ExitButton(_IO, "Exit", 100, 500, 180, 80)
 {
 	Type = AppScreenType::MainMenu;
+	UpdateLayout();
 
 	// Keep a small generated field ready for the standalone race option.
 	for (int t = 0; t < 6; ++t)
@@ -32,6 +34,7 @@ Game::Screens::MainMenuScreen::~MainMenuScreen()
 
 Game::Screens::AppScreen* Game::Screens::MainMenuScreen::Update()
 {
+	UpdateLayout();
 	RaceButton.Update();
 	if (RaceButton.HasMouseClicked())
 	{
@@ -49,8 +52,7 @@ Game::Screens::AppScreen* Game::Screens::MainMenuScreen::Update()
 			Data.Profile = new Career::CareerProfile();
 		if (Data.Career == nullptr)
 			Data.Career = new Career::CareerData();
-		const bool IsNewCareer = Data.Career->CityPlots.empty();
-		ScreenStack.Push(new CareerHubScreen(ScreenStack, IO, Data, IsNewCareer));
+		ScreenStack.Push(new CareerHubScreen(ScreenStack, IO, Data));
 		return ScreenStack.Top();
 	}
 
@@ -95,6 +97,20 @@ Game::Screens::AppScreen* Game::Screens::MainMenuScreen::Update()
 	return this;
 }
 
+void Game::Screens::MainMenuScreen::UpdateLayout()
+{
+	const unsigned int ScreenWidth = Data.RenderContext == nullptr ? 1024 : Data.RenderContext->ScreenWidth;
+	const unsigned int ScreenHeight = Data.RenderContext == nullptr ? 768 : Data.RenderContext->ScreenHeight;
+	const GUI::RelativeLayout Layout(static_cast<float>(ScreenWidth), static_cast<float>(ScreenHeight));
+	const int ButtonLeft = Layout.X(0.08f);
+	const int ButtonHeight = 72;
+	RaceButton.SetBounds(ButtonLeft, Layout.Y(0.14f), 210, ButtonHeight);
+	CareerButton.SetBounds(ButtonLeft, Layout.Y(0.27f), 290, ButtonHeight);
+	LoadCareerButton.SetBounds(ButtonLeft, Layout.Y(0.40f), 290, ButtonHeight);
+	OptionsButton.SetBounds(ButtonLeft, Layout.Y(0.53f), 210, ButtonHeight);
+	ExitButton.SetBounds(ButtonLeft, Layout.Y(0.66f), 180, ButtonHeight);
+}
+
 
 
 Game::Render::MainMenuRenderer::MainMenuRenderer(Game::Render::AppRenderContext* RenderContext)
@@ -114,7 +130,9 @@ void Game::Render::MainMenuRenderer::DrawLeague()
 	if (Background == nullptr || Background->Texture == nullptr)
 		return;
 
-	SDL_Rect RenderQuad2{ 500, 100, 378, 359 };
+	const GUI::RelativeLayout Layout(static_cast<float>(Context->ScreenWidth),
+		static_cast<float>(Context->ScreenHeight));
+	SDL_Rect RenderQuad2{ Layout.MapX(500.0f), Layout.MapY(100.0f), 378, 359 };
 	RenderImage(Background->Texture, nullptr, &RenderQuad2);
 }
 
@@ -125,53 +143,35 @@ unsigned int Game::Render::MainMenuRenderer::Render()
 
 	SDL_SetRenderDrawColor(Context->MainRenderer, 255, 255, 255, 255);
 	SDL_RenderClear(Context->MainRenderer);
-	auto RedColor = SDL_MapRGB(SDL_GetPixelFormatDetails(Context->MainSurface->format), SDL_GetSurfacePalette(Context->MainSurface), 255, 0, 0);
 
 	//race button
-	SDL_FillSurfaceRect(Context->MainSurface, &Screen->RaceButton.Rect, RedColor);
-	SDL_SetRenderDrawColor(Context->MainRenderer, 255, 255, 255, 255);
-	SDL_FRect RaceButtonFRect; SDL_RectToFRect(&Screen->RaceButton.Rect, &RaceButtonFRect);
-	SDL_RenderRect(Context->MainRenderer, &RaceButtonFRect);
 	RenderText(Context->Store.GetFont(Assets::FontAssetMainMenuFont), Screen->RaceButton.Text.c_str(), Screen->RaceButton.x + 5, Screen->RaceButton.y + 5, Screen->RaceButton.Color);
 
 	//career button
-	SDL_FillSurfaceRect(Context->MainSurface, &Screen->CareerButton.Rect, RedColor);
-	SDL_SetRenderDrawColor(Context->MainRenderer, 255, 255, 255, 255);
-	SDL_FRect CareerButtonFRect; SDL_RectToFRect(&Screen->CareerButton.Rect, &CareerButtonFRect);
-	SDL_RenderRect(Context->MainRenderer, &CareerButtonFRect);
-	RenderText(Context->Store.GetFont(Assets::FontAssetMainMenuFont), Screen->CareerButton.Text.c_str(), Screen->CareerButton.x + 5, Screen->CareerButton.y + 5, Screen->CareerButton.Color);
+	RenderText(Context->Store.GetFont(Assets::FontAssetMainMenuFont), Screen->CareerButton.Text.c_str(),
+		Screen->CareerButton.x + 5, Screen->CareerButton.y + 5, Screen->CareerButton.Color);
 
-	//load career button
-	SDL_FillSurfaceRect(Context->MainSurface, &Screen->LoadCareerButton.Rect, RedColor);
-	SDL_SetRenderDrawColor(Context->MainRenderer, 255, 255, 255, 255);
-	SDL_FRect LoadCareerButtonFRect; SDL_RectToFRect(&Screen->LoadCareerButton.Rect, &LoadCareerButtonFRect);
-	SDL_RenderRect(Context->MainRenderer, &LoadCareerButtonFRect);
+	// load career button
 	RenderText(Context->Store.GetFont(Assets::FontAssetMainMenuFont), Screen->LoadCareerButton.Text.c_str(),
 		Screen->LoadCareerButton.x + 5, Screen->LoadCareerButton.y + 5, Screen->LoadCareerButton.Color);
 
 	// Options button
-	SDL_FillSurfaceRect(Context->MainSurface, &Screen->OptionsButton.Rect, RedColor);
-	SDL_SetRenderDrawColor(Context->MainRenderer, 255, 255, 255, 255);
-	SDL_FRect OptionsButtonFRect; SDL_RectToFRect(&Screen->OptionsButton.Rect, &OptionsButtonFRect);
-	SDL_RenderRect(Context->MainRenderer, &OptionsButtonFRect);
 	RenderText(Context->Store.GetFont(Assets::FontAssetMainMenuFont), Screen->OptionsButton.Text.c_str(),
 		Screen->OptionsButton.x + 5, Screen->OptionsButton.y + 5, Screen->OptionsButton.Color);
 
 	//exit button
-	SDL_FillSurfaceRect(Context->MainSurface, &Screen->ExitButton.Rect, RedColor);
-	SDL_SetRenderDrawColor(Context->MainRenderer, 255, 255, 255, 255);
-	SDL_FRect ExitButtonFRect; SDL_RectToFRect(&Screen->ExitButton.Rect, &ExitButtonFRect);
-	SDL_RenderRect(Context->MainRenderer, &ExitButtonFRect);
 	RenderText(Context->Store.GetFont(Assets::FontAssetMainMenuFont), Screen->ExitButton.Text.c_str(), Screen->ExitButton.x + 5, Screen->ExitButton.y + 5, Screen->ExitButton.Color);
 	if (!Screen->StatusMessage.empty())
-		RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), Screen->StatusMessage, 100, 620,
+		RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), Screen->StatusMessage,
+			static_cast<int>(Context->ScreenWidth * 0.08f), static_cast<int>(Context->ScreenHeight - 80),
 			SDL_Color{ 239, 190, 133, 255 });
 
 	//League standings
 	DrawLeague();
 
 	//fps
-	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "FPS: " + std::to_string(FPS.GetFPS()), 975, 5, { 255,255,255 });
+	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont), "FPS: " + std::to_string(FPS.GetFPS()),
+		static_cast<int>(Context->ScreenWidth) - 50, 5, { 255,255,255 });
 
 	Display();
 

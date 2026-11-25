@@ -13,35 +13,35 @@
 namespace RacerDBScreenDetail
 {
 	constexpr int RacerDBScreenPanelTop = 94;
-	constexpr int RacerDBScreenPanelHeight = 550;
-	constexpr int RacerDBScreenListLeft = 32;
-	constexpr int RacerDBScreenListWidth = 620;
-	constexpr int RacerDBScreenDetailsLeft = 668;
-	constexpr int RacerDBScreenDetailsWidth = 316;
+	int RacerDBScreenPanelHeight = 550;
+	int RacerDBScreenListLeft = 32;
+	int RacerDBScreenListWidth = 620;
+	int RacerDBScreenDetailsLeft = 668;
+	int RacerDBScreenDetailsWidth = 316;
 	constexpr int RacerDBScreenHistoryRows = 7;
 	constexpr int RacerDBScreenHistoryRowStep = 52;
-	constexpr int RacerDBScreenRowLeft = RacerDBScreenListLeft + 16;
+	int RacerDBScreenRowLeft = RacerDBScreenListLeft + 16;
 	constexpr int RacerDBScreenTableHeaderY = 159;
 	constexpr int RacerDBScreenSortButtonHeight = 24;
 	constexpr int RacerDBScreenRowTop = 190;
 	constexpr int RacerDBScreenRowStep = 36;
 	constexpr int RacerDBScreenRowHeight = 31;
-	constexpr int RacerDBScreenScrollbarLeft = RacerDBScreenListLeft + RacerDBScreenListWidth - 22;
+	int RacerDBScreenScrollbarLeft = RacerDBScreenListLeft + RacerDBScreenListWidth - 22;
 	constexpr int RacerDBScreenScrollbarWidth = 10;
 	constexpr int RacerDBScreenScrollbarHeight = RacerDBScreenRowStep * Game::Screens::RacerDBScreen::VisibleRacerCount;
 	constexpr int RacerDBScreenMinimumThumbHeight = 24;
-	constexpr int RacerDBScreenRowWidth = RacerDBScreenScrollbarLeft - RacerDBScreenRowLeft - 8;
+	int RacerDBScreenRowWidth = RacerDBScreenScrollbarLeft - RacerDBScreenRowLeft - 8;
 	constexpr int RacerDBScreenRankColumnWidth = 30;
 	constexpr int RacerDBScreenNameColumnWidth = 130;
 	constexpr int RacerDBScreenPositionPointsColumnWidth = 40;
 	constexpr int RacerDBScreenWinLossColumnWidth = 24;
 	constexpr int RacerDBScreenXpColumnWidth = 44;
 	constexpr int RacerDBScreenRatingColumnWidth = 35;
-	constexpr int RacerDBScreenNameButtonX = RacerDBScreenRowLeft + RacerDBScreenRankColumnWidth;
-	constexpr int RacerDBScreenNameButtonWidth = RacerDBScreenRowWidth - RacerDBScreenRankColumnWidth;
+	int RacerDBScreenNameButtonX = RacerDBScreenRowLeft + RacerDBScreenRankColumnWidth;
+	int RacerDBScreenNameButtonWidth = RacerDBScreenRowWidth - RacerDBScreenRankColumnWidth;
 	constexpr std::size_t RacerDBScreenRatingCount = 8;
 	constexpr std::size_t RacerDBScreenSortColumnCount = 6 + RacerDBScreenRatingCount;
-	constexpr int RacerDBScreenButtonY = 674;
+	int RacerDBScreenButtonY = 674;
 	constexpr int RacerDBScreenButtonHeight = 48;
 	constexpr int RacerDBScreenButtonTextHeight = 16;
 	constexpr int RacerDBScreenRatingLabelWidth = 112;
@@ -90,6 +90,7 @@ namespace RacerDBScreenDetail
 		{ Game::Screens::RacerDBSortColumn::Trainability, "TRN", RacerDBScreenRatingColumnWidth },
 		{ Game::Screens::RacerDBSortColumn::Luck, "LCK", RacerDBScreenRatingColumnWidth }
 	}};
+	double RacerDBScreenColumnScale = 1.0;
 	constexpr std::array<const char*, RacerDBScreenRatingCount> RacerDBScreenRatingColumnLabels{
 		"Reflex", "Compos.", "Accel.", "Endur.", "Speed", "Potent.", "Train.", "Luck"
 	};
@@ -117,8 +118,34 @@ namespace RacerDBScreenDetail
 	{
 		int Left = RacerDBScreenRowLeft;
 		for (std::size_t Index = 0; Index < ColumnIndex && Index < RacerDBSortColumns.size(); ++Index)
-			Left += RacerDBSortColumns[Index].Width;
+			Left += static_cast<int>(std::lround(RacerDBSortColumns[Index].Width * RacerDBScreenColumnScale));
 		return Left;
+	}
+
+	int GetSortColumnWidth(std::size_t ColumnIndex)
+	{
+		return ColumnIndex < RacerDBSortColumns.size()
+			? static_cast<int>(std::lround(RacerDBSortColumns[ColumnIndex].Width * RacerDBScreenColumnScale)) : 0;
+	}
+
+	void SetRacerDBLayout(int ScreenWidth, int ScreenHeight)
+	{
+		const Game::GUI::RelativeLayout Layout(static_cast<float>(ScreenWidth),
+			static_cast<float>(ScreenHeight));
+		RacerDBScreenListLeft = Layout.X(0.03f);
+		RacerDBScreenListWidth = std::max(620, Layout.X(0.52f));
+		RacerDBScreenDetailsLeft = RacerDBScreenListLeft + RacerDBScreenListWidth + 16;
+		RacerDBScreenDetailsWidth = std::max(316,
+			ScreenWidth - RacerDBScreenDetailsLeft - Layout.X(0.039f));
+		RacerDBScreenPanelHeight = std::max(500, ScreenHeight - 218);
+		RacerDBScreenRowLeft = RacerDBScreenListLeft + 16;
+		RacerDBScreenScrollbarLeft = RacerDBScreenListLeft + RacerDBScreenListWidth - 22;
+		RacerDBScreenRowWidth = RacerDBScreenScrollbarLeft - RacerDBScreenRowLeft - 8;
+		RacerDBScreenNameButtonX = RacerDBScreenRowLeft + RacerDBScreenRankColumnWidth;
+		RacerDBScreenNameButtonWidth = RacerDBScreenRowWidth - RacerDBScreenRankColumnWidth;
+		RacerDBScreenButtonY = ScreenHeight - 94;
+		RacerDBScreenColumnScale = std::max(1.0,
+			static_cast<double>(RacerDBScreenRowWidth) / 572.0);
 	}
 
 	bool IsRankedAhead(const Game::Race::Racer* Left, const Game::Race::Racer* Right)
@@ -300,16 +327,35 @@ Game::Screens::RacerDBScreen::RacerDBScreen(AppScreenStateMachine& _Machine, App
 	HistoryViewButton(_IO, "HISTORY", 844, 104, 116, 30)
 {
 	Type = AppScreenType::RacerDBScreen;
+	UpdateLayout();
 	SortButtons.reserve(RacerDBSortColumns.size());
 	for (std::size_t Index = 0; Index < RacerDBSortColumns.size(); ++Index)
 		SortButtons.emplace_back(_IO, RacerDBSortColumns[Index].Label, GetSortColumnLeft(Index),
-			RacerDBScreenTableHeaderY, RacerDBSortColumns[Index].Width, RacerDBScreenSortButtonHeight);
+			RacerDBScreenTableHeaderY, GetSortColumnWidth(Index), RacerDBScreenSortButtonHeight);
 	RacerButtons.reserve(VisibleRacerCount);
 	for (std::size_t Index = 0; Index < VisibleRacerCount; ++Index)
 		RacerButtons.emplace_back(_IO, "", RacerDBScreenNameButtonX,
 			RacerDBScreenRowTop + static_cast<int>(Index) * RacerDBScreenRowStep,
 			RacerDBScreenNameButtonWidth, RacerDBScreenRowHeight);
+	UpdateLayout();
 	RefreshRacers();
+}
+
+void Game::Screens::RacerDBScreen::UpdateLayout()
+{
+	const unsigned int ScreenWidth = Data.RenderContext == nullptr ? 1024 : Data.RenderContext->ScreenWidth;
+	const unsigned int ScreenHeight = Data.RenderContext == nullptr ? 768 : Data.RenderContext->ScreenHeight;
+	SetRacerDBLayout(static_cast<int>(ScreenWidth), static_cast<int>(ScreenHeight));
+	ExitButton.SetBounds(static_cast<int>(ScreenWidth) - 200, RacerDBScreenButtonY, 160,
+		RacerDBScreenButtonHeight);
+	HistoryViewButton.SetBounds(RacerDBScreenDetailsLeft + RacerDBScreenDetailsWidth - 140, 104, 116, 30);
+	for (std::size_t Index = 0; Index < SortButtons.size(); ++Index)
+		SortButtons[Index].SetBounds(GetSortColumnLeft(Index), RacerDBScreenTableHeaderY,
+			GetSortColumnWidth(Index), RacerDBScreenSortButtonHeight);
+	for (std::size_t Index = 0; Index < RacerButtons.size(); ++Index)
+		RacerButtons[Index].SetBounds(RacerDBScreenNameButtonX,
+			RacerDBScreenRowTop + static_cast<int>(Index) * RacerDBScreenRowStep,
+			RacerDBScreenNameButtonWidth, RacerDBScreenRowHeight);
 }
 
 void Game::Screens::RacerDBScreen::Entry()
@@ -319,6 +365,7 @@ void Game::Screens::RacerDBScreen::Entry()
 
 Game::Screens::AppScreen* Game::Screens::RacerDBScreen::Update()
 {
+	UpdateLayout();
 	if (Racers.size() != Database.Size())
 		RefreshRacers();
 	HistoryViewButton.Text = ShowingHistory ? "PROFILE" : "HISTORY";
@@ -743,7 +790,7 @@ unsigned int Game::Render::RacerDBScreenRenderer::Render()
 		Screen->GetRacerCount() == 0 ? "No runners in the database" :
 		"Showing " + std::to_string(FirstVisible) + "-" + std::to_string(LastVisible) + " of " +
 		std::to_string(Screen->GetRacerCount()),
-		RacerDBScreenListLeft + 16, 691, RacerDBScreenMutedTextColor);
+		RacerDBScreenListLeft + 16, RacerDBScreenButtonY + 17, RacerDBScreenMutedTextColor);
 	DrawButton(*this, Context, Screen->ExitButton);
 
 	Race::Racer* Runner = Screen->GetSelectedRacer();

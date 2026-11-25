@@ -57,6 +57,7 @@ namespace Game
 			std::string StatusMessage;
 
 			void RefreshLeagueButtons();
+			void UpdateLayout();
 			std::size_t GetMaximumLeagueScrollOffset() const;
 			std::size_t GetMaximumFixtureScrollOffset() const;
 			std::size_t GetMaximumBracketScrollOffset() const;

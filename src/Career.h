@@ -30,6 +30,10 @@ namespace Game
 			double Accuracy = 0.0;
 		};
 
+		inline constexpr int CareerStableLeasePrice = 1000;
+		inline constexpr int CareerBreederRacerPrice = 1000;
+		inline constexpr std::size_t CareerStableRacerCapacity = 6;
+
 		enum class CityPlotType
 		{
 			Scenery,
@@ -155,7 +159,7 @@ namespace Game
 		struct CareerRacerState
 		{
 			Race::Racer* Runner = nullptr;
-			std::uint64_t CityId = 0;
+			std::uint64_t BasedInCityId = 0;
 			int Cash = 1000;
 			int StartingCash = 1000;
 			std::uint64_t LeagueId = 0;
@@ -321,6 +325,8 @@ namespace Game
 			std::vector<CareerWorldCountry> Countries;
 			std::vector<CareerHistoricalRace> HistoricalRaces;
 			std::uint64_t HomeCityId = 0;
+			std::uint64_t PlayerStableCityId = 0;
+			std::size_t PlayerStablePlotIndex = 0;
 			std::vector<unsigned int> RaceTrackLengths;
 			std::vector<Race::Racer*> OwnedRacers;
 			Race::Racer* PlayerLeagueRacer = nullptr;
@@ -362,10 +368,12 @@ namespace Game
 		};
 
 		inline constexpr std::size_t MaximumCareerHistoricalRaces = 128;
-		inline constexpr std::uint32_t CurrentCareerSaveFormatVersion = 3; // Bump whenever the serialized layout changes.
+		inline constexpr std::uint32_t CurrentCareerSaveFormatVersion = 4; // Bump whenever the serialized layout changes.
 		inline constexpr char CareerSaveFilePath[] = "saves/career.srsave";
 
 		bool IsLeagueAtStableLocation(const CareerData& Data, const CareerLeague& League);
+		bool IsRacerEligibleForLeagueLocation(const CareerData& Data, const CareerRacerState& State,
+			const CareerLeague& League);
 		CareerHistoricalRace* FindCareerHistoricalRace(CareerData& Data, std::uint64_t HistoryId);
 		const CareerHistoricalRace* FindCareerHistoricalRace(const CareerData& Data, std::uint64_t HistoryId);
 		bool RecordCareerRaceHistory(CareerData& Data, const Race::Race& CompletedRace, const std::string& EventName,
@@ -397,6 +405,9 @@ namespace Game
 			void BeginInitialWorldMonthSimulation();
 			bool AdvanceInitialWorldMonthSimulation(std::size_t MaximumUpdates);
 			void SimulateInitialWorldMonth();
+			bool CanRentStableSpace(std::uint64_t CityId, std::size_t PlotIndex) const;
+			bool RentStableSpace(std::uint64_t CityId, std::size_t PlotIndex);
+			Race::Racer* GenerateRacerFromBreeder();
 			bool CanJoinLeague(std::uint64_t LeagueId) const;
 			bool JoinLeague(std::uint64_t LeagueId);
 			bool CanRaceNextPlayerLeagueMatch() const;

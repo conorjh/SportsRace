@@ -32,6 +32,26 @@ namespace RouletteScreenDetail
 	constexpr SDL_Color RouletteRed{ 159, 49, 48, 255 };
 	constexpr SDL_Color RouletteBlack{ 34, 36, 34, 255 };
 
+	Game::GUI::RelativeLayout GetRouletteLayout(const Game::Render::AppRenderContext* Context)
+	{
+		return Game::GUI::RelativeLayout(static_cast<float>(Context->ScreenWidth),
+			static_cast<float>(Context->ScreenHeight));
+	}
+
+	SDL_FRect MapBounds(Game::Render::AppRenderContext* Context, const SDL_FRect& Bounds)
+	{
+		const Game::GUI::RelativeLayout Layout = GetRouletteLayout(Context);
+		return { static_cast<float>(Layout.MapX(Bounds.x)), static_cast<float>(Layout.MapY(Bounds.y)),
+			Bounds.w, Bounds.h };
+	}
+
+	SDL_FRect MapContainerBounds(Game::Render::AppRenderContext* Context, const SDL_FRect& Bounds)
+	{
+		const Game::GUI::RelativeLayout Layout = GetRouletteLayout(Context);
+		return { static_cast<float>(Layout.MapX(Bounds.x)), static_cast<float>(Layout.MapY(Bounds.y)),
+			static_cast<float>(Layout.MapX(Bounds.w)), static_cast<float>(Layout.MapY(Bounds.h)) };
+	}
+
 	int GetRouletteColor(unsigned int Number)
 	{
 		if (Number == 0)
@@ -62,25 +82,33 @@ namespace RouletteScreenDetail
 			NumberCellWidth, NumberCellHeight };
 	}
 
-	void DrawRoulettePanel(SDL_Renderer* Renderer, const SDL_FRect& Bounds, SDL_Color Fill, SDL_Color Border)
+	void DrawRoulettePanel(Game::Render::AppRenderContext* Context, const SDL_FRect& Bounds, SDL_Color Fill,
+		SDL_Color Border, bool MapPosition = true, bool MapDimensions = false)
 	{
+		const SDL_FRect DrawBounds = !MapPosition ? Bounds : MapDimensions
+			? MapContainerBounds(Context, Bounds) : MapBounds(Context, Bounds);
+		SDL_Renderer* Renderer = Context->MainRenderer;
 		SDL_SetRenderDrawColor(Renderer, Fill.r, Fill.g, Fill.b, Fill.a);
-		SDL_RenderFillRect(Renderer, &Bounds);
+		SDL_RenderFillRect(Renderer, &DrawBounds);
 		SDL_SetRenderDrawColor(Renderer, Border.r, Border.g, Border.b, Border.a);
-		SDL_RenderRect(Renderer, &Bounds);
+		SDL_RenderRect(Renderer, &DrawBounds);
 	}
 
 	void DrawCasinoButton(Game::Render::BaseRenderer& Renderer, Game::Render::AppRenderContext* Context,
-		const std::string& Text, const SDL_FRect& Bounds, SDL_FPoint Mouse, bool Selected, bool Enabled = true)
+		const std::string& Text, const SDL_FRect& Bounds, SDL_FPoint Mouse, bool Selected, bool Enabled = true,
+		bool MapPosition = true)
 	{
-		const bool Hovered = Enabled && Mouse.x >= Bounds.x && Mouse.x <= Bounds.x + Bounds.w &&
-			Mouse.y >= Bounds.y && Mouse.y <= Bounds.y + Bounds.h;
+		const SDL_FRect DrawBounds = MapPosition ? MapBounds(Context, Bounds) : Bounds;
+		const bool Hovered = Enabled && Mouse.x >= DrawBounds.x && Mouse.x <= DrawBounds.x + DrawBounds.w &&
+			Mouse.y >= DrawBounds.y && Mouse.y <= DrawBounds.y + DrawBounds.h;
 		const SDL_Color Fill = !Enabled ? SDL_Color{ 55, 58, 52, 255 } : Selected
 			? SDL_Color{ 105, 78, 42, 255 } : Hovered ? SDL_Color{ 88, 82, 47, 255 }
 				: SDL_Color{ 48, 68, 51, 255 };
-		DrawRoulettePanel(Context->MainRenderer, Bounds, Fill, Selected ? CasinoGold : SDL_Color{ 112, 133, 100, 255 });
-		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont), Text,
-			static_cast<int>(Bounds.x) + 10, static_cast<int>(Bounds.y + (Bounds.h - 16.0f) / 2.0f),
+		DrawRoulettePanel(Context, Bounds, Fill, Selected ? CasinoGold : SDL_Color{ 112, 133, 100, 255 },
+			MapPosition);
+		const int TextX = static_cast<int>(DrawBounds.x) + 10;
+		const int TextY = static_cast<int>(DrawBounds.y + (DrawBounds.h - 16.0f) / 2.0f);
+		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont), Text, TextX, TextY,
 			Enabled ? CasinoText : CasinoMuted);
 	}
 
@@ -88,8 +116,9 @@ namespace RouletteScreenDetail
 		unsigned int Number, SDL_FPoint Mouse, bool Selected, bool Winning, bool Enabled)
 	{
 		const SDL_FRect Bounds = GetNumberBounds(Number);
-		const bool Hovered = Enabled && Mouse.x >= Bounds.x && Mouse.x <= Bounds.x + Bounds.w &&
-			Mouse.y >= Bounds.y && Mouse.y <= Bounds.y + Bounds.h;
+		const SDL_FRect DrawBounds = MapBounds(Context, Bounds);
+		const bool Hovered = Enabled && Mouse.x >= DrawBounds.x && Mouse.x <= DrawBounds.x + DrawBounds.w &&
+			Mouse.y >= DrawBounds.y && Mouse.y <= DrawBounds.y + DrawBounds.h;
 		SDL_Color Fill = GetRouletteColorFill(Number);
 		if (!Enabled)
 			Fill = { static_cast<Uint8>(Fill.r / 2), static_cast<Uint8>(Fill.g / 2),
@@ -100,12 +129,12 @@ namespace RouletteScreenDetail
 				static_cast<Uint8>(std::min(255, Fill.b + 28)), 255 };
 		const SDL_Color Border = Winning ? SDL_Color{ 246, 220, 126, 255 } :
 			Selected ? CasinoGold : SDL_Color{ 82, 112, 86, 255 };
-		DrawRoulettePanel(Context->MainRenderer, Bounds, Fill, Border);
+		DrawRoulettePanel(Context, Bounds, Fill, Border);
 		const std::string Label = std::to_string(Number);
 		const int TextWidth = Number == 0 ? 8 : 15;
 		Renderer.RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont), Label,
-			static_cast<int>(Bounds.x + (Bounds.w - static_cast<float>(TextWidth)) / 2.0f),
-			static_cast<int>(Bounds.y + (Bounds.h - 16.0f) / 2.0f), CasinoText);
+			static_cast<int>(DrawBounds.x + (DrawBounds.w - static_cast<float>(TextWidth)) / 2.0f),
+			static_cast<int>(DrawBounds.y + (DrawBounds.h - 16.0f) / 2.0f), CasinoText);
 	}
 
 	void DrawFilledCircle(SDL_Renderer* Renderer, float CenterX, float CenterY, int Radius, SDL_Color Color)
@@ -299,6 +328,7 @@ Game::Render::RouletteScreenRenderer::RouletteScreenRenderer(AppRenderContext* C
 unsigned int Game::Render::RouletteScreenRenderer::Render()
 {
 	const unsigned int StartTime = SDL_GetTicks();
+	const Game::GUI::RelativeLayout Layout = GetRouletteLayout(Context);
 	SDL_SetRenderDrawColor(Context->MainRenderer, 16, 35, 27, 255);
 	SDL_RenderClear(Context->MainRenderer);
 	if (Screen == nullptr)
@@ -306,37 +336,49 @@ unsigned int Game::Render::RouletteScreenRenderer::Render()
 		Display();
 		return SDL_GetTicks() - StartTime;
 	}
+	const auto RenderText = [this, &Layout](TTF_Font* Font, const std::string& Text, int X, int Y,
+		SDL_Color Color)
+	{
+		BaseRenderer::RenderText(Font, Text, Layout.MapX(static_cast<float>(X)),
+			Layout.MapY(static_cast<float>(Y)), Color);
+	};
 
 	RenderText(Context->Store.GetFont(Game::Assets::FontAssetMainFont), "ROULETTE TABLE", 52, 32, CasinoGold);
 	RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont),
 		"European wheel - 37 pockets - place your bets before the spin.", 54, 60, CasinoMuted);
-	const SDL_FRect CashPanel{ 790.0f, 28.0f, 186.0f, 48.0f };
-	DrawRoulettePanel(Context->MainRenderer, CashPanel, SDL_Color{ 27, 48, 34, 255 }, CasinoGold);
+	const SDL_FRect CashPanel{ static_cast<float>(Context->ScreenWidth) - Layout.MapX(48.0f) - 186.0f,
+		static_cast<float>(Layout.MapY(28.0f)), 186.0f, 48.0f };
+	DrawRoulettePanel(Context, CashPanel, SDL_Color{ 27, 48, 34, 255 }, CasinoGold, false);
 	const int Cash = Screen->Data.Profile == nullptr ? 0 : Screen->Data.Profile->Financials.Cash;
-	RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont), "CASH  $" + std::to_string(Cash),
-		808, 44, CasinoText);
+	BaseRenderer::RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont),
+		"CASH  $" + std::to_string(Cash), static_cast<int>(CashPanel.x) + 18,
+		static_cast<int>(CashPanel.y) + 16, CasinoText);
 
 	const SDL_FRect WheelPanel{ 42.0f, 124.0f, 370.0f, 454.0f };
-	DrawRoulettePanel(Context->MainRenderer, WheelPanel, SDL_Color{ 26, 58, 40, 255 }, SDL_Color{ 88, 130, 89, 255 });
+	const SDL_FRect ResponsiveWheelPanel = MapContainerBounds(Context, WheelPanel);
+	DrawRoulettePanel(Context, WheelPanel, SDL_Color{ 26, 58, 40, 255 }, SDL_Color{ 88, 130, 89, 255 },
+		true, true);
 	RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont), "EUROPEAN WHEEL", 134, 143, CasinoText);
-	constexpr float WheelCenterX = 227.0f;
-	constexpr float WheelCenterY = 341.0f;
+	const float WheelCenterX = ResponsiveWheelPanel.x + ResponsiveWheelPanel.w / 2.0f;
+	const float WheelCenterY = ResponsiveWheelPanel.y + ResponsiveWheelPanel.h * 0.478f;
 	DrawRouletteWheel(Context->MainRenderer, WheelCenterX, WheelCenterY, Screen->WheelRotation);
 	const std::string CenterNumber = Screen->IsSpinning ? "..." :
 		Screen->HasResult ? std::to_string(Screen->RouletteNumber) : "READY";
 	const int CenterTextWidth = static_cast<int>(CenterNumber.size()) * 9;
-	RenderText(Context->Store.GetFont(Game::Assets::FontAssetMainFont), CenterNumber,
-		static_cast<int>(WheelCenterX) - CenterTextWidth / 2, 329,
+	BaseRenderer::RenderText(Context->Store.GetFont(Game::Assets::FontAssetMainFont), CenterNumber,
+		static_cast<int>(WheelCenterX) - CenterTextWidth / 2, static_cast<int>(WheelCenterY) - 12,
 		Screen->RouletteColor == 0 ? RouletteGreen : Screen->RouletteColor == 1 ? SDL_Color{ 247, 185, 140, 255 }
 			: CasinoText);
 	if (Screen->HasResult && !Screen->IsSpinning)
-		RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), GetColorName(Screen->RouletteColor),
-			static_cast<int>(WheelCenterX) - 18, 355, CasinoMuted);
+		BaseRenderer::RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont),
+			GetColorName(Screen->RouletteColor), static_cast<int>(WheelCenterX) - 18,
+			static_cast<int>(WheelCenterY) + 14, CasinoMuted);
 	RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont),
 		"0 is green; single number bets pay 35:1.", 85, 526, CasinoMuted);
 
 	const SDL_FRect TablePanel{ 434.0f, 124.0f, 548.0f, 454.0f };
-	DrawRoulettePanel(Context->MainRenderer, TablePanel, SDL_Color{ 24, 51, 36, 255 }, SDL_Color{ 88, 130, 89, 255 });
+	DrawRoulettePanel(Context, TablePanel, SDL_Color{ 24, 51, 36, 255 }, SDL_Color{ 88, 130, 89, 255 },
+		true, true);
 	RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont), "CHOOSE A NUMBER OR COLOR", 468, 143,
 		CasinoText);
 	for (unsigned int Number = 0; Number <= 36; ++Number)
@@ -365,8 +407,9 @@ unsigned int Game::Render::RouletteScreenRenderer::Render()
 	const SDL_Color ResultFill = Screen->IsSpinning ? SDL_Color{ 31, 57, 39, 255 } :
 		Screen->LastSpinWon ? SDL_Color{ 52, 83, 47, 255 } : SDL_Color{ 31, 57, 39, 255 };
 	const SDL_FRect ResultPanel{ 468.0f, 486.0f, 487.0f, 52.0f };
-	DrawRoulettePanel(Context->MainRenderer, ResultPanel, ResultFill,
-		Screen->LastSpinWon && !Screen->IsSpinning ? SDL_Color{ 115, 180, 103, 255 } : SDL_Color{ 88, 130, 89, 255 });
+	DrawRoulettePanel(Context, ResultPanel, ResultFill,
+		Screen->LastSpinWon && !Screen->IsSpinning ? SDL_Color{ 115, 180, 103, 255 } : SDL_Color{ 88, 130, 89, 255 },
+		true, true);
 	RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont), Screen->ResultMessage,
 		480, 504, Screen->LastSpinWon && !Screen->IsSpinning ? SDL_Color{ 201, 242, 170, 255 } : CasinoText);
 	RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont),
@@ -375,7 +418,7 @@ unsigned int Game::Render::RouletteScreenRenderer::Render()
 	DrawCasinoButton(*this, Context, Screen->BackButton.Text,
 		SDL_FRect{ static_cast<float>(Screen->BackButton.x), static_cast<float>(Screen->BackButton.y),
 			static_cast<float>(Screen->BackButton.w), static_cast<float>(Screen->BackButton.h) },
-		Screen->IO.MousePosition, false);
+		Screen->IO.MousePosition, false, true, false);
 
 	Display();
 	return SDL_GetTicks() - StartTime;

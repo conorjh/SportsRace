@@ -13,20 +13,21 @@ namespace Game
 		class CareerHubScreen : public AppScreen
 		{
 			Career::CareerOrchestrator Orchestrator;
-			bool PlayerCreationPending = false;
+			void UpdateLayout();
 		public:
-			GUI::IconButton RacerIcon, RaceIcon, TrainingIcon, RankingIcon;
-			GUI::Button RacerDBButton, WorldMapButton, LeagueBrowserButton, SaveCareerButton;
+			GUI::Button LeagueBrowserButton;
+			GUI::Button DatabaseButton;
+			GUI::Button WorldMapButton, StableButton, BreedingFarmButton, SaveCareerButton;
 			std::string StatusMessage;
 
-			CareerHubScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data,
-				bool _PlayerCreationPending = false);
+			CareerHubScreen(AppScreenStateMachine& _Machine, App::AppIO& _IO, App::AppData& _Data);
 			~CareerHubScreen();
 
 			void Entry(), Exit();
 
 			AppScreen* Update();
 			Career::CareerData* GetCareerData() const;
+			int GetPlayerCash() const;
 		};
 	}
 

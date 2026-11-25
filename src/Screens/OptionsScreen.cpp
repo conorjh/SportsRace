@@ -50,6 +50,7 @@ Game::Screens::OptionsScreen::OptionsScreen(AppScreenStateMachine& _Machine, App
 	BackButton(_IO, "Back", 824, 694, 160, 48)
 {
 	Type = AppScreenType::OptionsScreen;
+	UpdateLayout();
 	FullscreenButton.Text = GetFullscreenLabel();
 }
 
@@ -63,6 +64,7 @@ void Game::Screens::OptionsScreen::Exit()
 
 Game::Screens::AppScreen* Game::Screens::OptionsScreen::Update()
 {
+	UpdateLayout();
 	FullscreenButton.Text = GetFullscreenLabel();
 	if (BackButton.HasMouseClicked() || IO.Esc)
 	{
@@ -85,6 +87,18 @@ Game::Screens::AppScreen* Game::Screens::OptionsScreen::Update()
 	FullscreenButton.Text = GetFullscreenLabel();
 
 	return this;
+}
+
+void Game::Screens::OptionsScreen::UpdateLayout()
+{
+	const unsigned int ScreenWidth = Data.RenderContext == nullptr ? 1024 : Data.RenderContext->ScreenWidth;
+	const unsigned int ScreenHeight = Data.RenderContext == nullptr ? 768 : Data.RenderContext->ScreenHeight;
+	const int PanelLeft = (static_cast<int>(ScreenWidth) - 616) / 2;
+	const int PanelTop = (static_cast<int>(ScreenHeight) - 390) / 2;
+	PreviousResolutionButton.SetBounds(PanelLeft + 48, PanelTop + 124, 64, 48);
+	NextResolutionButton.SetBounds(PanelLeft + 504, PanelTop + 124, 64, 48);
+	FullscreenButton.SetBounds(PanelLeft + 198, PanelTop + 222, 220, 52);
+	BackButton.SetBounds(static_cast<int>(ScreenWidth) - 184, static_cast<int>(ScreenHeight) - 74, 160, 48);
 }
 
 void Game::Screens::OptionsScreen::CycleResolution(int Direction)
@@ -138,36 +152,38 @@ Game::Render::OptionsScreenRenderer::OptionsScreenRenderer(Game::Render::AppRend
 unsigned int Game::Render::OptionsScreenRenderer::Render()
 {
 	const auto StartTime = SDL_GetTicks();
+	const int PanelLeft = (static_cast<int>(Context->ScreenWidth) - 616) / 2;
+	const int PanelTop = (static_cast<int>(Context->ScreenHeight) - 390) / 2;
 	SDL_SetRenderDrawColor(Context->MainRenderer, 23, 22, 20, 255);
 	SDL_RenderClear(Context->MainRenderer);
 	RenderText(Context->Store.GetFont(Game::Assets::FontAssetMainFont), "OPTIONS",
-		410, 76, SDL_Color{ 178, 61, 49, 255 });
+		static_cast<int>(Context->ScreenWidth * 0.5f) - 50, PanelTop - 84, SDL_Color{ 178, 61, 49, 255 });
 
-	const SDL_FRect Panel{ 204.0f, 160.0f, 616.0f, 390.0f };
+	const SDL_FRect Panel{ static_cast<float>(PanelLeft), static_cast<float>(PanelTop), 616.0f, 390.0f };
 	SDL_SetRenderDrawColor(Context->MainRenderer, 34, 33, 30, 255);
 	SDL_RenderFillRect(Context->MainRenderer, &Panel);
 	SDL_SetRenderDrawColor(Context->MainRenderer, 75, 70, 60, 255);
 	SDL_RenderRect(Context->MainRenderer, &Panel);
 
 	RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont), "WINDOWED RESOLUTION",
-		252, 224, SDL_Color{ 235, 229, 215, 255 });
+		PanelLeft + 48, PanelTop + 64, SDL_Color{ 235, 229, 215, 255 });
 	DrawOptionsButton(*this, Context, Screen->PreviousResolutionButton);
 	DrawOptionsButton(*this, Context, Screen->NextResolutionButton);
 	RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont), Screen->GetResolutionLabel(),
-		412, 298, SDL_Color{ 235, 229, 215, 255 });
+		PanelLeft + 208, PanelTop + 138, SDL_Color{ 235, 229, 215, 255 });
 
 	RenderText(Context->Store.GetFont(Game::Assets::FontAssetInfoFont), "DISPLAY MODE",
-		252, 366, SDL_Color{ 235, 229, 215, 255 });
+		PanelLeft + 48, PanelTop + 206, SDL_Color{ 235, 229, 215, 255 });
 	DrawOptionsButton(*this, Context, Screen->FullscreenButton);
 	RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont),
 		"Fullscreen uses the desktop mode; resolution controls the windowed size.",
-		252, 458, SDL_Color{ 164, 155, 138, 255 });
+		PanelLeft + 48, PanelTop + 298, SDL_Color{ 164, 155, 138, 255 });
 	RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont),
-		"Resize the window freely. The game keeps its 1024 x 768 logical layout.",
-		252, 482, SDL_Color{ 164, 155, 138, 255 });
+		"Resize the window freely. The interface scales to fill each desktop aspect ratio.",
+		PanelLeft + 48, PanelTop + 322, SDL_Color{ 164, 155, 138, 255 });
 	if (!Screen->GetStatusMessage().empty())
 		RenderText(Context->Store.GetFont(Game::Assets::FontAssetDebugFont), Screen->GetStatusMessage(),
-			252, 520, SDL_Color{ 220, 115, 93, 255 });
+			PanelLeft + 48, PanelTop + 360, SDL_Color{ 220, 115, 93, 255 });
 
 	DrawOptionsButton(*this, Context, Screen->BackButton);
 	Display();

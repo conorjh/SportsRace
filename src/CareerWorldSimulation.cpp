@@ -41,9 +41,8 @@ namespace CareerWorldSimulationDetail
 	constexpr unsigned int CareerCityGridWidth = 8;
 	constexpr unsigned int CareerCityGridHeight = 5;
 	constexpr unsigned int CareerCitySpriteCount = 12;
-	constexpr std::size_t CareerStarterOwnedRacerCount = 2;
-	constexpr std::size_t CareerTargetAiPopulation = 488;
-	constexpr std::size_t CareerTargetPopulation = CareerTargetAiPopulation + CareerStarterOwnedRacerCount;
+	constexpr std::size_t CareerTargetAiPopulation = 490;
+	constexpr std::size_t CareerTargetPopulation = CareerTargetAiPopulation;
 	constexpr std::size_t CareerLeagueSize = 12;
 	constexpr std::size_t CareerAmateurLeagueSize = 8;
 	constexpr std::size_t CareerNationalDivisionCount = 4;
@@ -384,7 +383,7 @@ namespace CareerWorldSimulationDetail
 				Plot.Name = CityName + " Breeding Clinic";
 				break;
 			case Game::Career::CityPlotType::Stable:
-				Plot.Name = CityName == "Northbridge" ? "Your Stable" : CityName + " Stable";
+				Plot.Name = CityName + " Racing Stable";
 				break;
 			default:
 				break;
@@ -1017,12 +1016,12 @@ namespace CareerWorldSimulationDetail
 		return WorldRace;
 	}
 
-	CareerRacerState MakeRacerWorldState(CareerData& Data, Racer* Runner, std::uint64_t CityId = 0)
+	CareerRacerState MakeRacerWorldState(CareerData& Data, Racer* Runner, std::uint64_t BasedInCityId = 0)
 	{
 		CareerRacerState State;
 		State.Runner = Runner;
-		State.CityId = CityId;
-		if (State.CityId == 0 && !Data.Cities.empty())
+		State.BasedInCityId = BasedInCityId;
+		if (State.BasedInCityId == 0 && !Data.Cities.empty())
 		{
 			std::vector<double> PopulationWeights;
 			PopulationWeights.reserve(Data.Cities.size());
@@ -1030,7 +1029,7 @@ namespace CareerWorldSimulationDetail
 				PopulationWeights.push_back(static_cast<double>(City.Population));
 			std::discrete_distribution<std::size_t> CityDistribution(PopulationWeights.begin(),
 				PopulationWeights.end());
-			State.CityId = Data.Cities[CityDistribution(Data.WorldRandom)].Id;
+			State.BasedInCityId = Data.Cities[CityDistribution(Data.WorldRandom)].Id;
 		}
 		State.Cash = CareerStartingCash;
 		State.StartingCash = CareerStartingCash;
@@ -1058,7 +1057,7 @@ namespace CareerWorldSimulationDetail
 		CareerRacerState* RetiredState = FindRacerState(Data, Runner);
 		if (RetiredState == nullptr || RetiredState->Activity == CareerRacerActivity::Retired)
 			return;
-		const std::uint64_t ReplacementCityId = RetiredState->CityId;
+		const std::uint64_t ReplacementBaseCityId = RetiredState->BasedInCityId;
 		RetiredState->Activity = CareerRacerActivity::Retired;
 		RetiredState->RetiredAtMs = Data.WorldClock.NowMs();
 		RetiredState->ActiveRaceId = 0;
@@ -1071,9 +1070,7 @@ namespace CareerWorldSimulationDetail
 		}
 
 		Racer* Replacement = Data.Racers.Make();
-		CareerRacerState ReplacementState = MakeRacerWorldState(Data, Replacement);
-		if (ReplacementCityId != 0)
-			ReplacementState.CityId = ReplacementCityId;
+		CareerRacerState ReplacementState = MakeRacerWorldState(Data, Replacement, ReplacementBaseCityId);
 		Data.RacerStates.push_back(std::move(ReplacementState));
 	}
 
@@ -1510,7 +1507,9 @@ namespace CareerWorldSimulationDetail
 						State.Activity == CareerRacerActivity::WaitingForLeague;
 					if (State.Runner == nullptr || State.LeagueId != 0 || !IsAvailable ||
 						IsPendingWorldRaceEntrant(Data, State.Runner) ||
-						(League.Division != CareerLeagueDivision::Amateur && !State.HasRacingLicense))
+						(League.Division != CareerLeagueDivision::Amateur && !State.HasRacingLicense) ||
+						(League.Division == CareerLeagueDivision::Amateur &&
+							!Game::Career::IsRacerEligibleForLeagueLocation(Data, State, League)))
 						continue;
 					if (Candidate == nullptr)
 					{
@@ -2887,14 +2886,6 @@ void Game::Career::CareerOrchestrator::Init()
 	for (std::size_t Index = Data->Racers.Size(); Index < CareerTargetPopulation; ++Index)
 		Data->Racers.Make(NameMaker.Make());
 
-	if (Data->OwnedRacers.empty())
-	{
-		std::vector<Race::Racer*> AvailableRacers = Data->Racers.GetAll();
-		std::shuffle(AvailableRacers.begin(), AvailableRacers.end(), Data->WorldRandom);
-		const std::size_t OwnedCount = std::min(CareerStarterOwnedRacerCount, AvailableRacers.size());
-		Data->OwnedRacers.assign(AvailableRacers.begin(), AvailableRacers.begin() + OwnedCount);
-	}
-
 	Data->RacerStates.clear();
 	std::vector<Race::Racer*> ActiveRoster = Data->Racers.GetAll();
 	ActiveRoster.erase(std::remove_if(ActiveRoster.begin(), ActiveRoster.end(), [this](const Race::Racer* Runner)
@@ -2959,8 +2950,9 @@ void Game::Career::CareerOrchestrator::Init()
 		const CareerRacerState* State = FindRacerState(*Data, Runner);
 		if (State == nullptr)
 			continue;
+		const std::uint64_t RacerCityId = State->BasedInCityId;
 		for (std::size_t CityIndex = 0; CityIndex < Data->Cities.size(); ++CityIndex)
-			if (Data->Cities[CityIndex].Id == State->CityId)
+			if (Data->Cities[CityIndex].Id == RacerCityId)
 			{
 				CityRosters[CityIndex].push_back(Runner);
 				break;
@@ -3295,6 +3287,9 @@ bool Game::Career::CareerOrchestrator::CanJoinLeague(std::uint64_t LeagueId) con
 {
 	if (Data == nullptr || Profile == nullptr || !Data->WorldSimulationInitialized ||
 		Data->PlayerLeagueRacer != nullptr || Data->PlayerLeagueId != 0 ||
+		Data->PlayerStableCityId == 0 || Data->OwnedRacers.empty() ||
+		std::none_of(Data->OwnedRacers.begin(), Data->OwnedRacers.end(),
+			[](const Racer* Runner) { return Runner != nullptr; }) ||
 		Data->PendingPlayerLeagueRace.Preparing || Data->PendingPlayerLeagueRace.Active)
 		return false;
 
@@ -3310,7 +3305,11 @@ bool Game::Career::CareerOrchestrator::JoinLeague(std::uint64_t LeagueId)
 		return false;
 
 	CareerLeague* League = FindLeague(*Data, LeagueId);
-	if (League == nullptr)
+	if (League == nullptr || Data->OwnedRacers.empty())
+		return false;
+	const auto PlayerRacer = std::find_if(Data->OwnedRacers.begin(), Data->OwnedRacers.end(),
+		[](const Racer* Runner) { return Runner != nullptr; });
+	if (PlayerRacer == Data->OwnedRacers.end())
 		return false;
 	const std::size_t MissingAiCount = CareerAmateurLeagueSize - League->Entrants.size() - 1;
 	if (MissingAiCount > std::numeric_limits<std::size_t>::max() - Data->TargetAiPopulation)
@@ -3319,23 +3318,7 @@ bool Game::Career::CareerOrchestrator::JoinLeague(std::uint64_t LeagueId)
 		return false;
 	}
 
-	unsigned int PlayerId = Profile->MainFella.GUID.GUID;
-	if (PlayerId == 0 || Data->Racers.Get(PlayerId) != nullptr)
-	{
-		std::uint64_t CandidateId = 1;
-		while (CandidateId <= std::numeric_limits<unsigned int>::max() &&
-			Data->Racers.Get(static_cast<unsigned int>(CandidateId)) != nullptr)
-			++CandidateId;
-		if (CandidateId > std::numeric_limits<unsigned int>::max())
-		{
-			spdlog::error("Cannot join league {}: no unique racer identifier remains.", League->Name);
-			return false;
-		}
-		PlayerId = static_cast<unsigned int>(CandidateId);
-	}
-
-	Profile->MainFella.GUID.GUID = PlayerId;
-	Data->PlayerLeagueRacer = &Profile->MainFella;
+	Data->PlayerLeagueRacer = *PlayerRacer;
 	Data->PlayerLeagueId = League->Id;
 	League->IsOpenLobby = false;
 	League->Entrants.insert(League->Entrants.begin(), Data->PlayerLeagueRacer);

@@ -42,6 +42,7 @@ namespace Game
 		class PostRaceScreen final : public AppScreen
 		{
 			friend class Game::Render::PostRaceRenderer;
+			void UpdateLayout();
 
 			std::shared_ptr<Career::CareerRaceHistoryReplay> HistoricalReplayOwner;
 			const Race::Race* CompletedRace;

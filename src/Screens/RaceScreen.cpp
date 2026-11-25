@@ -17,7 +17,7 @@ namespace RaceScreenDetail
 	constexpr unsigned int RaceLaneSpacing = 40;
 	constexpr unsigned int RaceSpectatorLaneSpacing = 36;
 	constexpr unsigned int RaceScreenCameraLookAhead = 75;
-	constexpr int RaceSpectatorControlBarTop = 698;
+	constexpr int RaceSpectatorControlBarHeight = 70;
 	constexpr int RaceSpectatorProgressBarY = 74;
 	constexpr int RaceSpectatorButtonY = 712;
 	constexpr int RaceSpectatorButtonWidth = 64;
@@ -294,6 +294,15 @@ Game::Screens::AppScreen* Game::Screens::RaceScreen::Update()
 {
 	using namespace Game::Race;
 	using namespace Game::Audio;
+	if (IsWorldRaceViewer && Data.RenderContext != nullptr)
+	{
+		const int ScreenWidth = static_cast<int>(Data.RenderContext->ScreenWidth);
+		const int ScreenHeight = static_cast<int>(Data.RenderContext->ScreenHeight);
+		PreviousViewedRacerButton.SetBounds(ScreenWidth / 2 - 152, ScreenHeight - 56,
+			RaceSpectatorButtonWidth, RaceSpectatorButtonHeight);
+		NextViewedRacerButton.SetBounds(ScreenWidth / 2 + 88, ScreenHeight - 56,
+			RaceSpectatorButtonWidth, RaceSpectatorButtonHeight);
+	}
 
 	// Player races advance on fixed ticks; world-race viewers sample their precomputed timeline.
 	while (!IsWorldRaceViewer && SDL_GetTicks() > LastFrameEnd + RaceTickIntervalMs)
@@ -431,7 +440,9 @@ void Game::Render::RaceScreenRenderer::DrawRacer(const Race::Racer& Racer, unsig
 	using namespace Game::Race;
 
 	const unsigned int LaneSpacing = Screen->IsWorldRaceViewer ? RaceSpectatorLaneSpacing : RaceLaneSpacing;
-	const unsigned int yOffset = RaceLaneBaseY + (Track + 1) * LaneSpacing;
+	const unsigned int RaceAreaOffset = Context->ScreenHeight > 768
+		? (Context->ScreenHeight - 768) / 2 : 0;
+	const unsigned int yOffset = RaceLaneBaseY + RaceAreaOffset + (Track + 1) * LaneSpacing;
 	unsigned int StaggerOffset = (Track + 1) * 20;
 	int xOffset = 200;
 	if (Camera.CameraX > 0)
@@ -476,6 +487,8 @@ void Game::Render::RaceScreenRenderer::DrawRacer(const Race::Racer& Racer, unsig
 void Game::Render::RaceScreenRenderer::DrawWinners()
 {
 	using namespace std;
+	const int HorizontalOffset = (static_cast<int>(Context->ScreenWidth) - 1024) / 2;
+	const int VerticalOffset = (static_cast<int>(Context->ScreenHeight) - 768) / 2;
 	auto& Race = Screen->RaceSM->Data.ThisRace;
 	const auto& Results = Race.Result.RacerResults;
 
@@ -487,7 +500,7 @@ void Game::Render::RaceScreenRenderer::DrawWinners()
 	if (Results.empty() || (!Race.IsComplete() && Race.FinishedCount() == 0))
 		return;
 
-	SDL_Rect RenderQuad2 = { 280, 220 , 378 , 359 };
+	SDL_Rect RenderQuad2 = { 280 + HorizontalOffset, 220 + VerticalOffset, 378, 359 };
 	RenderImage(Context->Store.GetImage(Assets::ImageAssetRaceBackground)->Texture, NULL, &RenderQuad2);
 	unsigned int PodiumRowCount = 0;
 	for (unsigned int Rank = Game::Race::FirstPlaceRank; Rank <= Game::Race::ThirdPlaceRank; ++Rank)
@@ -511,15 +524,18 @@ void Game::Render::RaceScreenRenderer::DrawWinners()
 				? Race.Financials.SecondPlacePrize
 				: Race.Financials.ThirdPlacePrize;
 		RenderText(Context->Store.GetFont(Assets::FontAssetMainFont), "Wins " + to_string(WinAmount),
-			290, RaceResultsFirstRowY + RowOffset, { 255,255,255 });
+			290 + HorizontalOffset, RaceResultsFirstRowY + RowOffset + VerticalOffset, { 255,255,255 });
 		RenderText(Context->Store.GetFont(Assets::FontAssetMainFont), "#" + to_string(Rank) + ": " + RankedResult->Racer->Name,
-			470, RaceResultsFirstRowY + RowOffset, Screen->IsPlayerOwnedRacer(RankedResult->Racer)
+			470 + HorizontalOffset, RaceResultsFirstRowY + RowOffset + VerticalOffset,
+			Screen->IsPlayerOwnedRacer(RankedResult->Racer)
 				? Render::PlayerOwnedRacerHighlightColor : SDL_Color{ 255,255,255 });
 		RenderText(Context->Store.GetFont(Assets::FontAssetMainFont),
 			to_string(static_cast<double>(RankedResult->Ms) / 1000.0) + "sec",
-			470, RaceResultsFirstRowY + RowOffset + 22, { 255,255,255 });
+			470 + HorizontalOffset, RaceResultsFirstRowY + RowOffset + 22 + VerticalOffset,
+			{ 255,255,255 });
 
-		SDL_Rect RenderQuad = { 380, RaceResultsFirstRowY - 10 + RowOffset, 50, 50 };
+		SDL_Rect RenderQuad = { 380 + HorizontalOffset, RaceResultsFirstRowY - 10 + RowOffset + VerticalOffset,
+			50, 50 };
 		RenderImage(Context->Store.GetImage(Assets::ImageAssetHead)->Texture, NULL, &RenderQuad);
 		++PodiumRowCount;
 	}
@@ -534,7 +550,8 @@ void Game::Render::RaceScreenRenderer::DrawWinners()
 			continue;
 
 		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), "Pulled-up: " + Result.Racer->Name,
-			290, PulledUpY + static_cast<int>(PulledUpRow) * RaceResultsPulledUpRowSpacing,
+			290 + HorizontalOffset, PulledUpY + static_cast<int>(PulledUpRow) * RaceResultsPulledUpRowSpacing +
+			VerticalOffset,
 			Screen->IsPlayerOwnedRacer(Result.Racer)
 				? Render::PlayerOwnedRacerHighlightColor : SDL_Color{ 255,255,255 });
 		++PulledUpRow;
@@ -543,7 +560,8 @@ void Game::Render::RaceScreenRenderer::DrawWinners()
 
 void Game::Render::RaceScreenRenderer::DrawBackground()
 {
-	auto ScreenWidth = 1024, ScreenHeight = 768;
+	auto ScreenWidth = static_cast<int>(Context->ScreenWidth);
+	auto ScreenHeight = static_cast<int>(Context->ScreenHeight);
 
 	//track
 	auto TrackWidth = ScreenWidth, TrackHeight = ScreenHeight;
@@ -582,8 +600,9 @@ void Game::Render::RaceScreenRenderer::DrawProgressBar()
 {
 	//Render red filled quad
 	int W = 200, H = 7;
-	int X = (1024 / 2) - (W / 2);
-	int Y = Screen->IsWorldRaceViewer ? RaceSpectatorProgressBarY : 740;
+	int X = static_cast<int>(Context->ScreenWidth) / 2 - W / 2;
+	int Y = Screen->IsWorldRaceViewer ? RaceSpectatorProgressBarY :
+		static_cast<int>(Context->ScreenHeight) - 28;
 	SDL_Rect fillRect = { X ,Y , W,H };
 	SDL_SetRenderDrawColor(Context->MainRenderer, 0, 0, 0, 255);
 	SDL_FRect fillRectF;
@@ -623,8 +642,9 @@ void Game::Render::RaceScreenRenderer::DrawSpectatorControls()
 	if (Entrants.empty())
 		return;
 
-	const SDL_FRect ControlBar{ 0.0f, static_cast<float>(RaceSpectatorControlBarTop),
-		static_cast<float>(Context->ScreenWidth), static_cast<float>(Context->ScreenHeight - RaceSpectatorControlBarTop) };
+	const int ControlBarTop = static_cast<int>(Context->ScreenHeight) - RaceSpectatorControlBarHeight;
+	const SDL_FRect ControlBar{ 0.0f, static_cast<float>(ControlBarTop),
+		static_cast<float>(Context->ScreenWidth), static_cast<float>(RaceSpectatorControlBarHeight) };
 	SDL_SetRenderDrawColor(Context->MainRenderer, 23, 22, 20, 255);
 	SDL_RenderFillRect(Context->MainRenderer, &ControlBar);
 	SDL_SetRenderDrawColor(Context->MainRenderer, 75, 70, 60, 255);
@@ -636,10 +656,10 @@ void Game::Render::RaceScreenRenderer::DrawSpectatorControls()
 	const Race::Racer* ViewedRacer = Screen->GetViewedRacer();
 	RenderText(Context->Store.GetFont(Assets::FontAssetDebugFont),
 		"RACER " + std::to_string(Screen->ViewedRacerIndex + 1) + " / " + std::to_string(Entrants.size()),
-		438, RaceSpectatorControlBarTop + 6, SpectatorMutedColor);
+		static_cast<int>(Context->ScreenWidth) / 2 - 74, ControlBarTop + 6, SpectatorMutedColor);
 	if (ViewedRacer != nullptr)
 		RenderText(Context->Store.GetFont(Assets::FontAssetInfoFont), ViewedRacer->Name,
-			438, RaceSpectatorControlBarTop + 26,
+			static_cast<int>(Context->ScreenWidth) / 2 - 74, ControlBarTop + 26,
 			Screen->IsPlayerOwnedRacer(ViewedRacer) ? Render::PlayerOwnedRacerHighlightColor :
 				SpectatorTextColor);
 }
